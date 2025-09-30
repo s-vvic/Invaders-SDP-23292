@@ -56,6 +56,42 @@ public class TitleScreen extends Screen {
 		super.update();
 
 		draw();
+
+		// Mouse hover logic
+		int mouseX = this.inputManager.getMouseX();
+		int mouseY = this.inputManager.getMouseY();
+
+		// Approximate bounding boxes for menu items.
+		// Y positions are the baseline of the text.
+		// We assume a font height of 15 and a width of 120 for hit detection.
+		int menuItemWidth = 120;
+		int fontHeight = 15;
+
+		int playY = this.height / 3 * 2;
+		int playX = this.width / 2 - menuItemWidth / 2;
+
+		int highScoresY = this.height / 3 * 2 + fontHeight * 2;
+		int highScoresX = this.width / 2 - menuItemWidth / 2;
+
+		int exitY = this.height / 3 * 2 + fontHeight * 4;
+		int exitX = this.width / 2 - menuItemWidth / 2;
+
+		// Check for hover over Play
+		if (mouseX >= playX && mouseX <= playX + menuItemWidth &&
+			mouseY >= playY - fontHeight && mouseY <= playY) {
+			this.returnCode = 2;
+		}
+		// Check for hover over High scores
+		else if (mouseX >= highScoresX && mouseX <= highScoresX + menuItemWidth &&
+			mouseY >= highScoresY - fontHeight && mouseY <= highScoresY) {
+			this.returnCode = 3;
+		}
+		// Check for hover over Exit
+		else if (mouseX >= exitX && mouseX <= exitX + menuItemWidth &&
+			mouseY >= exitY - fontHeight && mouseY <= exitY) {
+			this.returnCode = 0;
+		}
+
 		if (this.selectionCooldown.checkFinished()
 				&& this.inputDelay.checkFinished()) {
 			if (inputManager.isKeyDown(KeyEvent.VK_UP)
@@ -68,8 +104,10 @@ public class TitleScreen extends Screen {
 				nextMenuItem();
 				this.selectionCooldown.reset();
 			}
-			if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
+			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
+					|| this.inputManager.isMouseClicked()) {
 				this.isRunning = false;
+			}
 		}
 	}
 
