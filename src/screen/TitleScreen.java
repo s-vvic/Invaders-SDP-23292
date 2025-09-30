@@ -1,6 +1,7 @@
 package screen;
 
 import java.awt.event.KeyEvent;
+import java.awt.Rectangle;
 
 import engine.Cooldown;
 import engine.Core;
@@ -15,7 +16,7 @@ public class TitleScreen extends Screen {
 
 	/** Milliseconds between changes in user selection. */
 	private static final int SELECTION_TIME = 200;
-	
+
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
 
@@ -58,6 +59,7 @@ public class TitleScreen extends Screen {
 		draw();
 		if (this.selectionCooldown.checkFinished()
 				&& this.inputDelay.checkFinished()) {
+			// Keyboard input
 			if (inputManager.isKeyDown(KeyEvent.VK_UP)
 					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
 				previousMenuItem();
@@ -68,8 +70,36 @@ public class TitleScreen extends Screen {
 				nextMenuItem();
 				this.selectionCooldown.reset();
 			}
-			if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
+			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)){
 				this.isRunning = false;
+			}
+
+			// Mouse input
+			int mouseX = inputManager.getMouseX();
+			int mouseY = inputManager.getMouseY();
+
+			// Define button areas (these are estimates, might need adjustment)
+			Rectangle playArea = new Rectangle(this.width / 2 - 50, this.height / 3 * 2 - 15, 100, 30);
+			Rectangle highScoresArea = new Rectangle(this.width / 2 - 75, this.height / 3 * 2 + 25, 150, 30);
+			Rectangle exitArea = new Rectangle(this.width / 2 - 40, this.height / 3 * 2 + 65, 80, 30);
+
+			// Update selection based on mouse hover
+			if (playArea.contains(mouseX, mouseY)) {
+				this.returnCode = 2;
+			} else if (highScoresArea.contains(mouseX, mouseY)) {
+				this.returnCode = 3;
+			} else if (exitArea.contains(mouseX, mouseY)) {
+				this.returnCode = 0;
+			}
+
+			if (inputManager.isMouseButtonDown()) {
+				if (playArea.contains(mouseX, mouseY)
+						|| highScoresArea.contains(mouseX, mouseY)
+						|| exitArea.contains(mouseX, mouseY)) {
+					this.isRunning = false;
+					this.selectionCooldown.reset();
+				}
+			}
 		}
 	}
 
