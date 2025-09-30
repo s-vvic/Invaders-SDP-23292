@@ -162,6 +162,13 @@ pip-log.txt
 # Mac crap
 .DS_Store
 
+#################
+## INTELLIJ IDEA
+#################
+.idea
+*.iml
+out
+
 #############
 ## Custom
 #############
@@ -169,5 +176,9 @@ pip-log.txt
 log*
 *.ttf
 .checkstyle
+<<<<<<< HEAD
 scores
 res/
+=======
+res
+>>>>>>> 449d353f594b71b57fc97b15613f5b50189ad2e4
