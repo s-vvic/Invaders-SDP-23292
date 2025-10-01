@@ -113,15 +113,18 @@ public class TitleScreen extends Screen {
 			
 
 			// Define button areas (these are estimates, might need adjustment)
-			Rectangle playArea = new Rectangle(this.width / 2 - 50, this.height / 3 * 2 - 15, 100, 30);
-			Rectangle highScoresArea = new Rectangle(this.width / 2 - 75, this.height / 3 * 2 + 25, 150, 30);
-			Rectangle exitArea = new Rectangle(this.width / 2 - 40, this.height / 3 * 2 + 65, 80, 30);
+			Rectangle playArea = new Rectangle(this.width / 2 - 50, this.height / 3 * 2 - 10, 100, 30);
+			Rectangle highScoresArea = new Rectangle(this.width / 2 - 75, this.height / 3 * 2 + 20, 150, 30);
+			Rectangle shopArea = new Rectangle(this.width / 2 - 40, this.height / 3 * 2 + 45, 80, 30);
+			Rectangle exitArea = new Rectangle(this.width / 2 - 40, this.height / 3 * 2 + 75, 80, 30);
 
 			// Update selection based on mouse hover
 			if (playArea.contains(mouseX, mouseY)) {
 				this.returnCode = 2;
 			} else if (highScoresArea.contains(mouseX, mouseY)) {
 				this.returnCode = 3;
+			} else if (shopArea.contains(mouseX, mouseY)) {
+				this.returnCode = 4;
 			} else if (exitArea.contains(mouseX, mouseY)) {
 				this.returnCode = 0;
 			}
@@ -141,7 +144,7 @@ public class TitleScreen extends Screen {
 	 * Shifts the focus to the next menu item.
 	 */
 	private void nextMenuItem() {
-		if (this.returnCode == 3)
+		if (this.returnCode == 4)
 			this.returnCode = 0;
 		else if (this.returnCode == 0)
 			this.returnCode = 2;
@@ -154,7 +157,7 @@ public class TitleScreen extends Screen {
 	 */
 	private void previousMenuItem() {
 		if (this.returnCode == 0)
-			this.returnCode = 3;
+			this.returnCode = 4;
 		else if (this.returnCode == 2)
 			this.returnCode = 0;
 		else
