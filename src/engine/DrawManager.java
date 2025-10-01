@@ -239,9 +239,24 @@ public final class DrawManager {
 	public void drawScore(final Screen screen, final int score) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		String scoreString = String.format("%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 60, 25);
+		String scoreString = String.format("Score:%04d", score);
+		backBufferGraphics.drawString(scoreString, screen.getWidth() - 120, 25);
 	}
+
+    /**
+     * Draws current score on screen.
+     *
+     * @param screen
+     *            Screen to draw on.
+     * @param coin
+     *            Current coin.
+     */
+    public void drawCoin(final Screen screen, final int coin) {
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.WHITE);
+        String scoreString = String.format("%03d$", coin);
+        backBufferGraphics.drawString(scoreString, screen.getWidth() - 200, 25);
+    }
 
 	/**
 	 * Draws number of remaining lives on screen.
