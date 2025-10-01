@@ -21,3 +21,8 @@
 - 5. Types:
 Offensive: Multi-Shot, Attack Speed Increase, Penetration, Explosion
 Defensive: Enemy Movement (Slow, Stop, Retreat), Shield (Use or Duration), Trench (Create or Repair), and Recovery. 
+## Team Dependencies
+- 1. Ship variety - Slow Item, Attack Item, etc.
+- 2. Level design - Initialization or maintain  if Stage is finished
+- 3. Gameplay HUD - Item description
+- 4. Visual effects system - Item effect 
