@@ -245,9 +245,24 @@ public final class DrawManager {
 	public void drawScore(final Screen screen, final int score) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		String scoreString = String.format("%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 60, 25);
+		String scoreString = String.format("Score:%04d", score);
+		backBufferGraphics.drawString(scoreString, screen.getWidth() - 120, 25);
 	}
+
+    /**
+     * Draws current score on screen.
+     *
+     * @param screen
+     *            Screen to draw on.
+     * @param coin
+     *            Current coin.
+     */
+    public void drawCoin(final Screen screen, final int coin) {
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.WHITE);
+        String scoreString = String.format("%03d$", coin);
+        backBufferGraphics.drawString(scoreString, screen.getWidth() - 200, 25);
+    }
 
 	/**
 	 * Draws number of remaining lives on screen.
@@ -311,6 +326,7 @@ public final class DrawManager {
 	public void drawMenu(final Screen screen, final int option) {
 		String playString = "Play";
 		String highScoresString = "High scores";
+		String shopString = "shop";
 		String exitString = "exit";
 
 		if (option == 2)
@@ -325,12 +341,18 @@ public final class DrawManager {
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, highScoresString, screen.getHeight()
 				/ 3 * 2 + fontRegularMetrics.getHeight() * 2);
+		if (option == 4)
+			backBufferGraphics.setColor(Color.GREEN);
+		else
+			backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, shopString, screen.getHeight()
+				/ 3 * 2 + fontRegularMetrics.getHeight() * 4);
 		if (option == 0)
 			backBufferGraphics.setColor(Color.GREEN);
 		else
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, exitString, screen.getHeight() / 3
-				* 2 + fontRegularMetrics.getHeight() * 4);
+				* 2 + fontRegularMetrics.getHeight() * 6);
 	}
 
 	/**

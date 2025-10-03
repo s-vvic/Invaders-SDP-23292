@@ -54,3 +54,9 @@ We will implement at least five detailed requirements:
 
   5.   Display the current amount of currency on the gameplay HUD
 
+
+## Depencies on other teams :
+
+  1.   Player & Enemy Ship Variety (Team 9) : Collaboration is needed to apply item effects and set currency/tem drop rates for enemies. Can defined drop rules --> e.g., if player kill the enemies simultaneously, the currency will be multiply.
+
+  2.   Gameplay HUD (Team 8) : Collaboration required to display acquired currency/item information on screen. Displays the play's current currency in real time.
