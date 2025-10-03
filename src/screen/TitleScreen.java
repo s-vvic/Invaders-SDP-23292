@@ -106,7 +106,7 @@ public class TitleScreen extends Screen {
 			Rectangle playArea = new Rectangle(this.width / 2 - 50, this.height / 3 * 2 - 15, 100, 30);
 			Rectangle highScoresArea = new Rectangle(this.width / 2 - 75, this.height / 3 * 2 + 25, 150, 30);
 			Rectangle exitArea = new Rectangle(this.width / 2 - 40, this.height / 3 * 2 + 65, 80, 30);
-			Rectangle soundArea = new Rectangle(this.width * 4 / 5 - 16, this.height * 4 / 5 + 16, 32, 32);
+			Rectangle soundArea = new Rectangle(this.width * 4 / 5 - 10, this.height * 4 / 5 + 16, 32, 32);
 
 			// Update selection based on mouse hover
 			if (playArea.contains(mouseX, mouseY)) {
