@@ -79,7 +79,7 @@ public class TitleScreen extends Screen {
 				if (this.returnCode != 5) {
 					this.isRunning = false;
 				} else {
-					soundButton.changeSoundState();
+					this.soundButton.changeSoundState();
 					// TODO : Sound setting.
 
 					this.selectionCooldown.reset();
@@ -88,13 +88,13 @@ public class TitleScreen extends Screen {
 			if (inputManager.isKeyDown(KeyEvent.VK_RIGHT)
 					|| inputManager.isKeyDown(KeyEvent.VK_D)) {
 				this.returnCode = 5;
-				soundButton.setColor(Color.GREEN);
+				this.soundButton.setColor(Color.GREEN);
 				this.selectionCooldown.reset();
 			}
 			if (this.returnCode == 5 && inputManager.isKeyDown(KeyEvent.VK_LEFT)
 					|| inputManager.isKeyDown(KeyEvent.VK_A)) {
 				this.returnCode = 4;
-				soundButton.setColor(Color.WHITE);
+				this.soundButton.setColor(Color.WHITE);
 				this.selectionCooldown.reset();
 			}
 
@@ -117,11 +117,11 @@ public class TitleScreen extends Screen {
 				this.returnCode = 0;
 			} else if (soundArea.contains(mouseX, mouseY)) {
 				this.returnCode = 5;
-				soundButton.setColor(Color.GREEN);
+				this.soundButton.setColor(Color.GREEN);
 			} 
 
 			if (this.returnCode != 5)
-				soundButton.setColor(Color.WHITE);
+				this.soundButton.setColor(Color.WHITE);
 
 			if (inputManager.isMouseButtonDown()) {
 				if (playArea.contains(mouseX, mouseY)
@@ -130,7 +130,7 @@ public class TitleScreen extends Screen {
 					this.isRunning = false;
 					this.selectionCooldown.reset();
 				} else if (soundArea.contains(mouseX, mouseY)) {
-					soundButton.changeSoundState();
+					this.soundButton.changeSoundState();
 					// TODO : Sound setting.
 
 					this.selectionCooldown.reset();
@@ -148,7 +148,7 @@ public class TitleScreen extends Screen {
 		else if (this.returnCode == 0)
 			this.returnCode = 2;
 		else if (this.returnCode == 5) {
-			soundButton.setColor(Color.WHITE);
+			this.soundButton.setColor(Color.WHITE);
 			this.returnCode = 0;
 		}
 		else
@@ -164,7 +164,7 @@ public class TitleScreen extends Screen {
 		else if (this.returnCode == 2)
 			this.returnCode = 0;
 		else if (this.returnCode == 5) {
-			soundButton.setColor(Color.WHITE);
+			this.soundButton.setColor(Color.WHITE);
 			this.returnCode = 3;
 		}
 		else
@@ -179,9 +179,17 @@ public class TitleScreen extends Screen {
 
 		drawManager.drawTitle(this);
 		drawManager.drawMenu(this, this.returnCode);
-		drawManager.drawEntity(soundButton, this.width * 4 / 5 - 16,
+		drawManager.drawEntity(this.soundButton, this.width * 4 / 5 - 16,
 				this.height * 4 / 5 - 16);
 
 		drawManager.completeDrawing(this);
+	}
+
+	/**
+	 * Getter for the sound state.
+	 * @return isSoundOn of the sound button.
+	 */
+	public boolean getIsSoundOn() {
+		return this.soundButton.getIsSoundOn();
 	}
 }
