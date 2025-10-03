@@ -91,9 +91,9 @@ public class TitleScreen extends Screen {
 				soundButton.setColor(Color.GREEN);
 				this.selectionCooldown.reset();
 			}
-			if (inputManager.isKeyDown(KeyEvent.VK_LEFT)
+			if (this.returnCode == 5 && inputManager.isKeyDown(KeyEvent.VK_LEFT)
 					|| inputManager.isKeyDown(KeyEvent.VK_A)) {
-				previousMenuItem();
+				this.returnCode = 4;
 				soundButton.setColor(Color.WHITE);
 				this.selectionCooldown.reset();
 			}
@@ -165,7 +165,7 @@ public class TitleScreen extends Screen {
 			this.returnCode = 0;
 		else if (this.returnCode == 5) {
 			soundButton.setColor(Color.WHITE);
-			this.returnCode = 4;
+			this.returnCode = 3;
 		}
 		else
 			this.returnCode--;
