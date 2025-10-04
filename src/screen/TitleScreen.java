@@ -1,9 +1,12 @@
 package screen;
 
 import java.awt.event.KeyEvent;
+import java.awt.Rectangle;
+import java.awt.Color;
 
 import engine.Cooldown;
 import engine.Core;
+import entity.SoundButton;
 
 /**
  * Implements the title screen.
@@ -15,9 +18,11 @@ public class TitleScreen extends Screen {
 
 	/** Milliseconds between changes in user selection. */
 	private static final int SELECTION_TIME = 200;
-	
+
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
+
+	private SoundButton soundButton;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -34,6 +39,7 @@ public class TitleScreen extends Screen {
 
 		// Defaults to play.
 		this.returnCode = 2;
+		this.soundButton = new SoundButton(0, 0);
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 	}
@@ -58,6 +64,7 @@ public class TitleScreen extends Screen {
 		draw();
 		if (this.selectionCooldown.checkFinished()
 				&& this.inputDelay.checkFinished()) {
+			// Keyboard input
 			if (inputManager.isKeyDown(KeyEvent.VK_UP)
 					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
 				previousMenuItem();
@@ -68,8 +75,67 @@ public class TitleScreen extends Screen {
 				nextMenuItem();
 				this.selectionCooldown.reset();
 			}
-			if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-				this.isRunning = false;
+			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)){
+				if (this.returnCode != 5) {
+					this.isRunning = false;
+				} else {
+					this.soundButton.changeSoundState();
+					// TODO : Sound setting.
+
+					this.selectionCooldown.reset();
+				}
+			}
+			if (inputManager.isKeyDown(KeyEvent.VK_RIGHT)
+					|| inputManager.isKeyDown(KeyEvent.VK_D)) {
+				this.returnCode = 5;
+				this.soundButton.setColor(Color.GREEN);
+				this.selectionCooldown.reset();
+			}
+			if (this.returnCode == 5 && inputManager.isKeyDown(KeyEvent.VK_LEFT)
+					|| inputManager.isKeyDown(KeyEvent.VK_A)) {
+				this.returnCode = 4;
+				this.soundButton.setColor(Color.WHITE);
+				this.selectionCooldown.reset();
+			}
+
+			// Mouse input
+			int mouseX = inputManager.getMouseX();
+			int mouseY = inputManager.getMouseY();
+
+			// Define button areas (these are estimates, might need adjustment)
+			Rectangle playArea = new Rectangle(this.width / 2 - 50, this.height / 3 * 2 - 15, 100, 30);
+			Rectangle highScoresArea = new Rectangle(this.width / 2 - 75, this.height / 3 * 2 + 25, 150, 30);
+			Rectangle exitArea = new Rectangle(this.width / 2 - 40, this.height / 3 * 2 + 65, 80, 30);
+			Rectangle soundArea = new Rectangle(this.width * 4 / 5 - 10, this.height * 4 / 5 + 16, 32, 32);
+
+			// Update selection based on mouse hover
+			if (playArea.contains(mouseX, mouseY)) {
+				this.returnCode = 2;
+			} else if (highScoresArea.contains(mouseX, mouseY)) {
+				this.returnCode = 3;
+			} else if (exitArea.contains(mouseX, mouseY)) {
+				this.returnCode = 0;
+			} else if (soundArea.contains(mouseX, mouseY)) {
+				this.returnCode = 5;
+				this.soundButton.setColor(Color.GREEN);
+			} 
+
+			if (this.returnCode != 5)
+				this.soundButton.setColor(Color.WHITE);
+
+			if (inputManager.isMouseButtonDown()) {
+				if (playArea.contains(mouseX, mouseY)
+						|| highScoresArea.contains(mouseX, mouseY)
+						|| exitArea.contains(mouseX, mouseY)) {
+					this.isRunning = false;
+					this.selectionCooldown.reset();
+				} else if (soundArea.contains(mouseX, mouseY)) {
+					this.soundButton.changeSoundState();
+					// TODO : Sound setting.
+
+					this.selectionCooldown.reset();
+				}
+			}
 		}
 	}
 
@@ -81,6 +147,10 @@ public class TitleScreen extends Screen {
 			this.returnCode = 0;
 		else if (this.returnCode == 0)
 			this.returnCode = 2;
+		else if (this.returnCode == 5) {
+			this.soundButton.setColor(Color.WHITE);
+			this.returnCode = 0;
+		}
 		else
 			this.returnCode++;
 	}
@@ -93,6 +163,10 @@ public class TitleScreen extends Screen {
 			this.returnCode = 4;
 		else if (this.returnCode == 2)
 			this.returnCode = 0;
+		else if (this.returnCode == 5) {
+			this.soundButton.setColor(Color.WHITE);
+			this.returnCode = 3;
+		}
 		else
 			this.returnCode--;
 	}
@@ -105,7 +179,17 @@ public class TitleScreen extends Screen {
 
 		drawManager.drawTitle(this);
 		drawManager.drawMenu(this, this.returnCode);
+		drawManager.drawEntity(this.soundButton, this.width * 4 / 5 - 16,
+				this.height * 4 / 5 - 16);
 
 		drawManager.completeDrawing(this);
+	}
+
+	/**
+	 * Getter for the sound state.
+	 * @return isSoundOn of the sound button.
+	 */
+	public boolean getIsSoundOn() {
+		return this.soundButton.getIsSoundOn();
 	}
 }

@@ -75,7 +75,11 @@ public final class DrawManager {
 		/** Bonus ship. */
 		EnemyShipSpecial,
 		/** Destroyed enemy ship. */
-		Explosion
+		Explosion,
+		/** Active sound button. */
+		SoundOn,
+		/** Deactive sound button. */
+		SoundOff
 	};
 
 	/**
@@ -101,6 +105,8 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.EnemyShipC2, new boolean[12][8]);
 			spriteMap.put(SpriteType.EnemyShipSpecial, new boolean[16][7]);
 			spriteMap.put(SpriteType.Explosion, new boolean[13][7]);
+			spriteMap.put(SpriteType.SoundOn, new boolean[15][15]);
+			spriteMap.put(SpriteType.SoundOff, new boolean[15][15]);
 
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
@@ -335,7 +341,11 @@ public final class DrawManager {
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, highScoresString, screen.getHeight()
 				/ 3 * 2 + fontRegularMetrics.getHeight() * 2);
+<<<<<<< HEAD
 		if (option == 3)
+=======
+		if (option == 4)
+>>>>>>> 37495b09cb52af1eddf63989cde8110382f6f475
 			backBufferGraphics.setColor(Color.GREEN);
 		else
 			backBufferGraphics.setColor(Color.WHITE);
