@@ -9,7 +9,7 @@ import engine.DrawManager.SpriteType;
  */
 public class SoundButton extends Entity {
 
-    /** State of the Sound on/off */
+    /** State of all Sound on/off */
     private static boolean isSoundOn = true;
 
     /**
@@ -24,23 +24,18 @@ public class SoundButton extends Entity {
     public SoundButton(final int positionX, final int positionY) {
         super(positionX, positionY, 32, 32, Color.WHITE);
 
-        this.spriteType = SpriteType.SoundOn;
+        if (isSoundOn)
+            this.spriteType = SpriteType.SoundOn;
+        else
+            this.spriteType = SpriteType.SoundOff;
     }
 
     /**
      *  Getter the state of the sound.
      * @return isSoundOn
      */
-    public boolean getIsSoundOn() {
+    public static boolean getIsSoundOn() {
         return isSoundOn;
-    }
-
-    /**
-     *  Change the color of the button.
-     * @param color
-     */
-    public void setColor(Color color) {
-        this.color = color;
     }
 
     /**
