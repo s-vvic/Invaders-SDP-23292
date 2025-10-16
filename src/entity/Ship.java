@@ -26,6 +26,10 @@ public class Ship extends Entity {
 	private Cooldown shootingCooldown;
 	/** Time spent inactive between hits. */
 	private Cooldown destructionCooldown;
+	/** Cooldown for the invincibility shield. */
+	private Cooldown shieldCooldown;
+	/** Checks if the ship is invincible. */
+	private boolean isInvincible;
 
 	/**
 	 * Constructor, establishes the ship's properties.
@@ -39,8 +43,11 @@ public class Ship extends Entity {
 		super(positionX, positionY, 13 * 2, 8 * 2, Color.GREEN);
 
 		this.spriteType = SpriteType.Ship;
-		this.shootingCooldown = Core.getCooldown(SHOOTING_INTERVAL);
+		this.shootingCooldown = Core.getCooldown(ShopItem.getShootingInterval());
 		this.destructionCooldown = Core.getCooldown(1000);
+		this.shieldCooldown = Core.getCooldown(0);
+		this.isInvincible = false;
+
 	}
 
 	/**
@@ -48,7 +55,8 @@ public class Ship extends Entity {
 	 * reached.
 	 */
 	public final void moveRight() {
-		this.positionX += SPEED;
+		int shipspeed = ShopItem.getSHIPSpeedCOUNT();
+		this.positionX += SPEED*(1+shipspeed/10);
 	}
 
 	/**
@@ -56,7 +64,8 @@ public class Ship extends Entity {
 	 * reached.
 	 */
 	public final void moveLeft() {
-		this.positionX -= SPEED;
+		int shipspeed = ShopItem.getSHIPSpeedCOUNT();
+		this.positionX -= SPEED*(1+shipspeed/10);
 	}
 
     /**
@@ -64,7 +73,8 @@ public class Ship extends Entity {
      * reached.
      */
     public final void moveUp() {
-        this.positionY -= SPEED;
+		int shipspeed = ShopItem.getSHIPSpeedCOUNT();
+		this.positionY -= SPEED*(1+shipspeed/10);
     }
 
     /**
@@ -72,7 +82,8 @@ public class Ship extends Entity {
      * reached.
      */
     public final void moveDown() {
-        this.positionY += SPEED;
+		int shipspeed = ShopItem.getSHIPSpeedCOUNT();
+		this.positionY += SPEED*(1+shipspeed/10);
     }
 
 	/**
@@ -85,8 +96,30 @@ public class Ship extends Entity {
 	public final boolean shoot(final Set<Bullet> bullets) {
 		if (this.shootingCooldown.checkFinished()) {
 			this.shootingCooldown.reset();
-			bullets.add(BulletPool.getBullet(positionX + this.width / 2,
-					positionY, BULLET_SPEED));
+
+			// Get Spread Shot information from the DropItem class
+			int bulletCount = ShopItem.getMultiShotBulletCount();
+			int spacing = ShopItem.getMultiShotSpacing();
+
+			int centerX = positionX + this.width / 2;
+			int centerY = positionY;
+
+			if (bulletCount == 1) {
+				// Normal shot (when Spread Shot is not purchased)
+				bullets.add(BulletPool.getBullet(centerX, centerY, BULLET_SPEED));
+			} else {
+				// Fire Spread Shot
+				int startOffset = -(bulletCount / 2) * spacing;
+
+				for (int i = 0; i < bulletCount; i++) {
+					int offsetX = startOffset + (i * spacing);
+					bullets.add(BulletPool.getBullet(
+							centerX + offsetX,
+							centerY,
+							BULLET_SPEED
+					));
+				}
+			}
 			return true;
 		}
 		return false;
@@ -96,17 +129,23 @@ public class Ship extends Entity {
 	 * Updates status of the ship.
 	 */
 	public final void update() {
-		if (!this.destructionCooldown.checkFinished())
-			this.spriteType = SpriteType.ShipDestroyed;
-		else
-			this.spriteType = SpriteType.Ship;
+        if (this.isInvincible && this.shieldCooldown.checkFinished()) {
+            this.isInvincible = false;
+            this.setColor(Color.GREEN);
+        }
+
+        if (!this.destructionCooldown.checkFinished())
+            this.spriteType = SpriteType.ShipDestroyed;
+        else
+            this.spriteType = SpriteType.Ship;
 	}
 
 	/**
 	 * Switches the ship to its destroyed state.
 	 */
 	public final void destroy() {
-		this.destructionCooldown.reset();
+        if (!this.isInvincible)
+            this.destructionCooldown.reset();
 	}
 
 	/**
@@ -126,4 +165,26 @@ public class Ship extends Entity {
 	public final int getSpeed() {
 		return SPEED;
 	}
+
+    /**
+     * Getter for the ship's invincibility state.
+     *
+     * @return True if the ship is currently invincible.
+     */
+    public final boolean isInvincible() {
+        return this.isInvincible;
+    }
+
+    /**
+     * Activates the ship's invincibility shield for a given duration.
+     *
+     * @param duration
+     *            Duration of the invincibility in milliseconds.
+     */
+    public final void activateInvincibility(final int duration) {
+        this.isInvincible = true;
+        this.shieldCooldown.setMilliseconds(duration);
+        this.shieldCooldown.reset();
+        this.setColor(Color.BLUE);
+    }
 }
