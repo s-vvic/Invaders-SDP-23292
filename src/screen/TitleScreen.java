@@ -1,11 +1,10 @@
 package screen;
 
-import java.awt.event.KeyEvent;
-import java.awt.Color;
-
 import engine.Cooldown;
 import engine.Core;
 import entity.SoundButton;
+import java.awt.Color;
+import java.awt.event.KeyEvent;
 
 /**
  * Implements the title screen.
@@ -23,6 +22,7 @@ public class TitleScreen extends Screen {
 
 	/** Sound button on/off object. */
 	private SoundButton soundButton;
+	private int commandState = 0;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -62,40 +62,82 @@ public class TitleScreen extends Screen {
 		super.update();
 
 		draw();
-		if (this.selectionCooldown.checkFinished()
-				&& this.inputDelay.checkFinished()) {
-			if (inputManager.isKeyDown(KeyEvent.VK_UP)
-					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
-				previousMenuItem();
-				this.selectionCooldown.reset();
-			}
-			if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
-					|| inputManager.isKeyDown(KeyEvent.VK_S)) {
-				nextMenuItem();
-				this.selectionCooldown.reset();
-			}
-			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)){
-				if (this.returnCode != 5) {
-					this.isRunning = false;
-				} else {
-					this.soundButton.changeSoundState();
-					// TODO : Sound setting.
+        if (this.selectionCooldown.checkFinished()
+                && this.inputDelay.checkFinished()) {
+            
+            
+            if (inputManager.isKeyDown(KeyEvent.VK_UP)
+                    || inputManager.isKeyDown(KeyEvent.VK_W)) {
+                
+                if (this.commandState == 0 || this.commandState == 1) {
+                    this.commandState++;
+                } else {
+                    
+                    this.commandState = 0;
+                }
+                previousMenuItem();
+                this.selectionCooldown.reset();
+            }
+            
+            else if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
+                    || inputManager.isKeyDown(KeyEvent.VK_S)) {
+               
+                if (this.commandState == 2 || this.commandState == 3) {
+                    this.commandState++;
+                } else {
+                    this.commandState = 0;
+                }
+                nextMenuItem();
+                this.selectionCooldown.reset();
+            }
+          
+            else if (inputManager.isKeyDown(KeyEvent.VK_LEFT)
+                    || inputManager.isKeyDown(KeyEvent.VK_A)) {
+              
+                if (this.commandState == 4 || this.commandState == 6) {
+                    this.commandState++;
+                } else {
+                    this.commandState = 0;
+                }
+                if (this.returnCode == 5) { 
+                    this.returnCode = 4;
+                    this.soundButton.setColor(Color.WHITE);
+                }
+                this.selectionCooldown.reset();
+            }
+    
+            else if (inputManager.isKeyDown(KeyEvent.VK_RIGHT)
+                    || inputManager.isKeyDown(KeyEvent.VK_D)) {
+               
+                if (this.commandState == 5) {
+                    this.commandState++;
+                } 
+              
+                else if (this.commandState == 7) {
+                    this.returnCode = 6;
+                    this.isRunning = false;
+                } else {
+                    this.commandState = 0;
+                }
 
-					this.selectionCooldown.reset();
-				}
-			}
-			if (inputManager.isKeyDown(KeyEvent.VK_RIGHT)
-					|| inputManager.isKeyDown(KeyEvent.VK_D)) {
-				this.returnCode = 5;
-				this.soundButton.setColor(Color.GREEN);
-				this.selectionCooldown.reset();
-			}
-			if (this.returnCode == 5 && inputManager.isKeyDown(KeyEvent.VK_LEFT)
-					|| inputManager.isKeyDown(KeyEvent.VK_A)) {
-				this.returnCode = 4;
-				this.soundButton.setColor(Color.WHITE);
-				this.selectionCooldown.reset();
-			}
+                if (this.isRunning) { 
+                    this.returnCode = 5; 
+                    this.soundButton.setColor(Color.GREEN);
+                    this.selectionCooldown.reset();
+                }
+            }
+           
+            else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+               
+                this.commandState = 0;
+                
+                if (this.returnCode != 5) {
+                    this.isRunning = false;
+                } else {
+                    this.soundButton.changeSoundState();
+                    this.selectionCooldown.reset();
+                }
+            }
 		}
 	}
 

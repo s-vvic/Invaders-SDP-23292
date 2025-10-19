@@ -13,6 +13,7 @@ import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
+import screen.EasterEggScreen;
 
 /**
  * Implements core game logic.
@@ -173,6 +174,13 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
+			case 6:
+				currentScreen = new EasterEggScreen(width, height, FPS);
+                LOGGER.info("Starting Easter Egg screen.");
+                returnCode = frame.setScreen(currentScreen);
+                LOGGER.info("Closing Easter Egg screen.");
+                break;
+
 			default:
 				break;
 			}
