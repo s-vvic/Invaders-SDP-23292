@@ -6,6 +6,7 @@ import java.util.List;
 
 import engine.Core;
 import engine.Score;
+import engine.FadeManager;
 
 /**
  * Implements the high scores screen, it shows player records.
@@ -17,6 +18,7 @@ public class HighScoreScreen extends Screen {
 
 	/** List of past high scores. */
 	private List<Score> highScores;
+	private boolean isExiting;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -32,12 +34,15 @@ public class HighScoreScreen extends Screen {
 		super(width, height, fps);
 
 		this.returnCode = 1;
+		this.isExiting = false;
 
 		try {
 			this.highScores = Core.getFileManager().loadHighScores();
 		} catch (NumberFormatException | IOException e) {
 			logger.warning("Couldn't load high scores!");
 		}
+
+		FadeManager.getInstance().fadeIn();
 	}
 
 	/**
@@ -55,12 +60,22 @@ public class HighScoreScreen extends Screen {
 	 * Updates the elements on screen and checks for events.
 	 */
 	protected final void update() {
-		super.update();
+		if (this.isExiting) {
+			if (FadeManager.getInstance().isFadingComplete()) {
+				this.isRunning = false;
+			}
+			draw();
+			return;
+		}
 
+		super.update();
 		draw();
-		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
-				&& this.inputDelay.checkFinished())
-			this.isRunning = false;
+
+		// Pressing the spacebar will exit the screen after fading out.
+		if (!FadeManager.getInstance().isFading() && inputManager.isKeyDown(KeyEvent.VK_SPACE) && this.inputDelay.checkFinished()) {
+			this.isExiting = true;
+			FadeManager.getInstance().fadeOut();
+		}
 	}
 
 	/**

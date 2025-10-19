@@ -212,6 +212,7 @@ public final class DrawManager {
 	 *            Screen to draw on.
 	 */
 	public void completeDrawing(final Screen screen) {
+		FadeManager.getInstance().draw(backBufferGraphics);
 		graphics.drawImage(backBuffer, frame.getInsets().left,
 				frame.getInsets().top, frame);
 	}

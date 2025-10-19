@@ -79,4 +79,17 @@ public class Cooldown {
 		this.milliseconds = milliseconds;
 		this.duration = milliseconds;
 	}
+
+	/**
+	 * Returns the time passed since the cooldown was started.
+	 * 
+	 * @return Time passed in milliseconds.
+	 */
+	public final long timePassed() {
+		if (this.time == 0) {
+			return 0;
+		}
+		return System.currentTimeMillis() - this.time;
+	}
 }
+

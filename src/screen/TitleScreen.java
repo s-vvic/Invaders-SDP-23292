@@ -6,6 +6,7 @@ import java.awt.Color;
 import engine.Cooldown;
 import engine.Core;
 import entity.SoundButton;
+import engine.FadeManager;
 
 /**
  * Implements the title screen.
@@ -23,6 +24,9 @@ public class TitleScreen extends Screen {
 
 	/** Sound button on/off object. */
 	private SoundButton soundButton;
+
+	/** Flag to manage the screen exiting state. */
+	private boolean isExiting;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -42,6 +46,9 @@ public class TitleScreen extends Screen {
 		this.soundButton = new SoundButton(0, 0);
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
+		this.isExiting = false;
+
+		FadeManager.getInstance().fadeIn();
 	}
 
 	/**
@@ -59,10 +66,21 @@ public class TitleScreen extends Screen {
 	 * Updates the elements on screen and checks for events.
 	 */
 	protected final void update() {
-		super.update();
+		// If the screen is currently in the process of exiting, wait for the fade to complete.
+		if (this.isExiting) {
+			if (FadeManager.getInstance().isFadingComplete()) {
+				this.isRunning = false;
+			}
+			// Still waiting for fade to finish, so don't process any other logic.
+			draw();
+			return;
+		}
 
+		super.update();
 		draw();
-		if (this.selectionCooldown.checkFinished()
+
+		// Only process input if the screen is not currently fading.
+		if (!FadeManager.getInstance().isFading() && this.selectionCooldown.checkFinished()
 				&& this.inputDelay.checkFinished()) {
 			if (inputManager.isKeyDown(KeyEvent.VK_UP)
 					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
@@ -78,7 +96,9 @@ public class TitleScreen extends Screen {
 			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)){
 				/** select menu*/
 				if (this.returnCode != 5) {
-					this.isRunning = false;
+					// Instead of closing the screen, start the fade out process.
+					this.isExiting = true;
+					FadeManager.getInstance().fadeOut();
 				} else {
 					this.soundButton.changeSoundState();
 
@@ -89,7 +109,9 @@ public class TitleScreen extends Screen {
 					this.selectionCooldown.reset();
 					if (this.soundButton.isTeamCreditScreenPossible()) {
 						this.returnCode = 8;
-						this.isRunning = false;
+						// Also start the fade out process here.
+						this.isExiting = true;
+						FadeManager.getInstance().fadeOut();
 					} else {
 						this.selectionCooldown.reset();
 					}

@@ -11,6 +11,7 @@ import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
 import engine.GameTimer;
+import engine.FadeManager;
 import engine.AchievementManager;
 import engine.ItemHUDManager;
 import entity.*;
@@ -133,6 +134,8 @@ public class GameScreen extends Screen {
 			final Level level, final boolean bonusLife, final int maxLives,
 			final int width, final int height, final int fps) {
 		super(width, height, fps);
+
+		FadeManager.getInstance().fadeIn();
 
 		this.gameSettings = new GameSettings(level.getFormationWidth(), level.getFormationHeight(), level.getBaseSpeed(), level.getShootingFrecuency());
 		this.bonusLife = bonusLife;

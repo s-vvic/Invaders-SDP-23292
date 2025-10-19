@@ -3,6 +3,7 @@ package screen;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
+import engine.FadeManager;
 
 
 /**
@@ -11,8 +12,8 @@ import java.util.List;
  */
 public class CreditScreen extends Screen {
 
-    private List<Credit> creditList;
-
+    	private List<Credit> creditList;
+    	private boolean isExiting;
     public static class Credit {
         private final int no;
         private final String teamName;
@@ -41,15 +42,17 @@ public class CreditScreen extends Screen {
      * @param height Screen height
      * @param fps Frames per second
      */
-    public CreditScreen(final int width, final int height, final int fps) {
-        super(width, height, fps);
-
-        // When the screen closes, it returns to the main menu 1.
-        this.returnCode = 1;
-        this.creditList = new ArrayList<>();
-        loadCredits();
-    }
-
+    	public CreditScreen(final int width, final int height, final int fps) {
+    		super(width, height, fps);
+    
+    		// When the screen closes, it returns to the main menu 1.
+    		this.returnCode = 1;
+    		this.creditList = new ArrayList<>();
+    		loadCredits();
+    		this.isExiting = false;
+    
+    		FadeManager.getInstance().fadeIn();
+    	}
     /**
      * credit information
      */
@@ -81,15 +84,24 @@ public class CreditScreen extends Screen {
      * Every frame, we update screen elements and check for events.
      */
     @Override
-    protected final void update() {
-        super.update();
-        draw();
-        // Pressing the spacebar will exit the screen.
-        if (inputManager.isKeyDown(KeyEvent.VK_SPACE) && this.inputDelay.checkFinished()) {
-            this.isRunning = false;
-        }
-    }
-
+    	protected final void update() {
+    		if (this.isExiting) {
+    			if (FadeManager.getInstance().isFadingComplete()) {
+    				this.isRunning = false;
+    			}
+    			draw();
+    			return;
+    		}
+    
+    		super.update();
+    		draw();
+    
+    		// Pressing the spacebar will exit the screen after fading out.
+    		if (!FadeManager.getInstance().isFading() && inputManager.isKeyDown(KeyEvent.VK_SPACE) && this.inputDelay.checkFinished()) {
+    			this.isExiting = true;
+    			FadeManager.getInstance().fadeOut();
+    		}
+    	}
     private void draw() {
         drawManager.initDrawing(this);
 

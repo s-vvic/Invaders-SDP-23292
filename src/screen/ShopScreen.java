@@ -5,6 +5,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
 import entity.ShopItem;
+import engine.FadeManager;
 
 /**
  * Implements the shop screen where players can purchase item upgrades.
@@ -79,6 +80,9 @@ public class ShopScreen extends Screen {
     /** Indicates if the shop was opened between levels (true) or from the main menu (false) */
     public boolean betweenLevels;
 
+    /** Flag to manage the screen exiting state. */
+    private boolean isExiting;
+
     /**
      * Constructor, establishes the properties of the screen.
      *
@@ -102,6 +106,7 @@ public class ShopScreen extends Screen {
         this.selectionMode = 0;
 
         this.betweenLevels = betweenLevels;
+        this.isExiting = false;
 
         // If opened between levels : back to game, otherwise : back to menu
         this.returnCode = betweenLevels ? 2 : 1;
@@ -114,6 +119,8 @@ public class ShopScreen extends Screen {
 
         this.logger.info("Shop screen initialized with " +
                 gameState.getCoin() + " coins. BetweenLevels=" + betweenLevels);
+        
+        FadeManager.getInstance().fadeIn();
     }
 
     /**
@@ -130,11 +137,18 @@ public class ShopScreen extends Screen {
      * Updates the elements on screen and checks for events.
      */
     protected final void update() {
-        super.update();
+        if (this.isExiting) {
+            if (FadeManager.getInstance().isFadingComplete()) {
+                this.isRunning = false;
+            }
+            draw();
+            return;
+        }
 
+        super.update();
         draw();
 
-        if (this.selectionCooldown.checkFinished()
+        if (!FadeManager.getInstance().isFading() && this.selectionCooldown.checkFinished()
                 && this.inputDelay.checkFinished()) {
 
             if (selectionMode == 0) {
@@ -169,7 +183,8 @@ public class ShopScreen extends Screen {
         if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
             if (selectedItem == TOTAL_ITEMS) {
                 // Exit option selected
-                this.isRunning = false;
+                this.isExiting = true;
+                FadeManager.getInstance().fadeOut();
             } else {
                 // Enter level selection mode
                 selectionMode = 1;
@@ -183,7 +198,8 @@ public class ShopScreen extends Screen {
 
         // Quick exit with ESC
         if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
-            this.isRunning = false;
+            this.isExiting = true;
+            FadeManager.getInstance().fadeOut();
         }
     }
 

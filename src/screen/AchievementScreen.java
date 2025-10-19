@@ -6,11 +6,14 @@ import java.util.List;
 import engine.Achievement;
 import engine.AchievementManager;
 import engine.Core;
+import engine.FadeManager;
 
 /**
  * Implements the achievement screen, which displays the player's achievements.
  */
 public class AchievementScreen extends Screen {
+
+    private boolean isExiting;
 
     /**
      * Constructor for the AchievementScreen.
@@ -22,6 +25,9 @@ public class AchievementScreen extends Screen {
     public AchievementScreen(int width, int height, int fps) {
         super(width, height, fps);
         this.returnCode = 1; // Default return code
+        this.isExiting = false;
+
+        FadeManager.getInstance().fadeIn();
     }
 
     /**
@@ -48,10 +54,20 @@ public class AchievementScreen extends Screen {
      */
     @Override
     protected void update() {
+        if (this.isExiting) {
+            if (FadeManager.getInstance().isFadingComplete()) {
+                this.isRunning = false;
+            }
+            draw();
+            return;
+        }
+
         super.update();
         draw();
-        if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
-            this.isRunning = false;
+
+        if (!FadeManager.getInstance().isFading() && inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+            this.isExiting = true;
+            FadeManager.getInstance().fadeOut();
         }
     }
 

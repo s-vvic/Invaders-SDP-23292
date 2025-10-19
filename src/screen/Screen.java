@@ -85,6 +85,7 @@ public class Screen {
 			long time = System.currentTimeMillis();
 
 			update();
+			engine.FadeManager.getInstance().update();
 
 			time = (1000 / this.fps) - (System.currentTimeMillis() - time);
 			if (time > 0) {
