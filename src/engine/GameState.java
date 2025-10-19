@@ -45,10 +45,9 @@ public class GameState {
 		this.score = score;
 		this.livesRemaining = livesRemaining;
 		this.bulletsShot = bulletsShot;
-		this.shipsDestroyed = shipsDestroyed;
+        this.shipsDestroyed = shipsDestroyed;
         this.coin = coin;
-	}
-
+		    }
 	/**
 	 * @return the level
 	 */
@@ -86,4 +85,26 @@ public class GameState {
 
     public final int getCoin() { return coin; }
 
+	public final boolean deductCoins(final int amount) {
+		if (amount < 0) {
+			return false;
+		}
+		if (this.coin >= amount) {
+			this.coin -= amount;
+			return true;
+		}
+		return false;
+	}
+
+	public final void addCoins(final int amount) {
+		if (amount > 0) {
+			this.coin += amount;
+		}
+	}
+
+	public final void setCoins(final int amount) {
+		if (amount >= 0) {
+			this.coin = amount;
+		}
+	}
 }

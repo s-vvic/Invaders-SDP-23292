@@ -68,4 +68,15 @@ public class Cooldown {
 					+ (int) (Math.random()
 							* (this.milliseconds + this.variance));
 	}
+
+	/**
+	 * Sets the cooldown duration.
+	 *
+	 * @param milliseconds
+	 *            New cooldown duration.
+	 */
+	public final void setMilliseconds(final int milliseconds) {
+		this.milliseconds = milliseconds;
+		this.duration = milliseconds;
+	}
 }

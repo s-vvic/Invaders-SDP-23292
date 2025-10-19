@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import entity.FinalBoss;
+import entity.Ship;
+import screen.CreditScreen;
 import screen.Screen;
 import entity.Entity;
-import entity.Ship;
 
 /**
  * Manages screen drawing.
@@ -50,6 +52,12 @@ public final class DrawManager {
 	/** Sprite types mapped to their images. */
 	private static Map<SpriteType, boolean[][]> spriteMap;
 
+	/** (추가) 크레딧 등 작은 텍스트를 위한 폰트 */
+	private static Font fontSmall;
+	/** (추가) 작은 폰트 속성 */
+	private static FontMetrics fontSmallMetrics;
+
+
 	/** Sprite types. */
 	public static enum SpriteType {
 		/** Player ship. */
@@ -74,12 +82,26 @@ public final class DrawManager {
 		EnemyShipC2,
 		/** Bonus ship. */
 		EnemyShipSpecial,
+        /** Final boss - first form */
+        FinalBoss,
+        /** Final boss - second form */
+        FinalBoss2,
 		/** Destroyed enemy ship. */
 		Explosion,
 		/** Active sound button. */
 		SoundOn,
 		/** Deactive sound button. */
-		SoundOff
+		SoundOff,
+				/** Items */
+		Item_MultiShot,
+		Item_Atkspeed,
+		Item_Penetrate,
+		Item_Explode,
+		Item_Slow,
+		Item_Stop,
+		Item_Push,
+		Item_Shield,
+		Item_Heal
 	};
 
 	/**
@@ -104,21 +126,34 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.EnemyShipC1, new boolean[12][8]);
 			spriteMap.put(SpriteType.EnemyShipC2, new boolean[12][8]);
 			spriteMap.put(SpriteType.EnemyShipSpecial, new boolean[16][7]);
+
+            /** when final boss' spritetype is implemeted, need to add */
+            //spriteMap.put(SpriteType.FinalBoss, new boolean[100][80]);
+            //spriteMap.put(SpriteType.FinalBoss2, new boolean[100][80]);
+
 			spriteMap.put(SpriteType.Explosion, new boolean[13][7]);
 			spriteMap.put(SpriteType.SoundOn, new boolean[15][15]);
 			spriteMap.put(SpriteType.SoundOff, new boolean[15][15]);
-
+			spriteMap.put(SpriteType.Item_Explode, new boolean[5][5]);
+			spriteMap.put(SpriteType.Item_Slow, new boolean[5][5]);
+			spriteMap.put(SpriteType.Item_Stop, new boolean[5][5]);
+			spriteMap.put(SpriteType.Item_Push, new boolean[5][5]);
+			spriteMap.put(SpriteType.Item_Shield, new boolean[5][5]);
+			spriteMap.put(SpriteType.Item_Heal, new boolean[5][5]);
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
 
-			// Font loading.
+			// Font loading
 			fontRegular = fileManager.loadFont(14f);
 			fontBig = fileManager.loadFont(24f);
+			fontSmall = fileManager.loadFont(9f);
 			logger.info("Finished loading the fonts.");
+
 
 		} catch (IOException e) {
 			logger.warning("Loading failed.");
-		} catch (FontFormatException e) {
+		}
+		catch (FontFormatException e) {
 			logger.warning("Font formating failed.");
 		}
 	}
@@ -164,6 +199,7 @@ public final class DrawManager {
 
 		fontRegularMetrics = backBufferGraphics.getFontMetrics(fontRegular);
 		fontBigMetrics = backBufferGraphics.getFontMetrics(fontBig);
+		fontSmallMetrics = backBufferGraphics.getFontMetrics(fontSmall);
 
 		// drawBorders(screen);
 		// drawGrid(screen);
@@ -200,6 +236,17 @@ public final class DrawManager {
 				if (image[i][j])
 					backBufferGraphics.drawRect(positionX + i * 2, positionY
 							+ j * 2, 1, 1);
+
+        /** draw hitbox of final boss because final boss' spritetype is not implemented(for test) */
+        if( entity instanceof FinalBoss){
+            backBufferGraphics.setColor(Color.RED);
+            backBufferGraphics.drawRect(
+                    entity.getPositionX(),
+                    entity.getPositionY(),
+                    entity.getWidth(),
+                    entity.getHeight()
+            );
+        }
 	}
 
 	/**
@@ -263,6 +310,7 @@ public final class DrawManager {
         long seconds = milliseconds / 1000;
         long minutes = seconds / 60;
         seconds %= 60;
+        // Time Format: MM:SS
         String timeString = String.format("Time: %02d:%02d", minutes, seconds);
         backBufferGraphics.drawString(timeString, screen.getWidth() / 2 - fontRegularMetrics.stringWidth(timeString) / 2, 25);
     }
@@ -279,9 +327,14 @@ public final class DrawManager {
     public void drawCoin(final Screen screen, final int coin) {
         backBufferGraphics.setFont(fontRegular);
         backBufferGraphics.setColor(Color.WHITE);
-        String scoreString = String.format("%03d$", coin);
-        backBufferGraphics.drawString(scoreString, screen.getWidth() - 200, 25);
+        String coinString = String.format("%03d$", coin);
+
+        int x = screen.getWidth() / 2 - fontRegularMetrics.stringWidth(coinString) / 2;// Center horizontally
+        int y = screen.getHeight() - 50; // Altered vertical height to match the level display height
+
+        backBufferGraphics.drawString(coinString, x, y);
     }
+
 
 	/**
 	 * Draws number of remaining lives on screen.
@@ -299,6 +352,41 @@ public final class DrawManager {
 		for (int i = 0; i < lives; i++)
 			drawEntity(dummyShip, 40 + 35 * i, 10);
 	}
+
+	/**
+	 * Draws the items HUD (shop items and dropped items).
+	 * 
+	 * @param screen
+	 *            Screen to draw on.
+	 */
+	public void drawItemsHUD(final Screen screen) {
+		ItemHUDManager itemHUD = ItemHUDManager.getInstance();
+		itemHUD.initialize(screen);
+		itemHUD.drawItems(screen, backBufferGraphics);
+	}
+
+    /**
+     * Draws the current level on the bottom-left of the screen
+     *
+     * @param screen
+     *            Screen to draw on.
+     * @param level
+     *            Current level number.
+     */
+    public void drawLevel(final Screen screen, final int level) {
+        final int paddingX = 20;
+        final int paddingY = 50;
+        
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.WHITE);
+
+        String levelText = "Level " + level;
+
+        int yPos = screen.getHeight() - paddingY;
+        backBufferGraphics.drawString(levelText, paddingX, yPos);
+    }
+
+
 
     /**
      * Draws an achievement pop-up message on the screen.
@@ -397,35 +485,41 @@ public final class DrawManager {
 	 */
 	public void drawMenu(final Screen screen, final int option) {
 		String playString = "Play";
-		String highScoresString = "High scores";
-		String shopString = "shop";
-		String exitString = "exit";
-
-		if (option == 2)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, playString,
-				screen.getHeight() / 3 * 2);
-		if (option == 3)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, highScoresString, screen.getHeight()
-				/ 3 * 2 + fontRegularMetrics.getHeight() * 2);
-		if (option == 4)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, shopString, screen.getHeight()
-				/ 3 * 2 + fontRegularMetrics.getHeight() * 4);
-		if (option == 0)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, exitString, screen.getHeight() / 3
-				* 2 + fontRegularMetrics.getHeight() * 6);
-	}
+		        String highScoresString = "High scores";
+		        String achievementsString = "Achievements";
+		        String shopString = "shop";
+		        String exitString = "exit";
+		
+		        if (option == 2)
+		            backBufferGraphics.setColor(Color.GREEN);
+		        else
+		            backBufferGraphics.setColor(Color.WHITE);
+		                drawCenteredRegularString(screen, playString,
+		                        screen.getHeight() / 3 * 2);
+		                if (option == 3)
+		                    backBufferGraphics.setColor(Color.GREEN);
+		                else
+		                    backBufferGraphics.setColor(Color.WHITE);
+		                drawCenteredRegularString(screen, highScoresString, screen.getHeight()
+		                        / 3 * 2 + fontRegularMetrics.getHeight() * 1);
+		                if (option == 6) // New Achievements option
+		                    backBufferGraphics.setColor(Color.GREEN);
+		                else
+		                    backBufferGraphics.setColor(Color.WHITE);
+		                drawCenteredRegularString(screen, achievementsString, screen.getHeight()
+		                        / 3 * 2 + fontRegularMetrics.getHeight() * 2);
+		                if (option == 4)
+		                    backBufferGraphics.setColor(Color.GREEN);
+		                else
+		                    backBufferGraphics.setColor(Color.WHITE);
+		                drawCenteredRegularString(screen, shopString, screen.getHeight()
+		                        / 3 * 2 + fontRegularMetrics.getHeight() * 3);
+		                if (option == 0)
+		                    backBufferGraphics.setColor(Color.GREEN);
+		                else
+		                    backBufferGraphics.setColor(Color.WHITE);
+		                drawCenteredRegularString(screen, exitString, screen.getHeight() / 3
+		                        * 2 + fontRegularMetrics.getHeight() * 4);	}
 
 	/**
 	 * Draws game results.
@@ -564,6 +658,7 @@ public final class DrawManager {
 				screen.getHeight() / 5);
 	}
 
+
 	/**
 	 * Draws high scores.
 	 * 
@@ -572,18 +667,77 @@ public final class DrawManager {
 	 * @param highScores
 	 *            List of high scores.
 	 */
-	public void drawHighScores(final Screen screen,
-			final List<Score> highScores) {
-		backBufferGraphics.setColor(Color.WHITE);
-		int i = 0;
-		String scoreString = "";
+	    public void drawHighScores(final Screen screen,
+	            final List<Score> highScores) {
+	        backBufferGraphics.setColor(Color.WHITE);
+	        int i = 0;
+	        String scoreString = "";
+	
+	        for (Score score : highScores) {
+	            scoreString = String.format("%s        %04d", score.getName(),
+	                    score.getScore());
+	            drawCenteredRegularString(screen, scoreString, screen.getHeight()
+	                    / 4 + fontRegularMetrics.getHeight() * (i + 1) * 2);
+	            i++;
+	        }
+	    }
+	
+	    public void drawAchievements(final Screen screen, final List<Achievement> achievements) {
+	        backBufferGraphics.setColor(Color.GREEN);
+	        drawCenteredBigString(screen, "Achievements", screen.getHeight() / 8);
+	
+	        int i = 0;
+	        for (Achievement achievement : achievements) {
+	            if (achievement.isUnlocked()) {
+	                backBufferGraphics.setColor(Color.GREEN);
+	            } else {
+	                backBufferGraphics.setColor(Color.WHITE);
+	            }
+	            drawCenteredRegularString(screen, achievement.getName() + " - " + achievement.getDescription(),
+	                    screen.getHeight() / 4 + fontRegularMetrics.getHeight() * (i + 1) * 2);
+	            i++;
+	        }
+	
+	        backBufferGraphics.setColor(Color.GRAY);
+	        drawCenteredRegularString(screen, "Press ESC to return", screen.getHeight() - 50);
+	    }
+	/**
+	 * Draws the credits screen title and instructions.
+	 *
+	 * @param screen Screen to draw on.
+	 */
+	public void drawCreditsMenu(final Screen screen) {
+		String creditsString = "Credits";
+		String instructionsString = "Press Space to return";
 
-		for (Score score : highScores) {
-			scoreString = String.format("%s        %04d", score.getName(),
-					score.getScore());
-			drawCenteredRegularString(screen, scoreString, screen.getHeight()
-					/ 4 + fontRegularMetrics.getHeight() * (i + 1) * 2);
-			i++;
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, creditsString, screen.getHeight() / 8);
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, instructionsString,
+				screen.getHeight() / 5);
+	}
+
+	/**
+	 * Draws the list of credits on the screen.
+	 *
+	 * @param screen     Screen to draw on.
+	 * @param creditList List of credit information to display.
+	 */
+	public void drawCredits(final Screen screen, final List<CreditScreen.Credit> creditList) {
+		backBufferGraphics.setFont(fontSmall);
+		int yPosition = screen.getHeight() / 4;
+		final int xPosition = screen.getWidth() / 10;
+		final int lineSpacing = fontSmallMetrics.getHeight() + 1;
+		final int teamSpacing = lineSpacing + 5;
+
+		for (CreditScreen.Credit credit : creditList) {
+			backBufferGraphics.setColor(Color.GREEN);
+			String teamInfo = String.format("%s - %s", credit.getTeamName(), credit.getRole());
+			backBufferGraphics.drawString(teamInfo, xPosition, yPosition);
+			yPosition += lineSpacing;
+
+			yPosition += teamSpacing;
 		}
 	}
 
@@ -658,5 +812,231 @@ public final class DrawManager {
 		else
 			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
 					+ fontBigMetrics.getHeight() / 3);
+	}
+	/**
+	 * Draws the complete shop screen with all items and levels.
+	 *
+	 * @param screen Screen to draw on.
+	 * @param coinBalance Player's current coin balance.
+	 * @param selectedItem Currently selected item index.
+	 * @param selectionMode 0 = selecting item, 1 = selecting level.
+	 * @param selectedLevel Currently selected level for purchase.
+	 * @param totalItems Total number of items.
+	 * @param itemNames Array of item names.
+	 * @param itemDescriptions Array of item descriptions.
+	 * @param itemPrices 2D array of prices [item][level].
+	 * @param maxLevels Array of maximum levels per item.
+	 * @param shopScreen Reference to shop screen for getting current levels.
+	 */
+	public void drawShopScreen(final Screen screen, final int coinBalance,
+							   final int selectedItem, final int selectionMode,
+							   final int selectedLevel, final int totalItems,
+							   final String[] itemNames,
+							   final String[] itemDescriptions,
+							   final int[][] itemPrices,
+							   final int[] maxLevels,
+							   final screen.ShopScreen shopScreen) {
+		// Draw title
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "SHOP", screen.getHeight() / 8);
+
+		// Draw coin balance
+		backBufferGraphics.setColor(Color.YELLOW);
+		String balanceString = String.format("Your Balance: %d coins", coinBalance);
+		drawCenteredRegularString(screen, balanceString, 120);
+
+		// Draw instructions based on mode
+		backBufferGraphics.setColor(Color.GRAY);
+		String instructions = "";
+		if (selectionMode == 0) {
+			instructions = "W/S: Navigate | SPACE: Select | ESC: Exit";
+		} else {
+			instructions = "A/D: Change Level | SPACE: Buy | ESC: Back";
+		}
+		drawCenteredRegularString(screen, instructions, 145);
+
+		// Draw separator line
+		//backBufferGraphics.setColor(Color.GREEN);
+		//drawHorizontalLine(screen, 165);
+
+		int headerHeight = 165; // Space used by title, balance, instructions
+		int footerHeight = 50;  // Space needed for exit option (increased for safety)
+		int availableHeight = screen.getHeight() - headerHeight - footerHeight;
+
+		// FIXED: Draw items with proper spacing
+		int currentY = 170;  // Start position
+		int baseSpacing = 58;  // Space between each item
+		int expandedExtraSpace = 55;
+
+		// Check if we're in level selection mode
+		boolean hasExpandedItem = (selectionMode == 1);
+
+		// Calculate total required height
+		int totalRequiredHeight = totalItems * baseSpacing;
+		if (hasExpandedItem) {
+			totalRequiredHeight += expandedExtraSpace;
+		}
+
+		// Adjust spacing if content would overflow
+		int adjustedSpacing = baseSpacing;
+		if (totalRequiredHeight > availableHeight) {
+			// Calculate how much space we need to save
+			int overflow = totalRequiredHeight - availableHeight;
+			// Reduce base spacing to accommodate
+			adjustedSpacing = baseSpacing - (overflow / totalItems);
+			// Ensure minimum spacing for readability
+			if (adjustedSpacing < 48) {
+				adjustedSpacing = 48;
+			}
+		}
+
+		// Draw items
+		for (int i = 0; i < totalItems; i++) {
+			boolean isSelected = (i == selectedItem) && (selectionMode == 0);
+			boolean isLevelSelection = (i == selectedItem && selectionMode == 1);
+			int currentLevel = shopScreen.getItemCurrentLevel(i);
+
+			drawShopItem(screen, itemNames[i], itemDescriptions[i],
+					itemPrices[i], maxLevels[i], currentLevel,
+					currentY, isSelected, coinBalance,
+					isLevelSelection, selectedLevel);
+
+			// Add extra space when showing level selection buttons
+			if (isLevelSelection) {
+				currentY += adjustedSpacing + expandedExtraSpace;
+			} else {
+				currentY += adjustedSpacing;
+			}
+		}
+
+		// Draw exit option
+		int exitY = screen.getHeight() - 30;
+		if (selectedItem == totalItems && selectionMode == 0) {
+			backBufferGraphics.setColor(Color.GREEN);
+		} else {
+			backBufferGraphics.setColor(Color.WHITE);
+		}
+
+		if (shopScreen.betweenLevels)
+		{
+			drawCenteredRegularString(screen, "< Back to Game >", exitY);
+		} else {
+			drawCenteredRegularString(screen, "< Back to Main Menu >", exitY);
+		}
+	}
+
+
+	/**
+	 * Draws a single shop item with level indicators.
+	 *
+	 * @param screen Screen to draw on.
+	 * @param itemName Name of the item.
+	 * @param description Description of the item.
+	 * @param prices Array of prices for each level.
+	 * @param maxLevel Maximum level for this item.
+	 * @param currentLevel Current owned level.
+	 * @param yPosition Y position to draw.
+	 * @param isSelected Whether item is selected.
+	 * @param playerCoins Player's current coin balance.
+	 * @param isLevelSelection Whether in level selection mode.
+	 * @param selectedLevel Currently selected level for purchase.
+	 */
+	public void drawShopItem(final Screen screen, final String itemName,
+							 final String description, final int[] prices,
+							 final int maxLevel, final int currentLevel,
+							 final int yPosition, final boolean isSelected,
+							 final int playerCoins, final boolean isLevelSelection,
+							 final int selectedLevel) {
+
+		// Draw item name
+		if (isSelected || isLevelSelection) {
+			backBufferGraphics.setColor(Color.GREEN);
+		} else {
+			backBufferGraphics.setColor(Color.WHITE);
+		}
+
+		String levelInfo = currentLevel > 0 ?
+				" [Lv." + currentLevel + "/" + maxLevel + "]" : " [Not Owned]";
+		backBufferGraphics.setFont(fontRegular);
+		backBufferGraphics.drawString(itemName + levelInfo, 30, yPosition);
+
+		// Draw description if selected
+		if (isSelected || isLevelSelection) {
+			backBufferGraphics.setColor(Color.GRAY);
+			backBufferGraphics.drawString(description, 30, yPosition + 15);
+
+
+		}
+
+		// Draw level options if in level selection mode for this item
+		if (isLevelSelection) {
+			int levelStartX = 30;
+			int levelY = yPosition + 35;
+			int maxWidth = screen.getWidth() - 60; // 30px margin each side
+			int currX = levelStartX;
+			int currY = levelY;
+			int spaceBetween = 18; // space between level texts
+
+			for (int lvl = 1; lvl <= maxLevel; lvl++) {
+				int price = prices[lvl - 1];
+				boolean canAfford = playerCoins >= price;
+				boolean isOwned = currentLevel >= lvl;
+				boolean isThisLevel = (lvl == selectedLevel);
+
+				// Set color based on state
+				if (isOwned) {
+					backBufferGraphics.setColor(Color.DARK_GRAY);
+				} else if (isThisLevel) {
+					backBufferGraphics.setColor(Color.GREEN);
+				} else if (canAfford) {
+					backBufferGraphics.setColor(Color.WHITE);
+				} else {
+					backBufferGraphics.setColor(Color.RED);
+				}
+
+				String levelText = "Lv." + lvl + (isOwned ? " [OWNED]" : " (" + price + "$)");
+				int textWidth = fontRegularMetrics.stringWidth(levelText);
+
+				// If adding this string would overflow available width, wrap to next line
+				if (currX + textWidth > levelStartX + maxWidth) {
+					currX = levelStartX;
+					currY += fontRegularMetrics.getHeight() + 3;
+				}
+
+				backBufferGraphics.drawString(levelText, currX, currY);
+				currX += textWidth + spaceBetween;
+			}
+		}
+	}
+
+	/**
+	 * Draws purchase feedback message.
+	 *
+	 * @param screen Screen to draw on.
+	 * @param message Feedback message to display.
+	 */
+	public void drawShopFeedback(final Screen screen, final String message) {
+		int popupWidth = 300;
+		int popupHeight = 50;
+		int x = screen.getWidth() / 2 - popupWidth / 2;
+		int y = 70;
+
+		// Draw background
+		backBufferGraphics.setColor(new Color(0, 0, 0, 200));
+		backBufferGraphics.fillRoundRect(x, y, popupWidth, popupHeight, 15, 15);
+
+		// Draw border
+		if (message.contains("Purchased")) {
+			backBufferGraphics.setColor(Color.GREEN);
+		} else if (message.contains("Not enough") || message.contains("failed")) {
+			backBufferGraphics.setColor(Color.RED);
+		} else {
+			backBufferGraphics.setColor(Color.YELLOW);
+		}
+		backBufferGraphics.drawRoundRect(x, y, popupWidth, popupHeight, 15, 15);
+
+		// Draw message
+		backBufferGraphics.setFont(fontRegular);
+		drawCenteredRegularString(screen, message, y + popupHeight / 2 + 5);
 	}
 }
