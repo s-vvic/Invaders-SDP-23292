@@ -8,7 +8,6 @@ import java.util.logging.Logger;
 
 import engine.Cooldown;
 import engine.Core;
-import engine.GameSettings;
 import engine.GameState;
 import engine.GameTimer;
 import engine.AchievementManager;
@@ -19,12 +18,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 import engine.level.Level;
+import engine.level.LevelManager;
+
 
 /**
  * Implements the game screen, where the action happens.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public class GameScreen extends Screen {
 
@@ -47,8 +48,8 @@ public class GameScreen extends Screen {
 	/** Height of the items separation line (above items). */
 	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 400;
 
-	/** Current game difficulty settings. */
-	private GameSettings gameSettings;
+    /** Current level data (direct from Level system). */
+    private Level currentLevel;
 	/** Current difficulty level number. */
 	private int level;
 	/** Formation of enemy ships. */
@@ -130,10 +131,10 @@ public class GameScreen extends Screen {
   private Cooldown healthPopupCooldown;
 
 	    private GameState gameState;
-	
+
 	    /**
 	     * Constructor, establishes the properties of the screen.
-	     * 
+	     *
 	     * @param gameState
 	     *            Current game state.	 * @param level
 	 *            Current level settings.
@@ -153,7 +154,7 @@ public class GameScreen extends Screen {
 			final int width, final int height, final int fps) {
 		super(width, height, fps);
 
-		this.gameSettings = new GameSettings(level.getFormationWidth(), level.getFormationHeight(), level.getBaseSpeed(), level.getShootingFrecuency());
+        this.currentLevel = level;
 		this.bonusLife = bonusLife;
 		this.maxLives = maxLives;
 		        this.level = gameState.getLevel();
@@ -177,17 +178,15 @@ public class GameScreen extends Screen {
 		super.initialize();
 		/** Initialize the bullet Boss fired */
 		this.bossBullets = new HashSet<>();
-
-
-		enemyShipFormation = new EnemyShipFormation(this.gameSettings);
+        enemyShipFormation = new EnemyShipFormation(this.currentLevel);
 		enemyShipFormation.attach(this);
 		this.ship = new Ship(this.width / 2 - 100, ITEMS_SEPARATION_LINE_HEIGHT - 50);
-        this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
+		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
         this.shipP2 = new Ship(this.width / 2 + 100, ITEMS_SEPARATION_LINE_HEIGHT - 50);
         this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
         // special enemy initial
-		enemyShipSpecialFormation = new EnemyShipSpecialFormation(this.gameSettings,
+		enemyShipSpecialFormation = new EnemyShipSpecialFormation(this.currentLevel,
 				Core.getVariableCooldown(BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE),
 				Core.getCooldown(BONUS_SHIP_EXPLOSION));
 		enemyShipSpecialFormation.attach(this);
