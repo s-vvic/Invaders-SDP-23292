@@ -181,21 +181,31 @@ public final class DrawManager {
 	public void drawScore(final Screen screen, final int score) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		String scoreString = String.format("Score:%04d", score);
+		String scoreString = String.format("P1:%04d", score);
 		backBufferGraphics.drawString(scoreString, screen.getWidth() - 120, 25);
 	}
+    //  === [ADD] Draw P2's score on the line below P1's score ===
+    public void drawScoreP2(final Screen screen, final int scoreP2) {
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.WHITE);
+        String text = String.format("P2:%04d", scoreP2);
+        //  Y coordinate is 15px lower than P1 score to avoid overlapping
+        backBufferGraphics.drawString(text, screen.getWidth() - 120, 40);
+    }
 
     /**
      * Draws the elapsed time on screen.
      */
     public void drawTime(final Screen screen, final long milliseconds) {
         backBufferGraphics.setFont(fontRegular);
-        backBufferGraphics.setColor(Color.WHITE);
+        backBufferGraphics.setColor(Color.GRAY);
         long seconds = milliseconds / 1000;
         long minutes = seconds / 60;
         seconds %= 60;
         String timeString = String.format("Time: %02d:%02d", minutes, seconds);
-        backBufferGraphics.drawString(timeString, screen.getWidth() / 2 - fontRegularMetrics.stringWidth(timeString) / 2, 25);
+		int x = 10;
+		int y = screen.getHeight() - 20;
+		backBufferGraphics.drawString(timeString, x, y);
     }
 
     /**
@@ -216,11 +226,25 @@ public final class DrawManager {
 	public void drawLives(final Screen screen, final int lives) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		backBufferGraphics.drawString(Integer.toString(lives), 20, 25);
+		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
+		backBufferGraphics.drawString("P1:", 15, 25);
 		Ship dummyShip = new Ship(0, 0);
 		for (int i = 0; i < lives; i++)
 			drawEntity(dummyShip, 40 + 35 * i, 10);
 	}
+
+	public void drawLivesP2(final Screen screen, final int lives) {
+		backBufferGraphics.setFont(fontRegular);
+		backBufferGraphics.setColor(Color.WHITE);
+		// backBufferGraphics.drawString("P2:" + Integer.toString(lives), 10, 40);
+		backBufferGraphics.drawString("P2:", 15, 40);
+
+		Ship dummyShip = new Ship(0, 0);
+		for (int i = 0; i < lives; i++) {
+			drawEntity(dummyShip, 40 + 35 * i, 30);
+		}
+	}
+
 
 	/**
 	 * Draws the items HUD.
@@ -234,14 +258,13 @@ public final class DrawManager {
     /**
      * Draws the current level on the bottom-left of the screen.
      */
-    public void drawLevel(final Screen screen, final int level) {
+    public void drawLevel(final Screen screen, final String levelName) {
         final int paddingX = 20;
         final int paddingY = 50;
         backBufferGraphics.setFont(fontRegular);
         backBufferGraphics.setColor(Color.WHITE);
-        String levelText = "Level " + level;
         int yPos = screen.getHeight() - paddingY;
-        backBufferGraphics.drawString(levelText, paddingX, yPos);
+        backBufferGraphics.drawString(levelName, paddingX, yPos);
     }
 
     /**
@@ -425,7 +448,7 @@ public final class DrawManager {
             } else {
                 backBufferGraphics.setColor(Color.WHITE);
             }
-            drawCenteredRegularString(screen, achievement.getName() + " - " + achievement.getDescription(), screen.getHeight() / 4 + fontRegularMetrics.getHeight() * (i + 1) * 2);
+            drawCenteredRegularString(screen, achievement.getName() + " - " + achievement.getDescription(), screen.getHeight() / 5 + fontRegularMetrics.getHeight() * (i + 1) * 2);
             i++;
         }
         backBufferGraphics.setColor(Color.GRAY);
