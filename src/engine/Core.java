@@ -30,10 +30,13 @@ import screen.*;
  */
 public final class Core {
 
-	/** Width of current screen. */
-	private static final int WIDTH = 896;
-	/** Height of current screen. */
-	private static final int HEIGHT = 1040;
+			/** Width of current screen. */
+
+			private static final int WIDTH = 672;
+
+			/** Height of current screen. */
+
+			private static final int HEIGHT = 780;
 	/** Max fps of current screen. */
 	private static final int FPS = 60;
 

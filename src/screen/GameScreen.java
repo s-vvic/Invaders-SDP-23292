@@ -46,9 +46,9 @@ public class GameScreen extends Screen {
 	/** Time from finishing the level to screen change. */
 	private static final int SCREEN_CHANGE_INTERVAL = 1500;
 	/** Height of the interface separation line. */
-	private static final int SEPARATION_LINE_HEIGHT = 90;
+	private static final int SEPARATION_LINE_HEIGHT = 68;
 	/** Height of the items separation line (above items). */
-	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 800;
+	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 600;
 
     /** Current level data (direct from Level system). */
     private Level currentLevel;
@@ -192,11 +192,11 @@ public class GameScreen extends Screen {
         enemyShipFormation = new EnemyShipFormation(this.currentLevel);
 		enemyShipFormation.attach(this);
         this.enemyShipFormation.applyEnemyColorByLevel(this.currentLevel);
-		this.ship = new Ship(this.width / 2 - 200, ITEMS_SEPARATION_LINE_HEIGHT - 100);
+		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
 		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
 		if (this.isTwoPlayer) {
-			this.shipP2 = new Ship(this.width / 2 + 200, ITEMS_SEPARATION_LINE_HEIGHT - 100);
+			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
 			this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
 		}
         // special enemy initial
@@ -576,7 +576,7 @@ public class GameScreen extends Screen {
 								engine.level.ItemDrop selectedDrop = successfulDrops.get((int) (Math.random() * successfulDrops.size()));
 								DropItem.ItemType droppedType = DropItem.fromString(selectedDrop.getItemId());
 								if (droppedType != null) {
-									final int ITEM_DROP_SPEED = 4;
+									final int ITEM_DROP_SPEED = 3;
 
 									DropItem newDropItem = ItemPool.getItem(
 											enemyShip.getPositionX() + enemyShip.getWidth() / 2,
@@ -810,7 +810,7 @@ public class GameScreen extends Screen {
 		this.logger.info("Spawning boss: " + bossName);
 		switch (bossName) {
 			case "finalBoss":
-				this.finalBoss = new FinalBoss(this.width / 2 - 100, 100, this.width, this.height);
+				this.finalBoss = new FinalBoss(this.width / 2 - 75, 75, this.width, this.height);
 				this.logger.info("Final Boss has spawned!");
 				break;
 			case "omegaBoss":

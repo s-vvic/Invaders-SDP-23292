@@ -104,9 +104,9 @@ public final class DrawManager {
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
 
-			fontRegular = fileManager.loadFont(28f);
-			fontBig = fileManager.loadFont(48f);
-			fontSmall = fileManager.loadFont(18f);
+			fontRegular = fileManager.loadFont(14f);
+			fontBig = fileManager.loadFont(24f);
+			fontSmall = fileManager.loadFont(9f);
 			logger.info("Finished loading the fonts.");
 
 		} catch (IOException e) {
@@ -182,7 +182,7 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		String scoreString = String.format("P1:%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 240, 50);
+		backBufferGraphics.drawString(scoreString, screen.getWidth() - 180, 38);
 	}
     //  === [ADD] Draw P2's score on the line below P1's score ===
     public void drawScoreP2(final Screen screen, final int scoreP2) {
@@ -190,7 +190,7 @@ public final class DrawManager {
         backBufferGraphics.setColor(Color.WHITE);
         String text = String.format("P2:%04d", scoreP2);
         //  Y coordinate is 15px lower than P1 score to avoid overlapping
-        backBufferGraphics.drawString(text, screen.getWidth() - 240, 80);
+        backBufferGraphics.drawString(text, screen.getWidth() - 180, 60);
     }
 
     /**
@@ -203,8 +203,8 @@ public final class DrawManager {
         long minutes = seconds / 60;
         seconds %= 60;
         String timeString = String.format("Time: %02d:%02d", minutes, seconds);
-		int x = 20;
-		int y = screen.getHeight() - 40;
+		int x = 15;
+		int y = screen.getHeight() - 30;
 		backBufferGraphics.drawString(timeString, x, y);
     }
 
@@ -216,7 +216,7 @@ public final class DrawManager {
         backBufferGraphics.setColor(Color.WHITE);
         String coinString = String.format("%03d$", coin);
         int x = screen.getWidth() / 2 - fontRegularMetrics.stringWidth(coinString) / 2;
-        int y = screen.getHeight() - 100;
+        int y = screen.getHeight() - 75;
         backBufferGraphics.drawString(coinString, x, y);
     }
 
@@ -227,21 +227,21 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
-		backBufferGraphics.drawString("P1:", 30, 50);
+		backBufferGraphics.drawString("P1:", 23, 38);
 		Ship dummyShip = new Ship(0, 0);
 		for (int i = 0; i < lives; i++)
-			drawEntity(dummyShip, 80 + 70 * i, 20);
+			drawEntity(dummyShip, 60 + 53 * i, 15);
 	}
 
 	public void drawLivesP2(final Screen screen, final int lives) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		// backBufferGraphics.drawString("P2:" + Integer.toString(lives), 10, 40);
-		backBufferGraphics.drawString("P2:", 30, 80);
+		backBufferGraphics.drawString("P2:", 23, 60);
 
 		Ship dummyShip = new Ship(0, 0);
 		for (int i = 0; i < lives; i++) {
-			drawEntity(dummyShip, 80 + 70 * i, 60);
+			drawEntity(dummyShip, 60 + 53 * i, 45);
 		}
 	}
 
@@ -259,8 +259,8 @@ public final class DrawManager {
      * Draws the current level on the bottom-left of the screen.
      */
     public void drawLevel(final Screen screen, final String levelName) {
-        final int paddingX = 40;
-        final int paddingY = 100;
+        final int paddingX = 30;
+        final int paddingY = 75;
         backBufferGraphics.setFont(fontRegular);
         backBufferGraphics.setColor(Color.WHITE);
         int yPos = screen.getHeight() - paddingY;
