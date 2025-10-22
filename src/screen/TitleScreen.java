@@ -14,6 +14,7 @@ import entity.Entity;
 import entity.SoundButton;
 
 import audio.SoundManager;
+import engine.StarSpeedManager;
 
 
 /**
@@ -29,25 +30,33 @@ public class TitleScreen extends Screen {
 	 * Stores the non-rotating base coordinates and speed.
 	 */
 	public static class Star {
-		public float baseX;
-		public float baseY;
-		public float speed;
+		public float x; // Current screen X
+		public float y; // Current screen Y
+		public float z; // Depth (0 = close, MAX_Z = far)
+		public float initial_angle; // Direction from center
+		public float speed; // This is now the base speed for z_speed calculation
 		public float brightness;
         public float brightnessOffset;
 		public Color color;
+        public List<java.awt.geom.Point2D.Float> trail; // List to store recent positions for trail
+        public int trail_length; // Dynamic trail length based on speed
 
-		public Star(float baseX, float baseY, float speed, Color color) {
-			this.baseX = baseX;
-			this.baseY = baseY;
-			this.speed = speed;
+		public Star(float x, float y, float z, float initial_angle, float speed, Color color, int trail_length) {
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.initial_angle = initial_angle;
+			this.speed = speed; // Keep base speed for potential future use or scaling
 			this.brightness = 0;
 			this.brightnessOffset = (float) (Math.random() * Math.PI * 2);
 			this.color = color;
+            this.trail = new ArrayList<>(); // Initialize the trail list
+            this.trail_length = trail_length;
 		}
 
-		public Color getColor() {
-			return this.color;
-		}
+        public Color getColor() {
+            return color;
+        }
 	}
 
 	/**
@@ -87,9 +96,23 @@ public class TitleScreen extends Screen {
 	/** Milliseconds between changes in user selection. */
 	private static final int SELECTION_TIME = 200;
 	/** Number of stars in the background. */
-	private static final int NUM_STARS = 400;
+	private static final int NUM_STARS = 1200;
 	/** Speed of the rotation animation. */
     private static final float ROTATION_SPEED = 4.0f;
+	/** Maximum Z-depth for stars. */
+	public static final float MAX_STAR_Z = 500.0f;
+	/** Minimum Z-depth for stars (when they reset). */
+	private static final float MIN_STAR_Z = -90.0f;
+	/** X-coordinate of the starfield origin (center of screen). */
+	private static int STAR_ORIGIN_X;
+	/** Minimum scale factor for stars, even when far away, to ensure they are always visible and spread out. */
+	private static final float MIN_SPREAD_SCALE = 0.01f;
+	/** Multiplier to convert star speed to trail length. */
+	private static final float TRAIL_SPEED_MULTIPLIER = 2.0f;
+	/** Maximum trail length to prevent excessively long trails for very fast stars. */
+	private static final int MAX_TRAIL_LENGTH = 10;
+	/** Y-coordinate of the starfield origin (center of screen). */
+	private static int STAR_ORIGIN_Y;
 	/** Milliseconds between enemy spawns. */
 	private static final int ENEMY_SPAWN_COOLDOWN = 2000;
 	/** Probability of an enemy spawning. */
@@ -97,7 +120,7 @@ public class TitleScreen extends Screen {
 	/** Milliseconds between shooting star spawns. */
     private static final int SHOOTING_STAR_COOLDOWN = 3000;
     /** Probability of a shooting star spawning. */
-    private static final double SHOOTING_STAR_SPAWN_CHANCE = 0.2;
+    private static final double SHOOTING_STAR_SPAWN_CHANCE = 0.0;
 
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
@@ -123,9 +146,10 @@ public class TitleScreen extends Screen {
     /** Target rotation angle of the starfield. */
     private float targetAngle;
 
-	/** Random number generator. */
-    private Random random;
-
+		/** Random number generator. */
+	        private Random random;
+	        /** Manages global star speed cycles. */
+	        private StarSpeedManager speedManager;
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
@@ -150,28 +174,43 @@ public class TitleScreen extends Screen {
 		this.shootingStarCooldown.reset();
 
 		this.random = new Random();
+		// Initialize starfield origin
+		STAR_ORIGIN_X = width / 2;
+		STAR_ORIGIN_Y = height / 2;
+
 		this.stars = new ArrayList<Star>();
 		List<Color> starColors = java.util.Arrays.asList(
-				Color.WHITE,
-				new Color(173, 216, 230), // Light Blue
-				new Color(255, 255, 153), // Light Yellow
-				new Color(255, 182, 193), // Light Pink
-				new Color(204, 204, 255)  // Lavender
+			Color.WHITE,
+			new Color(173, 216, 230), // Light Blue
+			new Color(255, 255, 153), // Light Yellow
+			new Color(255, 182, 193), // Light Pink
+			new Color(204, 204, 255)  // Lavender
 		);
 		for (int i = 0; i < NUM_STARS; i++) {
-			float speed = (float) (Math.random() * 2.5 + 0.5);
+			float speed = (float) (Math.random() * 2.5 + 2.0); // Base speed for z_speed calculation
 			Color color = starColors.get(random.nextInt(starColors.size()));
-			this.stars.add(new Star((float) (Math.random() * width),
-					(float) (Math.random() * height), speed, color));
-		}
 
+			// Distribute z values evenly across the range to avoid gaps
+			                float z = MAX_STAR_Z - (i * (MAX_STAR_Z - MIN_STAR_Z) / NUM_STARS);
+			                if (z < MIN_STAR_Z) z = MIN_STAR_Z; // Ensure it doesn't go below MIN_STAR_Z due to float precision
+			
+			                float initial_angle = random.nextFloat() * (float) (Math.PI * 2); // Random direction
+			
+			                // Calculate trail length based on speed
+			                int trail_length = (int) (speed * TRAIL_SPEED_MULTIPLIER);
+			                if (trail_length < 1) trail_length = 1; // Minimum trail length
+			                if (trail_length > MAX_TRAIL_LENGTH) trail_length = MAX_TRAIL_LENGTH; // Maximum trail length
+			
+			    			this.stars.add(new Star(STAR_ORIGIN_X, STAR_ORIGIN_Y, z, initial_angle, speed, color, trail_length)); // Pass new properties		}
 		this.backgroundEnemies = new ArrayList<Entity>();
 		this.shootingStars = new ArrayList<ShootingStar>();
 
 		// Initialize rotation angles
 		this.currentAngle = 0;
 		this.targetAngle = 0;
+		this.speedManager = new StarSpeedManager();
 	}
+}
 
 
 	/**
@@ -200,11 +239,31 @@ public class TitleScreen extends Screen {
 
 		// Animate stars in their non-rotating space
 		for (Star star : this.stars) {
-			star.baseY += star.speed;
-			if (star.baseY > this.getHeight()) {
-				star.baseY = 0;
-				star.baseX = (float) (Math.random() * this.getWidth());
-			}
+			                            float globalSpeedMultiplier = speedManager.updateAndGetGlobalSpeedMultiplier();
+			                			// Calculate dynamic approach speed based on base speed, proximity, and global speed multiplier
+			                			float current_approach_speed = star.speed * (1.0f - star.z / MAX_STAR_Z) * 2.0f * globalSpeedMultiplier; // Scale by proximity, boost by 2.0f
+			                			if (current_approach_speed < 0.1f) current_approach_speed = 0.1f; // Ensure minimum speed
+			                			star.z -= current_approach_speed; // Move star closer			
+			            // If star passes the viewer, reset it to far away, creating a seamless loop
+			            if (star.z <= MIN_STAR_Z) {
+			                // Calculate overshoot amount and wrap around MAX_STAR_Z
+			                star.z = MAX_STAR_Z - (MIN_STAR_Z - star.z);
+			                star.x = STAR_ORIGIN_X;
+			                star.y = STAR_ORIGIN_Y;
+			                // No z_speed to re-randomize, only initial_angle
+			                star.initial_angle = random.nextFloat() * (float) (Math.PI * 2); // Re-randomize direction
+			            }
+			// Calculate current screen position based on depth and initial angle
+			float scale = MIN_SPREAD_SCALE + (MAX_STAR_Z - star.z) / MAX_STAR_Z * (1.0f - MIN_SPREAD_SCALE); // Scale factor for perspective, ensuring minimum spread
+			star.x = STAR_ORIGIN_X + (float) (Math.cos(star.initial_angle) * scale * this.getWidth() / 2);
+			star.y = STAR_ORIGIN_Y + (float) (Math.sin(star.initial_angle) * scale * this.getHeight() / 2);
+
+            // Update trail history
+            star.trail.add(new java.awt.geom.Point2D.Float(star.x, star.y));
+            if (star.trail.size() > star.trail_length) { // Use dynamic trail_length
+                star.trail.remove(0); // Remove oldest position
+            }
+
 			// Update brightness for twinkling effect
 			star.brightness = 0.5f + (float) (Math.sin(star.brightnessOffset + System.currentTimeMillis() / 500.0) + 1.0) / 4.0f;
 		}

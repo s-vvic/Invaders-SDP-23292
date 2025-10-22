@@ -709,38 +709,53 @@ public final class DrawManager {
 	 * @param angle
 	 *            Current rotation angle.
 	 */
-	public void drawStars(final Screen screen, final List<Star> stars, final float angle) {
-		final int centerX = screen.getWidth() / 2;
-		final int centerY = screen.getHeight() / 2;
-		final double angleRad = Math.toRadians(angle);
-		final double cosAngle = Math.cos(angleRad);
-		final double sinAngle = Math.sin(angleRad);
-
-		for (Star star : stars) {
-			float relX = star.baseX - centerX;
-			float relY = star.baseY - centerY;
-
-			double rotatedX = relX * cosAngle - relY * sinAngle;
-			double rotatedY = relX * sinAngle + relY * cosAngle;
-
-			int screenX = (int) (rotatedX + centerX);
-			int screenY = (int) (rotatedY + centerY);
-
-			// Use star's brightness to set its color for twinkling effect
-			float b = star.brightness;
-			if (b < 0) b = 0;
-			if (b > 1) b = 1;
-
-			Color baseColor = star.getColor();
-			int r = (int)(baseColor.getRed() * b);
-			int g = (int)(baseColor.getGreen() * b);
-			int blue = (int)(baseColor.getBlue() * b);
-			backBufferGraphics.setColor(new Color(r, g, blue));
-			backBufferGraphics.drawRect(screenX, screenY, 1, 1);
-		}
-	}
-
-	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {
+				public void drawStars(final Screen screen, final List<Star> stars, final float angle) {
+					// Rotation logic is no longer needed here as stars are positioned relative to origin
+					// and their movement is handled in update().
+					// The 'angle' parameter might still be used for a global rotation of the entire field,
+					// but for individual star positions, it's not directly applied here anymore.
+					// For now, we'll keep the angle parameter but not use it for individual star positions.
+			
+					for (Star star : stars) {
+						// Calculate size based on depth (z)
+						int size = (int) ((TitleScreen.MAX_STAR_Z - star.z) / (TitleScreen.MAX_STAR_Z / 5.0f)) + 1; // Size 1 to 5
+						if (size < 1) size = 1; // Minimum size
+						if (size > 5) size = 5; // Maximum size
+			
+						// Use star's brightness to set its color for twinkling effect
+						float b = star.brightness;
+						if (b < 0) b = 0;
+						if (b > 1) b = 1;
+			
+						Color baseColor = star.getColor();
+						int r = (int)(baseColor.getRed() * b);
+						int g = (int)(baseColor.getGreen() * b);
+						int blue = (int)(baseColor.getBlue() * b);
+						
+			                // Draw trail
+			                for (int i = 0; i < star.trail.size(); i++) {
+			                    java.awt.geom.Point2D.Float trailPoint = star.trail.get(i);
+			                    float trailBrightness = b * ( (float) (i + 1) / star.trail.size() ); // Fade out trail
+			                    if (trailBrightness < 0) trailBrightness = 0;
+			                    if (trailBrightness > 1) trailBrightness = 1;
+			
+			                    // Scale trail color by brightness
+			                    int tr = (int)(baseColor.getRed() * trailBrightness);
+			                    int tg = (int)(baseColor.getGreen() * trailBrightness);
+			                    int tblue = (int)(baseColor.getBlue() * trailBrightness);
+			                    backBufferGraphics.setColor(new Color(tr, tg, tblue));
+			
+			                    // Trail size can also fade or be smaller
+			                    int trailSize = (int) (size * ( (float) (i + 1) / star.trail.size() ));
+			                    if (trailSize < 1) trailSize = 1;
+			                    backBufferGraphics.fillRect((int) trailPoint.x, (int) trailPoint.y, trailSize, trailSize);
+			                }
+			
+						// Draw the main star
+						backBufferGraphics.setColor(new Color(r, g, blue));
+						backBufferGraphics.fillRect((int) star.x, (int) star.y, size, size);
+					}
+				}	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {
 		final int centerX = screen.getWidth() / 2;
 		final int centerY = screen.getHeight() / 2;
 		final double angleRad = Math.toRadians(angle);
