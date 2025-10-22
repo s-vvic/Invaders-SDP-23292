@@ -34,13 +34,19 @@ public class TitleScreen extends Screen {
 		public float speed;
 		public float brightness;
         public float brightnessOffset;
+		public Color color;
 
-		public Star(float baseX, float baseY, float speed) {
+		public Star(float baseX, float baseY, float speed, Color color) {
 			this.baseX = baseX;
 			this.baseY = baseY;
 			this.speed = speed;
 			this.brightness = 0;
 			this.brightnessOffset = (float) (Math.random() * Math.PI * 2);
+			this.color = color;
+		}
+
+		public Color getColor() {
+			return this.color;
 		}
 	}
 
@@ -81,7 +87,7 @@ public class TitleScreen extends Screen {
 	/** Milliseconds between changes in user selection. */
 	private static final int SELECTION_TIME = 200;
 	/** Number of stars in the background. */
-	private static final int NUM_STARS = 150;
+	private static final int NUM_STARS = 400;
 	/** Speed of the rotation animation. */
     private static final float ROTATION_SPEED = 4.0f;
 	/** Milliseconds between enemy spawns. */
@@ -145,10 +151,18 @@ public class TitleScreen extends Screen {
 
 		this.random = new Random();
 		this.stars = new ArrayList<Star>();
+		List<Color> starColors = java.util.Arrays.asList(
+				Color.WHITE,
+				new Color(173, 216, 230), // Light Blue
+				new Color(255, 255, 153), // Light Yellow
+				new Color(255, 182, 193), // Light Pink
+				new Color(204, 204, 255)  // Lavender
+		);
 		for (int i = 0; i < NUM_STARS; i++) {
 			float speed = (float) (Math.random() * 2.5 + 0.5);
+			Color color = starColors.get(random.nextInt(starColors.size()));
 			this.stars.add(new Star((float) (Math.random() * width),
-					(float) (Math.random() * height), speed));
+					(float) (Math.random() * height), speed, color));
 		}
 
 		this.backgroundEnemies = new ArrayList<Entity>();

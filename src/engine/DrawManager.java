@@ -729,7 +729,12 @@ public final class DrawManager {
 			float b = star.brightness;
 			if (b < 0) b = 0;
 			if (b > 1) b = 1;
-			backBufferGraphics.setColor(new Color(b, b, b));
+
+			Color baseColor = star.getColor();
+			int r = (int)(baseColor.getRed() * b);
+			int g = (int)(baseColor.getGreen() * b);
+			int blue = (int)(baseColor.getBlue() * b);
+			backBufferGraphics.setColor(new Color(r, g, blue));
 			backBufferGraphics.drawRect(screenX, screenY, 1, 1);
 		}
 	}
