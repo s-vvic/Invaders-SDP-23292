@@ -234,8 +234,8 @@ public class TitleScreen extends Screen {
         if (this.shootingStarCooldown.checkFinished()) {
             this.shootingStarCooldown.reset();
             if (Math.random() < SHOOTING_STAR_SPAWN_CHANCE) {
-                float speedX = (float) (Math.random() * 10 + 5) * (Math.random() > 0.5 ? 1 : -1);
-                float speedY = (float) (Math.random() * 10 + 5) * (Math.random() > 0.5 ? 1 : -1);
+                float speedX = (float) (Math.random() * 7 + 5) * (Math.random() > 0.5 ? 1 : -1);
+                float speedY = (float) (Math.random() * 7 + 5) * (Math.random() > 0.5 ? 1 : -1);
                 this.shootingStars.add(new ShootingStar(random.nextInt(this.getWidth()), -10, speedX, speedY));
             }
         }

@@ -150,6 +150,7 @@ public final class DrawManager {
 		fontSmallMetrics = backBufferGraphics.getFontMetrics(fontSmall);
 	}
 
+
 	/**
 	 * Draws the completed drawing on screen.
 	 */
@@ -739,5 +740,44 @@ public final class DrawManager {
 		}
 	}
 
-    	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {    }
+	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {
+		final int centerX = screen.getWidth() / 2;
+		final int centerY = screen.getHeight() / 2;
+		final double angleRad = Math.toRadians(angle);
+		final double cosAngle = Math.cos(angleRad);
+		final double sinAngle = Math.sin(angleRad);
+
+		for (ShootingStar star : shootingStars) {
+			// Calculate the rotated position for the head of the star
+			float relX = star.x - centerX;
+			float relY = star.y - centerY;
+			double rotatedX = relX * cosAngle - relY * sinAngle;
+			double rotatedY = relX * sinAngle + relY * cosAngle;
+			int screenX = (int) (rotatedX + centerX);
+			int screenY = (int) (rotatedY + centerY);
+
+			// Draw the tail (8 segments, as per user's intention)
+			for (int i = 1; i <= 8; i++) {
+				// Calculate previous positions for the tail
+				float prevRelX = (star.x - star.speedX * i * 0.1f) - centerX;
+				float prevRelY = (star.y - star.speedY * i * 0.1f) - centerY;
+
+				double prevRotatedX = prevRelX * cosAngle - prevRelY * sinAngle;
+				double prevRotatedY = prevRelX * sinAngle + prevRelY * cosAngle;
+
+				int prevScreenX = (int) (prevRotatedX + centerX);
+				int prevScreenY = (int) (prevRotatedY + centerY);
+
+				// Fade the tail out (as per user's intention)
+				float brightness = 1.0f - (i * 0.1f);
+				if (brightness < 0) brightness = 0; // Safety check
+				backBufferGraphics.setColor(new Color(brightness, brightness, brightness));
+				backBufferGraphics.fillRect(prevScreenX, prevScreenY, 2, 2);
+			}
+
+			// Draw the head of the star
+			backBufferGraphics.setColor(Color.WHITE);
+			backBufferGraphics.fillRect(screenX, screenY, 3, 3);
+		}
+	}
 }
