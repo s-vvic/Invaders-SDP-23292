@@ -271,10 +271,10 @@ public final class DrawManager {
      * Draws an achievement pop-up message on the screen.
      */
     public void drawAchievementPopup(final Screen screen, final String text) {
-        int popupWidth = 250;
-        int popupHeight = 50;
+        int popupWidth = 375;
+        int popupHeight = 75;
         int x = screen.getWidth() / 2 - popupWidth / 2;
-        int y = 80;
+        int y = 120;
         backBufferGraphics.setColor(new Color(0, 0, 0, 200));
         backBufferGraphics.fillRoundRect(x, y, popupWidth, popupHeight, 15, 15);
         backBufferGraphics.setColor(Color.YELLOW);
@@ -288,10 +288,10 @@ public final class DrawManager {
      * Draws a notification popup for changes in health.
      */
     public void drawHealthPopup(final Screen screen, final String text) {
-        int popupWidth = 250;
-        int popupHeight = 40;
+        int popupWidth = 375;
+        int popupHeight = 60;
         int x = screen.getWidth() / 2 - popupWidth / 2;
-        int y = 100;
+        int y = 105;
         backBufferGraphics.setColor(new Color(0, 0, 0, 200));
         backBufferGraphics.fillRoundRect(x, y, popupWidth, popupHeight, 15, 15);
         Color textColor;

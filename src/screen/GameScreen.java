@@ -810,7 +810,7 @@ public class GameScreen extends Screen {
 		this.logger.info("Spawning boss: " + bossName);
 		switch (bossName) {
 			case "finalBoss":
-				this.finalBoss = new FinalBoss(this.width / 2 - 75, 75, this.width, this.height);
+				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height);
 				this.logger.info("Final Boss has spawned!");
 				break;
 			case "omegaBoss":
