@@ -177,6 +177,32 @@ public final class DrawManager {
 	}
 
 	/**
+	 * Draws a scaled entity.
+	 */
+	public void drawScaledEntity(final Entity entity, final int positionX, final int positionY, float scale) {
+		boolean[][] image = spriteMap.get(entity.getSpriteType());
+		backBufferGraphics.setColor(entity.getColor());
+
+		if (scale <= 0) return; // Don't draw if invisible
+
+		// The original size of a "pixel" is 2.
+		float pixelSize = 2.0f * scale;
+		if (pixelSize < 1.0f) pixelSize = 1.0f; // Draw at least 1x1 pixels.
+
+		for (int i = 0; i < image.length; i++) {
+			for (int j = 0; j < image[i].length; j++) {
+				if (image[i][j]) {
+					backBufferGraphics.drawRect(
+						positionX + (int)(i * pixelSize), 
+						positionY + (int)(j * pixelSize), 
+						(int)Math.ceil(pixelSize), 
+						(int)Math.ceil(pixelSize));
+				}
+			}
+		}
+	}
+
+	/**
 	 * Draws current score on screen.
 	 */
 	public void drawScore(final Screen screen, final int score) {
@@ -709,53 +735,58 @@ public final class DrawManager {
 	 * @param angle
 	 *            Current rotation angle.
 	 */
-				public void drawStars(final Screen screen, final List<Star> stars, final float angle) {
-					// Rotation logic is no longer needed here as stars are positioned relative to origin
-					// and their movement is handled in update().
-					// The 'angle' parameter might still be used for a global rotation of the entire field,
-					// but for individual star positions, it's not directly applied here anymore.
-					// For now, we'll keep the angle parameter but not use it for individual star positions.
+	public void drawStars(final Screen screen, final List<Star> stars, final float angle) {
+		for (Star star : stars) {
+			CelestialBody body = star.getCelestialBody();
+
+			// Calculate size based on depth (z), with an initial fade-in period.
+			float FADE_IN_FRACTION = 0.2f;
+			float scale_factor = (1.0f - body.z / TitleScreen.MAX_STAR_Z);
+			scale_factor = (scale_factor - FADE_IN_FRACTION) / (1.0f - FADE_IN_FRACTION);
+
+			if (scale_factor <= 0) continue; // Don't draw if invisible or not yet visible
+
+			// Respecting the user's previous change to a max size of 5.
+			int size = (int) (scale_factor * 5.0f) + 1;
+			if (size < 1) size = 1;
+			if (size > 5) size = 5;
+
+			// Use star's brightness to set its color for twinkling effect
+			float b = star.brightness;
+			if (b < 0) b = 0;
+			if (b > 1) b = 1;
+
+			Color baseColor = star.getColor();
+			int r = (int)(baseColor.getRed() * b);
+			int g = (int)(baseColor.getGreen() * b);
+			int blue = (int)(baseColor.getBlue() * b);
 			
-					for (Star star : stars) {
-						// Calculate size based on depth (z)
-						int size = (int) ((TitleScreen.MAX_STAR_Z - star.z) / (TitleScreen.MAX_STAR_Z / 5.0f)) + 1; // Size 1 to 5
-						if (size < 1) size = 1; // Minimum size
-						if (size > 5) size = 5; // Maximum size
-			
-						// Use star's brightness to set its color for twinkling effect
-						float b = star.brightness;
-						if (b < 0) b = 0;
-						if (b > 1) b = 1;
-			
-						Color baseColor = star.getColor();
-						int r = (int)(baseColor.getRed() * b);
-						int g = (int)(baseColor.getGreen() * b);
-						int blue = (int)(baseColor.getBlue() * b);
-						
-			                // Draw trail
-			                for (int i = 0; i < star.trail.size(); i++) {
-			                    java.awt.geom.Point2D.Float trailPoint = star.trail.get(i);
-			                    float trailBrightness = b * ( (float) (i + 1) / star.trail.size() ); // Fade out trail
-			                    if (trailBrightness < 0) trailBrightness = 0;
-			                    if (trailBrightness > 1) trailBrightness = 1;
-			
-			                    // Scale trail color by brightness
-			                    int tr = (int)(baseColor.getRed() * trailBrightness);
-			                    int tg = (int)(baseColor.getGreen() * trailBrightness);
-			                    int tblue = (int)(baseColor.getBlue() * trailBrightness);
-			                    backBufferGraphics.setColor(new Color(tr, tg, tblue));
-			
-			                    // Trail size can also fade or be smaller
-			                    int trailSize = (int) (size * ( (float) (i + 1) / star.trail.size() ));
-			                    if (trailSize < 1) trailSize = 1;
-			                    backBufferGraphics.fillRect((int) trailPoint.x, (int) trailPoint.y, trailSize, trailSize);
-			                }
-			
-						// Draw the main star
-						backBufferGraphics.setColor(new Color(r, g, blue));
-						backBufferGraphics.fillRect((int) star.x, (int) star.y, size, size);
-					}
-				}	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {
+            // Draw trail
+            if (body.trail != null) {
+                for (int i = 0; i < body.trail.size(); i++) {
+                    java.awt.geom.Point2D.Float trailPoint = body.trail.get(i);
+                    float trailBrightness = b * ( (float) (i + 1) / body.trail.size() ); // Fade out trail
+                    if (trailBrightness < 0) trailBrightness = 0;
+                    if (trailBrightness > 1) trailBrightness = 1;
+
+                    // Scale trail color by brightness
+                    int tr = (int)(baseColor.getRed() * trailBrightness);
+                    int tg = (int)(baseColor.getGreen() * trailBrightness);
+                    int tblue = (int)(baseColor.getBlue() * trailBrightness);
+                    backBufferGraphics.setColor(new Color(tr, tg, tblue));
+
+                    // Trail size can also fade or be smaller
+                    int trailSize = (int) (size * ( (float) (i + 1) / body.trail.size() ));
+                    if (trailSize < 1) trailSize = 1;
+                    backBufferGraphics.fillRect((int) trailPoint.x, (int) trailPoint.y, trailSize, trailSize);
+                }
+            }
+
+			// Draw the main star
+			backBufferGraphics.setColor(new Color(r, g, blue));
+			backBufferGraphics.fillRect((int) body.current_screen_x, (int) body.current_screen_y, size, size);
+		}
+	}	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {
 		final int centerX = screen.getWidth() / 2;
 		final int centerY = screen.getHeight() / 2;
 		final double angleRad = Math.toRadians(angle);
