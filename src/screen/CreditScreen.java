@@ -25,25 +25,6 @@ public class CreditScreen extends Screen {
 
     private List<Credit> creditList;
 
-    public static class Star {
-        private CelestialBody celestialBody;
-        public float brightness;
-        public float brightnessOffset;
-        public Color color;
-
-        private Cooldown enemySpawnCooldown;
-        private Cooldown shootingStarCooldown;
-        public Color getColor() {
-            return color;
-        }
-
-        public CelestialBody getCelestialBody() {
-            return celestialBody;
-        }
-    }
-
-
-
 
     private static final int NUM_STARS = 800;
     public static final float MAX_STAR_Z = 500.0f;
@@ -65,6 +46,13 @@ public class CreditScreen extends Screen {
     private StarSpeedManager speedManager;
     private StarOriginManager originManager;
     private CelestialManager celestialManager;
+
+    private float scroll_Y;
+    private static final int LINE_HEIGHT = 45;
+    private static final int BASE_FONT_SIZE = 22;
+    private static final float MAX_SCALE = 1.6f;
+    private static final float SCALE_ZONE = 150.0f;
+    private static final float SCROLL_SPEED = 1.5f;
     public static class Credit {
         private final int no;
         private final String teamName;
@@ -137,6 +125,8 @@ public class CreditScreen extends Screen {
         this.returnCode = 1;
         this.creditList = new ArrayList<>();
         loadCredits();
+
+        this.scroll_Y = this.getHeight() + LINE_HEIGHT;
     }
 
     /**
@@ -226,8 +216,15 @@ public class CreditScreen extends Screen {
                 shootingStarIterator.remove();
             }
         }
+        this.scroll_Y -= SCROLL_SPEED;
+
+        float lastCredit_Y = this.scroll_Y + (this.creditList.size() * LINE_HEIGHT);
+
+        if (lastCredit_Y < -LINE_HEIGHT) {
+            this.scroll_Y = this.getHeight() + LINE_HEIGHT;
+        }
         draw();
-        // Pressing the spacebar will exit the screen.
+
         if (inputManager.isKeyDown(KeyEvent.VK_SPACE) && this.inputDelay.checkFinished()) {
             this.isRunning = false;
         }
@@ -252,7 +249,33 @@ public class CreditScreen extends Screen {
             drawManager.drawScaledEntity(enemy, screenX, screenY, scale_factor);
         }
         drawManager.drawCreditsMenu(this);
-        drawManager.drawCredits(this, this.creditList);
+        int screenCenterY = this.getHeight() / 2;
+        int screenCenterX = this.getWidth() / 2;
+
+        int topSafeZoneY = (this.getHeight() / 5) + 30;
+
+        for (int i = 0; i < this.creditList.size(); i++) {
+            Credit credit = this.creditList.get(i);
+            String text = credit.getTeamName() + " - " + credit.getRole();
+
+            float current_Y = this.scroll_Y + (i * LINE_HEIGHT);
+
+            if (current_Y > topSafeZoneY && current_Y < this.getHeight() + LINE_HEIGHT) {
+
+                float distanceToCenter = Math.abs(current_Y - screenCenterY);
+                float scale = 1.0f;
+
+                if (distanceToCenter < SCALE_ZONE) {
+                    scale = 1.0f + (1.0f - (distanceToCenter / SCALE_ZONE)) * (MAX_SCALE - 1.0f);
+                }
+                int scaledSize = (int) (BASE_FONT_SIZE * scale);
+
+                int textWidth = drawManager.getTextWidth(text, scaledSize);
+                int x_pos = screenCenterX - (textWidth / 2);
+
+                drawManager.drawText(text, x_pos, (int) current_Y, Color.YELLOW, scaledSize);
+            }
+        }
 
         drawManager.completeDrawing(this);
     }

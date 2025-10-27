@@ -63,6 +63,39 @@ public final class DrawManager {
 	private static Map<SpriteType, boolean[][]> spriteMap;
 
 	private float rainbowHue = 0.0f;
+	/**
+	 * Draws a string at a specific x, y, color, and size.
+	 *
+	 * @param text The string to draw.
+	 * @param x X coordinate.
+	 * @param y Y coordinate.
+	 * @param c The color to use.
+	 * @param size The font size.
+	 */
+	public void drawText(final String text, final int x, final int y, final Color c, final int size) {
+		// 기본 폰트(fontRegular)를 기반으로 원하는 크기의 새 폰트를 생성합니다.
+		Font newFont = fontRegular.deriveFont((float)size);
+
+		backBufferGraphics.setFont(newFont);
+		backBufferGraphics.setColor(c);
+		backBufferGraphics.drawString(text, x, y);
+	}
+
+	/**
+	 * Gets the pixel width of a string for a specific font size.
+	 *
+	 * @param text The string to measure.
+	 * @param size The font size.
+	 * @return The width of the string in pixels.
+	 */
+	public int getTextWidth(final String text, final int size) {
+		// 측정할 폰트를 생성합니다.
+		Font newFont = fontRegular.deriveFont((float)size);
+		// 해당 폰트의 측정 도구(FontMetrics)를 가져옵니다.
+		FontMetrics metrics = backBufferGraphics.getFontMetrics(newFont);
+		// 문자열의 너비를 반환합니다.
+		return metrics.stringWidth(text);
+	}
 
 	/** Sprite types. */
 	public static enum SpriteType {
