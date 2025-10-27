@@ -52,7 +52,7 @@ public class EasterEggScreen extends Screen {
 
         // You can ask the drawManager to draw a custom message or image here.
         // For example:
-        drawManager.drawTitle(this); // Temporarily reusing the title drawing.
+        drawManager.drawEasterEgg(this); 
         drawManager.completeDrawing(this);
     }
 }

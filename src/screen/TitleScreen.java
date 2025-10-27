@@ -15,6 +15,9 @@ import engine.DrawManager.SpriteType;
 import entity.Entity;
 import entity.SoundButton;
 
+import audio.SoundManager;
+
+
 /**
  * Implements the title screen.
  * 
@@ -91,7 +94,7 @@ public class TitleScreen extends Screen {
     private static final int SHOOTING_STAR_COOLDOWN = 3000;
     /** Probability of a shooting star spawning. */
     private static final double SHOOTING_STAR_SPAWN_CHANCE = 0.2;
-	
+
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
 	/** Cooldown for enemy spawning. */
@@ -109,6 +112,8 @@ public class TitleScreen extends Screen {
 	/** Sound button on/off object. */
 	private SoundButton soundButton;
 	private int commandState = 0;
+
+    private boolean musicStarted = false;
 
 	/** Current rotation angle of the starfield. */
     private float currentAngle;
@@ -319,6 +324,11 @@ public class TitleScreen extends Screen {
                 } else {
                     this.soundButton.changeSoundState();
                     this.selectionCooldown.reset();
+					if (SoundButton.getIsSoundOn()) {
+						SoundManager.uncutAllSound();
+					} else {
+						SoundManager.cutAllSound();
+					}
                 }
             }
 

@@ -258,14 +258,13 @@ public final class DrawManager {
     /**
      * Draws the current level on the bottom-left of the screen.
      */
-    public void drawLevel(final Screen screen, final int level) {
+    public void drawLevel(final Screen screen, final String levelName) {
         final int paddingX = 20;
         final int paddingY = 50;
         backBufferGraphics.setFont(fontRegular);
         backBufferGraphics.setColor(Color.WHITE);
-        String levelText = "Level " + level;
         int yPos = screen.getHeight() - paddingY;
-        backBufferGraphics.drawString(levelText, paddingX, yPos);
+        backBufferGraphics.drawString(levelName, paddingX, yPos);
     }
 
     /**
@@ -449,7 +448,7 @@ public final class DrawManager {
             } else {
                 backBufferGraphics.setColor(Color.WHITE);
             }
-            drawCenteredRegularString(screen, achievement.getName() + " - " + achievement.getDescription(), screen.getHeight() / 4 + fontRegularMetrics.getHeight() * (i + 1) * 2);
+            drawCenteredRegularString(screen, achievement.getName() + " - " + achievement.getDescription(), screen.getHeight() / 5 + fontRegularMetrics.getHeight() * (i + 1) * 2);
             i++;
         }
         backBufferGraphics.setColor(Color.GRAY);
@@ -708,6 +707,14 @@ public final class DrawManager {
 			backBufferGraphics.setColor(new Color(b, b, b));
 			backBufferGraphics.drawRect(screenX, screenY, 1, 1);
 		}
+	}
+	public void drawEasterEgg(final Screen screen) {
+		String titleString = "EASTER EGG!!";
+		String instructionsString = "if you want cheating? do it!!";
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, instructionsString, screen.getHeight() / 2);
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, titleString, screen.getHeight() / 3);
 	}
 
     	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {    }
