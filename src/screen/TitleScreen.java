@@ -74,7 +74,7 @@ public class TitleScreen extends Screen {
 	/**
 	 * A simple class to represent a background enemy.
 	 */
-	private static class BackgroundEnemy extends Entity {
+	public static class BackgroundEnemy extends Entity {
 		private CelestialBody celestialBody;
 
 		public BackgroundEnemy(CelestialBody celestialBody, SpriteType spriteType) {

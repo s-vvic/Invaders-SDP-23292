@@ -106,7 +106,7 @@ public final class DrawManager {
 
 			fontRegular = fileManager.loadFont(14f);
 			fontBig = fileManager.loadFont(24f);
-			fontSmall = fileManager.loadFont(9f);
+			fontSmall = fileManager.loadFont(13f);
 			logger.info("Finished loading the fonts.");
 
 		} catch (IOException e) {
@@ -526,8 +526,8 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontSmall);
 		int yPosition = screen.getHeight() / 4;
 		final int xPosition = screen.getWidth() / 10;
-		final int lineSpacing = fontSmallMetrics.getHeight() + 1;
-		final int teamSpacing = lineSpacing + 5;
+		final int lineSpacing = fontSmallMetrics.getHeight() + 3;
+		final int teamSpacing = lineSpacing + 6;
 		for (CreditScreen.Credit credit : creditList) {
 			backBufferGraphics.setColor(Color.GREEN);
 			String teamInfo = String.format("%s - %s", credit.getTeamName(), credit.getRole());
