@@ -30,10 +30,13 @@ import screen.*;
  */
 public final class Core {
 
-	/** Width of current screen. */
-	private static final int WIDTH = 448;
-	/** Height of current screen. */
-	private static final int HEIGHT = 520;
+			/** Width of current screen. */
+
+			private static final int WIDTH = 672;
+
+			/** Height of current screen. */
+
+			private static final int HEIGHT = 780;
 	/** Max fps of current screen. */
 	private static final int FPS = 60;
 
@@ -106,6 +109,45 @@ public final class Core {
                     LOGGER.info("Closing title screen.");
                     break;
                 case 2:
+                    // Mode selection.
+                    currentScreen = new ModeSelectionScreen(width, height, FPS);
+                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+                            + " mode selection screen at " + FPS + " fps.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing mode selection screen.");
+                    break;
+                case 3:
+                    // High scores.
+                    currentScreen = new HighScoreScreen(width, height, FPS);
+                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+                            + " high score screen at " + FPS + " fps.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing high score screen.");
+                    break;
+                case 4:
+                    // Shop opened manually from main menu
+
+                    currentScreen = new ShopScreen(gameState, width, height, FPS, false);
+                    LOGGER.info("Starting shop screen (menu) with " + gameState.getCoin() + " coins.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing shop screen (menu).");
+                    break;
+                case 6:
+                    // Achievements
+                    currentScreen = new AchievementScreen(width, height, FPS);
+                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+                            + " achievement screen at " + FPS + " fps.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing achievement screen.");
+                    break;
+				case 8: // CreditScreen
+					currentScreen = new CreditScreen(width, height, FPS);
+					LOGGER.info("Starting " + currentScreen.getClass().getSimpleName() + " screen.");
+					returnCode = frame.setScreen(currentScreen);
+					break;
+                case 10: // 1 Player
+                case 11: // 2 Players
+                    boolean isTwoPlayer = (returnCode == 11);
                     do {
                         // One extra life every few levels
                         boolean bonusLife = gameState.getLevel()
@@ -118,15 +160,9 @@ public final class Core {
 
                         engine.level.Level currentLevel = levelManager.getLevel(gameState.getLevel());
 
-                        // TODO: Handle case where level is not found after JSON loading is implemented.
                         if (currentLevel == null) {
-                          // For now, we can just break or default to level 1 if we run out of levels.
-                          // This will be important when the number of levels is defined by maps.json
                           break;
                         }
-
-						SoundManager.stopAll();
-						SoundManager.playLoop("sfx/level" + gameState.getLevel() + ".wav");
 
                         // Start a new level
                         currentScreen = new GameScreen(
@@ -136,7 +172,8 @@ public final class Core {
                                 MAX_LIVES,
                                 width,
                                 height,
-                                FPS
+                                FPS,
+                                isTwoPlayer
                         );
 
                         LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
@@ -167,7 +204,6 @@ public final class Core {
                                     gameState.getCoin()                // Keep current coins
                             );
                         }
-                        // Loop while player still has lives and levels remaining
                     } while (gameState.getLivesRemaining() > 0);
 
 					SoundManager.stopAll();
@@ -184,35 +220,6 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing score screen.");
                     break;
-                case 3:
-                    // High scores
-                    currentScreen = new HighScoreScreen(width, height, FPS);
-                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
-                            + " high score screen at " + FPS + " fps.");
-                    returnCode = frame.setScreen(currentScreen);
-                    LOGGER.info("Closing high score screen.");
-                    break;
-                case 4:
-                    // Shop opened manually from main menu
-
-                    currentScreen = new ShopScreen(gameState, width, height, FPS, false);
-                    LOGGER.info("Starting shop screen (menu) with " + gameState.getCoin() + " coins.");
-                    returnCode = frame.setScreen(currentScreen);
-                    LOGGER.info("Closing shop screen (menu).");
-                    break;
-                case 6:
-                    // Achievements
-                    currentScreen = new AchievementScreen(width, height, FPS);
-                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
-                            + " achievement screen at " + FPS + " fps.");
-                    returnCode = frame.setScreen(currentScreen);
-                    LOGGER.info("Closing achievement screen.");
-                    break;
-				case 8: // (추가) CreditScreen
-					currentScreen = new CreditScreen(width, height, FPS);
-					LOGGER.info("Starting " + currentScreen.getClass().getSimpleName() + " screen.");
-					returnCode = frame.setScreen(currentScreen);
-					break;
                 default:
                     break;
             }
