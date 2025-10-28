@@ -11,7 +11,7 @@ public class OmegaBoss extends MidBoss {
 	/** Initial position in the x-axis. */
 	private static final int INIT_POS_X = 224;
 	/** Initial position in the y-axis. */
-	private static final int INIT_POS_Y = 50;
+	private static final int INIT_POS_Y = 100;
 	/** Width of Omega */
 	private static final int OMEGA_WIDTH = 32;
 	/** Height of Omega */
@@ -111,11 +111,11 @@ public class OmegaBoss extends MidBoss {
 			this.isRight = false;
 		}
 
-		if (this.positionY <= INIT_POS_Y) {
-			this.positionY = INIT_POS_Y;
+		if (this.positionY <= 68) {
+			this.positionY = 68;
 			this.isDown = true;
-		} else if (this.positionY + this.height >= screen.getHeight()) {
-			this.positionY = screen.getHeight() - this.height;
+		} else if (this.positionY + this.height >= 600) {
+			this.positionY = 600 - this.height;
 			this.isDown = false;
 		}
 	}
