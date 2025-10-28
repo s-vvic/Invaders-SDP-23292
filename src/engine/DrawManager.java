@@ -3,8 +3,14 @@ package engine;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
+import java.awt.geom.Ellipse2D;
+import java.awt.Paint;
+import java.awt.RadialGradientPaint;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.AlphaComposite;
+import java.awt.Composite;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -15,6 +21,7 @@ import java.util.logging.Logger;
 import entity.Entity;
 import entity.FinalBoss;
 import entity.Ship;
+import engine.Nebula;
 import engine.Achievement;
 import screen.CreditScreen;
 import screen.Screen;
@@ -22,6 +29,7 @@ import engine.Score;
 import screen.TitleScreen;
 import screen.TitleScreen.Star;
 import screen.TitleScreen.ShootingStar;
+import engine.NebulaSettings;
 
 /**
  * Manages screen drawing.
@@ -826,4 +834,55 @@ public final class DrawManager {
 			backBufferGraphics.fillRect(screenX, screenY, 3, 3);
 		}
 	}
-}
+
+	/**
+	 * Draws the nebula clouds.
+	 */
+	public void drawNebulas(final Screen screen, final List<Nebula> nebulas) {
+		Graphics2D g2d = (Graphics2D) backBufferGraphics.create();
+		Composite originalComposite = g2d.getComposite();
+		int screenWidth = screen.getWidth();
+		int screenHeight = screen.getHeight();
+		java.util.Random random = new java.util.Random();
+
+		for (Nebula nebula : nebulas) {
+			float scale_factor = (1.0f - nebula.z / (TitleScreen.MAX_STAR_Z * 2.0f));
+			int screenX = (int) (screenWidth / 2 + (nebula.x - screenWidth / 2) * scale_factor);
+			int screenY = (int) (screenHeight / 2 + (nebula.y - screenHeight / 2) * scale_factor);
+			int scaledSize = (int) (nebula.size * scale_factor);
+
+			if (scaledSize <= 0) continue;
+
+			// Set the base color for the nebula
+			g2d.setColor(nebula.color);
+
+			// Create a more complex, gaseous cloud shape
+			for (int i = 0; i < NebulaSettings.NUM_PUFFS; i++) {
+				float offsetX = (random.nextFloat() - 0.5f) * scaledSize * NebulaSettings.PUFF_OFFSET_FACTOR;
+				float offsetY = (random.nextFloat() - 0.5f) * scaledSize * NebulaSettings.PUFF_OFFSET_FACTOR;
+				float puffSize = scaledSize * (NebulaSettings.PUFF_SIZE_MIN_FACTOR + random.nextFloat() * (NebulaSettings.PUFF_SIZE_MAX_FACTOR - NebulaSettings.PUFF_SIZE_MIN_FACTOR));
+
+				// Create a smooth, time-based pulsation for the alpha
+				double time = System.currentTimeMillis() / NebulaSettings.PULSATION_SPEED;
+				float pulsation = (float) (Math.sin(time + i) + 1.0) / 2.0f; // Use puff index 'i' as an offset
+				int alpha = NebulaSettings.PUFF_ALPHA_BASE + (int)(pulsation * NebulaSettings.PUFF_ALPHA_RANGE);
+				alpha = Math.max(0, Math.min(255, alpha)); // Clamp alpha to the valid 0-255 range
+
+				Color startColor = new Color(nebula.color.getRed(), nebula.color.getGreen(), nebula.color.getBlue(), alpha);
+				Color endColor = new Color(nebula.color.getRed(), nebula.color.getGreen(), nebula.color.getBlue(), 0);
+
+				java.awt.geom.Point2D center = new java.awt.geom.Point2D.Float(screenX + offsetX, screenY + offsetY);
+				float radius = puffSize / 2;
+				if (radius < 1) continue;
+
+				java.awt.Paint paint = new java.awt.RadialGradientPaint(center, radius, new float[]{0.0f, 1.0f}, new Color[]{startColor, endColor});
+				g2d.setPaint(paint);
+
+				// Draw the puff
+				g2d.fill(new java.awt.geom.Ellipse2D.Float(screenX + offsetX - radius, screenY + offsetY - radius, puffSize, puffSize));
+			}
+		}
+
+		g2d.setComposite(originalComposite);
+		g2d.dispose();
+	}}
