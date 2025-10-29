@@ -1,25 +1,13 @@
 package engine;
 
-import audio.SoundManager;
 
-import java.util.ArrayList;
-import java.util.List;
+import audio.SoundManager;
+import engine.level.LevelManager;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import entity.ShopItem;
-import screen.GameScreen;
-import screen.HighScoreScreen;
-import screen.ScoreScreen;
-import screen.Screen;
-import screen.ShopScreen;
-import screen.TitleScreen;
-import screen.AchievementScreen;
-import engine.level.LevelManager;
-import screen.ShopScreen;
 import screen.*;
 
 /**
@@ -140,7 +128,7 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing achievement screen.");
                     break;
-				case 8: // (추가) CreditScreen
+				case 8: // CreditScreen
 					currentScreen = new CreditScreen(width, height, FPS);
 					LOGGER.info("Starting " + currentScreen.getClass().getSimpleName() + " screen.");
 					returnCode = frame.setScreen(currentScreen);
@@ -220,6 +208,12 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing score screen.");
                     break;
+				case 100:
+					currentScreen = new EasterEggScreen(width, height, FPS);
+               		LOGGER.info("Starting Easter Egg screen.");
+                	returnCode = frame.setScreen(currentScreen);
+                	LOGGER.info("Closing Easter Egg screen.");
+                	break;
                 default:
                     break;
             }

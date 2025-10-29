@@ -24,6 +24,7 @@ import entity.Ship;
 import engine.Nebula;
 import engine.Achievement;
 import screen.CreditScreen;
+import screen.EasterEggScreen;
 import screen.Screen;
 import engine.Score;
 import screen.TitleScreen;
@@ -68,6 +69,41 @@ public final class DrawManager {
 
 	/** Sprite types mapped to their images. */
 	private static Map<SpriteType, boolean[][]> spriteMap;
+
+	private float rainbowHue = 0.0f;
+	/**
+	 * Draws a string at a specific x, y, color, and size.
+	 *
+	 * @param text The string to draw.
+	 * @param x X coordinate.
+	 * @param y Y coordinate.
+	 * @param c The color to use.
+	 * @param size The font size.
+	 */
+	public void drawText(final String text, final int x, final int y, final Color c, final int size) {
+		// 기본 폰트(fontRegular)를 기반으로 원하는 크기의 새 폰트를 생성합니다.
+		Font newFont = fontRegular.deriveFont((float)size);
+
+		backBufferGraphics.setFont(newFont);
+		backBufferGraphics.setColor(c);
+		backBufferGraphics.drawString(text, x, y);
+	}
+
+	/**
+	 * Gets the pixel width of a string for a specific font size.
+	 *
+	 * @param text The string to measure.
+	 * @param size The font size.
+	 * @return The width of the string in pixels.
+	 */
+	public int getTextWidth(final String text, final int size) {
+		// 측정할 폰트를 생성합니다.
+		Font newFont = fontRegular.deriveFont((float)size);
+		// 해당 폰트의 측정 도구(FontMetrics)를 가져옵니다.
+		FontMetrics metrics = backBufferGraphics.getFontMetrics(newFont);
+		// 문자열의 너비를 반환합니다.
+		return metrics.stringWidth(text);
+	}
 
 	/** Sprite types. */
 	public static enum SpriteType {
@@ -114,7 +150,7 @@ public final class DrawManager {
 
 			fontRegular = fileManager.loadFont(14f);
 			fontBig = fileManager.loadFont(24f);
-			fontSmall = fileManager.loadFont(9f);
+			fontSmall = fileManager.loadFont(13f);
 			logger.info("Finished loading the fonts.");
 
 		} catch (IOException e) {
@@ -534,8 +570,8 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontSmall);
 		int yPosition = screen.getHeight() / 4;
 		final int xPosition = screen.getWidth() / 10;
-		final int lineSpacing = fontSmallMetrics.getHeight() + 1;
-		final int teamSpacing = lineSpacing + 5;
+		final int lineSpacing = fontSmallMetrics.getHeight() + 3;
+		final int teamSpacing = lineSpacing + 6;
 		for (CreditScreen.Credit credit : creditList) {
 			backBufferGraphics.setColor(Color.GREEN);
 			String teamInfo = String.format("%s - %s", credit.getTeamName(), credit.getRole());
@@ -834,55 +870,53 @@ public final class DrawManager {
 			backBufferGraphics.fillRect(screenX, screenY, 3, 3);
 		}
 	}
+	public void drawEasterEgg(final Screen screen) {
+    
+    	EasterEggScreen eeScreen = (EasterEggScreen) screen;
+    	String[] menuOptions = eeScreen.getMenuOptions();
+    	int selectedOption = eeScreen.getSelectedOption();
+		boolean[] optionStates = eeScreen.getOptionStates();
 
-	/**
-	 * Draws the nebula clouds.
-	 */
-	public void drawNebulas(final Screen screen, final List<Nebula> nebulas) {
-		Graphics2D g2d = (Graphics2D) backBufferGraphics.create();
-		Composite originalComposite = g2d.getComposite();
-		int screenWidth = screen.getWidth();
-		int screenHeight = screen.getHeight();
-		java.util.Random random = new java.util.Random();
+ 
+    	String titleString = "CHEAT MOD!!";
+    
+    	rainbowHue += 0.04f;
+    	if (rainbowHue > 1.0f) {
+        	rainbowHue -= 1.0f;
+    	}
+    	Color dynamicRainbowColor = Color.getHSBColor(rainbowHue, 1.0f, 1.0f);
+    	backBufferGraphics.setColor(dynamicRainbowColor);
+    	drawCenteredBigString(screen, titleString, screen.getHeight() / 4);
 
-		for (Nebula nebula : nebulas) {
-			float scale_factor = (1.0f - nebula.z / (TitleScreen.MAX_STAR_Z * 2.0f));
-			int screenX = (int) (screenWidth / 2 + (nebula.x - screenWidth / 2) * scale_factor);
-			int screenY = (int) (screenHeight / 2 + (nebula.y - screenHeight / 2) * scale_factor);
-			int scaledSize = (int) (nebula.size * scale_factor);
+    	Color defaultColor = Color.WHITE;
+    	Color highlightColor = Color.YELLOW;
 
-			if (scaledSize <= 0) continue;
+    	int menuStartY = screen.getHeight() / 3 + 40;
+   	    int menuSpacing = 40;
 
-			// Set the base color for the nebula
-			g2d.setColor(nebula.color);
+    	for (int i = 0; i < menuOptions.length; i++) {
 
-			// Create a more complex, gaseous cloud shape
-			for (int i = 0; i < NebulaSettings.NUM_PUFFS; i++) {
-				float offsetX = (random.nextFloat() - 0.5f) * scaledSize * NebulaSettings.PUFF_OFFSET_FACTOR;
-				float offsetY = (random.nextFloat() - 0.5f) * scaledSize * NebulaSettings.PUFF_OFFSET_FACTOR;
-				float puffSize = scaledSize * (NebulaSettings.PUFF_SIZE_MIN_FACTOR + random.nextFloat() * (NebulaSettings.PUFF_SIZE_MAX_FACTOR - NebulaSettings.PUFF_SIZE_MIN_FACTOR));
+        	String menuText = menuOptions[i];
 
-				// Create a smooth, time-based pulsation for the alpha
-				double time = System.currentTimeMillis() / NebulaSettings.PULSATION_SPEED;
-				float pulsation = (float) (Math.sin(time + i) + 1.0) / 2.0f; // Use puff index 'i' as an offset
-				int alpha = NebulaSettings.PUFF_ALPHA_BASE + (int)(pulsation * NebulaSettings.PUFF_ALPHA_RANGE);
-				alpha = Math.max(0, Math.min(255, alpha)); // Clamp alpha to the valid 0-255 range
+        	String stateText = optionStates[i] ? "ON" : "OFF"; 
+    
+        	String fullMenuText = menuText + ": " + stateText;
 
-				Color startColor = new Color(nebula.color.getRed(), nebula.color.getGreen(), nebula.color.getBlue(), alpha);
-				Color endColor = new Color(nebula.color.getRed(), nebula.color.getGreen(), nebula.color.getBlue(), 0);
+        	Color textColor;
 
-				java.awt.geom.Point2D center = new java.awt.geom.Point2D.Float(screenX + offsetX, screenY + offsetY);
-				float radius = puffSize / 2;
-				if (radius < 1) continue;
+        	if (i == selectedOption) {
+            	textColor = highlightColor;
+            	fullMenuText = "> " + fullMenuText + " <"; 
+        	} else {
+            	textColor = defaultColor;
+        	}
+        	backBufferGraphics.setColor(textColor);
+        	drawCenteredRegularString(screen, fullMenuText, menuStartY + (i * menuSpacing));
 
-				java.awt.Paint paint = new java.awt.RadialGradientPaint(center, radius, new float[]{0.0f, 1.0f}, new Color[]{startColor, endColor});
-				g2d.setPaint(paint);
+    	}
 
-				// Draw the puff
-				g2d.fill(new java.awt.geom.Ellipse2D.Float(screenX + offsetX - radius, screenY + offsetY - radius, puffSize, puffSize));
-			}
-		}
-
-		g2d.setComposite(originalComposite);
-		g2d.dispose();
-	}}
+    	String instructionsString = "UP/DOWN: Select, ENTER: Apply, SPACE: Exit";
+    	backBufferGraphics.setColor(Color.GRAY);
+    	drawCenteredRegularString(screen, instructionsString, screen.getHeight() - 80);
+	}
+}

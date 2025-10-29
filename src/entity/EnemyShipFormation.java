@@ -27,7 +27,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	/** Initial position in the x-axis. */
 	private static final int INIT_POS_X = 20;
 	/** Initial position in the y-axis. */
-	private static final int INIT_POS_Y = 100;
+	private static final int INIT_POS_Y = 68;
 	/** Distance between ships. */
 	private static final int SEPARATION_DISTANCE = 40;
 	/** Proportion of C-type ships. */
@@ -42,8 +42,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private static final double SHOOTING_VARIANCE = .2;
 	/** Margin on the sides of the screen. */
 	private static final int SIDE_MARGIN = 20;
-	/** Margin on the bottom of the screen. */
-	private static final int BOTTOM_MARGIN = 80;
+
 	/** Distance to go down each pass. */
 	private static final int DESCENT_DISTANCE = 20;
 	/** Minimum speed allowed. */
@@ -296,7 +295,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
             updateSlowdown();
 
 			boolean isAtBottom = positionY
-					+ this.height > screen.getHeight() - BOTTOM_MARGIN;
+					+ this.height > 600;
 			boolean isAtRightSide = positionX
 					+ this.width >= screen.getWidth() - SIDE_MARGIN;
 			boolean isAtLeftSide = positionX <= SIDE_MARGIN;
