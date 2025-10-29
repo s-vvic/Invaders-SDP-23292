@@ -10,7 +10,6 @@
 
 body {
     font-family: 'Courier New', Courier, monospace;
-    background-color: var(--dark-background);
     color: var(--text-color);
     margin: 0;
     display: flex;
@@ -167,5 +166,7 @@ button:hover {
     height: 100%;
 
     z-index: -1; /* Place it behind all other content */
+
+    background-color: #121212; /* Ensure the background is dark */
 
 }

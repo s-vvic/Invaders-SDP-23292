@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
-    const canvas = document.getElementById('starfield-canvas');
     const loginView = document.getElementById('login-view');
     const dashboardView = document.getElementById('dashboard-view');
     const loginForm = document.getElementById('login-form');
@@ -8,53 +7,90 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const welcomeMessage = document.getElementById('welcome-message');
     const highScoreEl = document.getElementById('high-score');
+    const goldEl = document.getElementById('gold');
+    const upgradesListEl = document.getElementById('upgrades-list');
+    const achievementsListEl = document.getElementById('achievements-list');
 
+    // --- API Configuration ---
     const API_BASE_URL = 'http://localhost:7070/api';
+    const USE_MOCK_API = true; // Set to false to use real API
 
-    // --- Starfield Animation ---
-    const ctx = canvas.getContext('2d');
-    let stars = [];
-    const numStars = 800;
-
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    class Star {
-        constructor() { this.reset(); }
-        reset() {
-            this.x = (Math.random() - 0.5) * canvas.width;
-            this.y = (Math.random() - 0.5) * canvas.height;
-            this.z = Math.random() * canvas.width;
-        }
-        update() {
-            this.z -= 2;
-            if (this.z < 1) { this.reset(); }
-        }
-        draw() {
-            const sx = (this.x / this.z) * canvas.width / 2 + canvas.width / 2;
-            const sy = (this.y / this.z) * canvas.height / 2 + canvas.height / 2;
-            const r = Math.max(0.1, 2.5 * (1 - this.z / canvas.width));
-            ctx.beginPath();
-            ctx.arc(sx, sy, r, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(200, 255, 200, 0.8)';
-            ctx.fill();
-        }
+    // --- Mock API ---
+    function mockLogin(username, password) {
+        console.log(`[Mock API] Login attempt for: ${username}`);
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (username === "test" && password === "1234") {
+                    resolve({ token: "fake-jwt-token-for-testing" });
+                } else {
+                    reject({ error: "Invalid username or password" });
+                }
+            }, 500);
+        });
     }
 
-    for (let i = 0; i < numStars; i++) { stars.push(new Star()); }
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        stars.forEach(star => { star.update(); star.draw(); });
-        requestAnimationFrame(animate);
+    function mockGetDashboardData(token) {
+        console.log(`[Mock API] Dashboard data requested with token: ${token}`);
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (token === "fake-jwt-token-for-testing") {
+                    resolve({
+                        username: "MockUser",
+                        highScore: 99999,
+                        gold: 1234,
+                        upgrades: [
+                            { itemId: "Item_MultiShot", level: 3 },
+                            { itemId: "Item_Atkspeed", level: 5 },
+                            { itemId: "Item_Penetration", level: 2 },
+                        ],
+                        achievements: [ "FIRST_GAME", "BOSS_DEFEATED", "NO_MISS_STAGE" ]
+                    });
+                } else {
+                    reject({ error: "Invalid token" });
+                }
+            }, 800);
+        });
     }
-    animate();
 
     // --- App Logic ---
+    async function loadDashboard() {
+        const token = localStorage.getItem('invaders_token');
+        if (!token) {
+            showLoginView();
+            return;
+        }
+
+        try {
+            welcomeMessage.textContent = "Loading...";
+            upgradesListEl.innerHTML = '';
+            achievementsListEl.innerHTML = '';
+
+            const data = USE_MOCK_API
+                ? await mockGetDashboardData(token)
+                : await (await fetch(`${API_BASE_URL}/dashboard`, { headers: { 'Authorization': `Bearer ${token}` } })).json();
+
+            // Populate dashboard with data
+            welcomeMessage.textContent = `Welcome, ${data.username}!`;
+            highScoreEl.textContent = data.highScore;
+            goldEl.textContent = data.gold;
+
+            data.upgrades.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.itemId.replace('Item_', '')}: Level ${item.level}`;
+                upgradesListEl.appendChild(li);
+            });
+
+            data.achievements.forEach(ach => {
+                const li = document.createElement('li');
+                li.textContent = ach;
+                achievementsListEl.appendChild(li);
+            });
+
+        } catch (error) {
+            console.error('Failed to load dashboard:', error);
+            logout(); // If token is invalid or something fails, log out
+        }
+    }
 
     function showLoginView() {
         loginView.classList.remove('hidden');
@@ -64,48 +100,39 @@ document.addEventListener('DOMContentLoaded', () => {
     function showDashboardView() {
         loginView.classList.add('hidden');
         dashboardView.classList.remove('hidden');
-        // TODO: Fetch and display dashboard data
+        loadDashboard();
     }
 
-    // Login form submission
+    function logout() {
+        localStorage.removeItem('invaders_token');
+        showLoginView();
+    }
+
+    // --- Event Listeners & Initial Execution ---
+
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        loginError.textContent = '';
+        loginError.textContent = 'Logging in...';
         const username = loginForm.username.value;
         const password = loginForm.password.value;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
+            const data = USE_MOCK_API
+                ? await mockLogin(username, password)
+                : await (await fetch(`${API_BASE_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) })).json();
 
-            const data = await response.json();
-
-            if (response.ok) {
-                // Login successful
-                localStorage.setItem('invaders_token', data.token);
-                showDashboardView();
-            } else {
-                // Login failed
-                loginError.textContent = data.error || 'Login failed!';
-            }
+            localStorage.setItem('invaders_token', data.token);
+            showDashboardView();
+            loginError.textContent = '';
         } catch (error) {
             console.error('Login error:', error);
-            loginError.textContent = 'Cannot connect to the server.';
+            loginError.textContent = error.error || 'Login failed!';
         }
     });
 
-    // Logout button
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('invaders_token');
-        showLoginView();
-    });
+    logoutBtn.addEventListener('click', logout);
 
-    // Initial check: If token exists, show dashboard, otherwise show login
+    // Initial check on page load
     if (localStorage.getItem('invaders_token')) {
         showDashboardView();
     } else {
