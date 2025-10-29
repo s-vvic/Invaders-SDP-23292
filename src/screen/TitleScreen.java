@@ -15,11 +15,13 @@ import engine.DrawManager.SpriteType;
 import engine.CelestialBody;
 import entity.Entity;
 import entity.SoundButton;
+import engine.Nebula;
 
 import audio.SoundManager;
 import engine.StarSpeedManager;
 import engine.StarOriginManager;
 import engine.CelestialManager;
+import engine.NebulaSettings;
 
 
 /**
@@ -132,8 +134,9 @@ public class TitleScreen extends Screen {
 	/** List of background enemies. */
 	private List<Entity> backgroundEnemies;
 	/** List of shooting stars. */
-    private List<ShootingStar> shootingStars;
-
+    	private List<ShootingStar> shootingStars;
+    	/** List of nebulas for the background. */
+    	private List<Nebula> nebulas;
 	/** Sound button on/off object. */
 	private SoundButton soundButton;
 	private int commandState = 0;
@@ -203,6 +206,21 @@ public class TitleScreen extends Screen {
 		this.backgroundEnemies = new ArrayList<Entity>();
 		this.shootingStars = new ArrayList<ShootingStar>();
 
+		this.nebulas = new ArrayList<Nebula>();
+		/*
+		this.nebulas = new ArrayList<Nebula>();
+		// Create some nebulas using settings from NebulaSettings class
+		for (int i = 0; i < NebulaSettings.NUM_NEBULAS; i++) {
+			float x = random.nextFloat() * this.getWidth();
+			float y = random.nextFloat() * this.getHeight();
+			float z = MAX_STAR_Z + random.nextFloat() * MAX_STAR_Z; // Place them behind the stars
+			float size = NebulaSettings.MIN_NEBULA_SIZE + random.nextFloat() * (NebulaSettings.MAX_NEBULA_SIZE - NebulaSettings.MIN_NEBULA_SIZE);
+			Color color = NebulaSettings.NEBULA_COLORS[random.nextInt(NebulaSettings.NEBULA_COLORS.length)];
+			float speed = NebulaSettings.MIN_NEBULA_SPEED + random.nextFloat() * (NebulaSettings.MAX_NEBULA_SPEED - NebulaSettings.MIN_NEBULA_SPEED);
+			this.nebulas.add(new Nebula(x, y, z, size, color, speed));
+		}
+		*/
+
 		// Initialize rotation angles
 		this.currentAngle = 0;
 		this.targetAngle = 0;
@@ -259,6 +277,18 @@ public class TitleScreen extends Screen {
 			enemy.setPositionX((int)body.current_screen_x);
 			enemy.setPositionY((int)body.current_screen_y);
 		}
+
+		/* // Animate nebulas
+		for (Nebula nebula : this.nebulas) {
+			nebula.z -= nebula.speed;
+			// Reset nebula if it gets too close
+			if (nebula.z < -200) { // A bit arbitrary, lets them pass the screen
+				nebula.z = MAX_STAR_Z + random.nextFloat() * MAX_STAR_Z;
+				nebula.x = random.nextFloat() * this.getWidth();
+				nebula.y = random.nextFloat() * this.getHeight();
+			}
+		}
+		*/
 
 		// Spawn and move background enemies
 		if (this.enemySpawnCooldown.checkFinished()) {
@@ -451,6 +481,9 @@ public class TitleScreen extends Screen {
 	 */
 	private void draw() {
 		drawManager.initDrawing(this);
+
+		// Draw nebulas first, so they are in the background
+		// drawManager.drawNebulas(this, this.nebulas);
 
 		// Draw stars with rotation
 		drawManager.drawStars(this, this.stars, this.currentAngle);
