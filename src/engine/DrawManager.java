@@ -17,6 +17,7 @@ import entity.FinalBoss;
 import entity.Ship;
 import engine.Achievement;
 import screen.CreditScreen;
+import screen.EasterEggScreen;
 import screen.Screen;
 import engine.Score;
 import screen.TitleScreen;
@@ -60,6 +61,41 @@ public final class DrawManager {
 
 	/** Sprite types mapped to their images. */
 	private static Map<SpriteType, boolean[][]> spriteMap;
+
+	private float rainbowHue = 0.0f;
+	/**
+	 * Draws a string at a specific x, y, color, and size.
+	 *
+	 * @param text The string to draw.
+	 * @param x X coordinate.
+	 * @param y Y coordinate.
+	 * @param c The color to use.
+	 * @param size The font size.
+	 */
+	public void drawText(final String text, final int x, final int y, final Color c, final int size) {
+		// 기본 폰트(fontRegular)를 기반으로 원하는 크기의 새 폰트를 생성합니다.
+		Font newFont = fontRegular.deriveFont((float)size);
+
+		backBufferGraphics.setFont(newFont);
+		backBufferGraphics.setColor(c);
+		backBufferGraphics.drawString(text, x, y);
+	}
+
+	/**
+	 * Gets the pixel width of a string for a specific font size.
+	 *
+	 * @param text The string to measure.
+	 * @param size The font size.
+	 * @return The width of the string in pixels.
+	 */
+	public int getTextWidth(final String text, final int size) {
+		// 측정할 폰트를 생성합니다.
+		Font newFont = fontRegular.deriveFont((float)size);
+		// 해당 폰트의 측정 도구(FontMetrics)를 가져옵니다.
+		FontMetrics metrics = backBufferGraphics.getFontMetrics(newFont);
+		// 문자열의 너비를 반환합니다.
+		return metrics.stringWidth(text);
+	}
 
 	/** Sprite types. */
 	public static enum SpriteType {
@@ -112,7 +148,7 @@ public final class DrawManager {
 
 			fontRegular = fileManager.loadFont(14f);
 			fontBig = fileManager.loadFont(24f);
-			fontSmall = fileManager.loadFont(9f);
+			fontSmall = fileManager.loadFont(13f);
 			logger.info("Finished loading the fonts.");
 
 		} catch (IOException e) {
@@ -156,6 +192,7 @@ public final class DrawManager {
 		fontSmallMetrics = backBufferGraphics.getFontMetrics(fontSmall);
 	}
 
+
 	/**
 	 * Draws the completed drawing on screen.
 	 */
@@ -175,7 +212,36 @@ public final class DrawManager {
 				if (image[i][j])
 					backBufferGraphics.drawRect(positionX + i * 2, positionY + j * 2, 1, 1);
 
+        if (entity instanceof FinalBoss) {
+            backBufferGraphics.setColor(Color.RED);
+            backBufferGraphics.drawRect(entity.getPositionX(), entity.getPositionY(), entity.getWidth(), entity.getHeight());
+        }
+	}
 
+	/**
+	 * Draws a scaled entity.
+	 */
+	public void drawScaledEntity(final Entity entity, final int positionX, final int positionY, float scale) {
+		boolean[][] image = spriteMap.get(entity.getSpriteType());
+		backBufferGraphics.setColor(entity.getColor());
+
+		if (scale <= 0) return; // Don't draw if invisible
+
+		// The original size of a "pixel" is 2.
+		float pixelSize = 2.0f * scale;
+		if (pixelSize < 1.0f) pixelSize = 1.0f; // Draw at least 1x1 pixels.
+
+		for (int i = 0; i < image.length; i++) {
+			for (int j = 0; j < image[i].length; j++) {
+				if (image[i][j]) {
+					backBufferGraphics.drawRect(
+						positionX + (int)(i * pixelSize), 
+						positionY + (int)(j * pixelSize), 
+						(int)Math.ceil(pixelSize), 
+						(int)Math.ceil(pixelSize));
+				}
+			}
+		}
 	}
 
 	/**
@@ -185,7 +251,7 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		String scoreString = String.format("P1:%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 120, 25);
+		backBufferGraphics.drawString(scoreString, screen.getWidth() - 180, 38);
 	}
     //  === [ADD] Draw P2's score on the line below P1's score ===
     public void drawScoreP2(final Screen screen, final int scoreP2) {
@@ -193,7 +259,7 @@ public final class DrawManager {
         backBufferGraphics.setColor(Color.WHITE);
         String text = String.format("P2:%04d", scoreP2);
         //  Y coordinate is 15px lower than P1 score to avoid overlapping
-        backBufferGraphics.drawString(text, screen.getWidth() - 120, 40);
+        backBufferGraphics.drawString(text, screen.getWidth() - 180, 60);
     }
 
     /**
@@ -206,8 +272,8 @@ public final class DrawManager {
         long minutes = seconds / 60;
         seconds %= 60;
         String timeString = String.format("Time: %02d:%02d", minutes, seconds);
-		int x = 10;
-		int y = screen.getHeight() - 20;
+		int x = 15;
+		int y = screen.getHeight() - 30;
 		backBufferGraphics.drawString(timeString, x, y);
     }
 
@@ -219,7 +285,7 @@ public final class DrawManager {
         backBufferGraphics.setColor(Color.WHITE);
         String coinString = String.format("%03d$", coin);
         int x = screen.getWidth() / 2 - fontRegularMetrics.stringWidth(coinString) / 2;
-        int y = screen.getHeight() - 50;
+        int y = screen.getHeight() - 75;
         backBufferGraphics.drawString(coinString, x, y);
     }
 
@@ -230,21 +296,21 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
-		backBufferGraphics.drawString("P1:", 15, 25);
-		Ship dummyShip = new Ship(0, 0,Color.green);
+		backBufferGraphics.drawString("P1:", 23, 38);
+		Ship dummyShip = new Ship(0, 0);
 		for (int i = 0; i < lives; i++)
-			drawEntity(dummyShip, 40 + 35 * i, 10);
+			drawEntity(dummyShip, 60 + 53 * i, 15);
 	}
 
 	public void drawLivesP2(final Screen screen, final int lives) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		// backBufferGraphics.drawString("P2:" + Integer.toString(lives), 10, 40);
-		backBufferGraphics.drawString("P2:", 15, 40);
+		backBufferGraphics.drawString("P2:", 23, 60);
 
 		Ship dummyShip = new Ship(0, 0,Color.pink);
 		for (int i = 0; i < lives; i++) {
-			drawEntity(dummyShip, 40 + 35 * i, 30);
+			drawEntity(dummyShip, 60 + 53 * i, 45);
 		}
 	}
 
@@ -262,8 +328,8 @@ public final class DrawManager {
      * Draws the current level on the bottom-left of the screen.
      */
     public void drawLevel(final Screen screen, final String levelName) {
-        final int paddingX = 20;
-        final int paddingY = 50;
+        final int paddingX = 30;
+        final int paddingY = 75;
         backBufferGraphics.setFont(fontRegular);
         backBufferGraphics.setColor(Color.WHITE);
         int yPos = screen.getHeight() - paddingY;
@@ -274,10 +340,10 @@ public final class DrawManager {
      * Draws an achievement pop-up message on the screen.
      */
     public void drawAchievementPopup(final Screen screen, final String text) {
-        int popupWidth = 250;
-        int popupHeight = 50;
+        int popupWidth = 375;
+        int popupHeight = 75;
         int x = screen.getWidth() / 2 - popupWidth / 2;
-        int y = 80;
+        int y = 120;
         backBufferGraphics.setColor(new Color(0, 0, 0, 200));
         backBufferGraphics.fillRoundRect(x, y, popupWidth, popupHeight, 15, 15);
         backBufferGraphics.setColor(Color.YELLOW);
@@ -291,10 +357,10 @@ public final class DrawManager {
      * Draws a notification popup for changes in health.
      */
     public void drawHealthPopup(final Screen screen, final String text) {
-        int popupWidth = 250;
-        int popupHeight = 40;
+        int popupWidth = 375;
+        int popupHeight = 60;
         int x = screen.getWidth() / 2 - popupWidth / 2;
-        int y = 100;
+        int y = 105;
         backBufferGraphics.setColor(new Color(0, 0, 0, 200));
         backBufferGraphics.fillRoundRect(x, y, popupWidth, popupHeight, 15, 15);
         Color textColor;
@@ -361,6 +427,31 @@ public final class DrawManager {
         if (option == 0) backBufferGraphics.setColor(pulseColor);
         else backBufferGraphics.setColor(Color.WHITE);
         drawCenteredRegularString(screen, exitString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 4);
+	}
+
+	/**
+	 * Draws the mode selection menu.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param option
+	 *            Option selected.
+	 */
+	public void drawModeSelection(final Screen screen, final int option) {
+		String onePlayerString = "1 Player";
+		String twoPlayersString = "2 Players";
+
+		if (option == 10)
+			backBufferGraphics.setColor(Color.GREEN);
+		else
+			backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, onePlayerString, screen.getHeight() / 3 * 2);
+
+		if (option == 11)
+			backBufferGraphics.setColor(Color.GREEN);
+		else
+			backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, twoPlayersString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 2);
 	}
 
 	/**
@@ -477,8 +568,8 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontSmall);
 		int yPosition = screen.getHeight() / 4;
 		final int xPosition = screen.getWidth() / 10;
-		final int lineSpacing = fontSmallMetrics.getHeight() + 1;
-		final int teamSpacing = lineSpacing + 5;
+		final int lineSpacing = fontSmallMetrics.getHeight() + 3;
+		final int teamSpacing = lineSpacing + 6;
 		for (CreditScreen.Credit credit : creditList) {
 			backBufferGraphics.setColor(Color.GREEN);
 			String teamInfo = String.format("%s - %s", credit.getTeamName(), credit.getRole());
@@ -687,30 +778,143 @@ public final class DrawManager {
 	 *            Current rotation angle.
 	 */
 	public void drawStars(final Screen screen, final List<Star> stars, final float angle) {
+		for (Star star : stars) {
+			CelestialBody body = star.getCelestialBody();
+
+			// Calculate size based on depth (z), with an initial fade-in period.
+			float FADE_IN_FRACTION = 0.2f;
+			float scale_factor = (1.0f - body.z / TitleScreen.MAX_STAR_Z);
+			scale_factor = (scale_factor - FADE_IN_FRACTION) / (1.0f - FADE_IN_FRACTION);
+
+			if (scale_factor <= 0) continue; // Don't draw if invisible or not yet visible
+
+			// Respecting the user's previous change to a max size of 5.
+			int size = (int) (scale_factor * 5.0f) + 1;
+			if (size < 1) size = 1;
+			if (size > 5) size = 5;
+
+			// Use star's brightness to set its color for twinkling effect
+			float b = star.brightness;
+			if (b < 0) b = 0;
+			if (b > 1) b = 1;
+
+			Color baseColor = star.getColor();
+			int r = (int)(baseColor.getRed() * b);
+			int g = (int)(baseColor.getGreen() * b);
+			int blue = (int)(baseColor.getBlue() * b);
+			
+            // Draw trail
+            if (body.trail != null) {
+                for (int i = 0; i < body.trail.size(); i++) {
+                    java.awt.geom.Point2D.Float trailPoint = body.trail.get(i);
+                    float trailBrightness = b * ( (float) (i + 1) / body.trail.size() ); // Fade out trail
+                    if (trailBrightness < 0) trailBrightness = 0;
+                    if (trailBrightness > 1) trailBrightness = 1;
+
+                    // Scale trail color by brightness
+                    int tr = (int)(baseColor.getRed() * trailBrightness);
+                    int tg = (int)(baseColor.getGreen() * trailBrightness);
+                    int tblue = (int)(baseColor.getBlue() * trailBrightness);
+                    backBufferGraphics.setColor(new Color(tr, tg, tblue));
+
+                    // Trail size can also fade or be smaller
+                    int trailSize = (int) (size * ( (float) (i + 1) / body.trail.size() ));
+                    if (trailSize < 1) trailSize = 1;
+                    backBufferGraphics.fillRect((int) trailPoint.x, (int) trailPoint.y, trailSize, trailSize);
+                }
+            }
+
+			// Draw the main star
+			backBufferGraphics.setColor(new Color(r, g, blue));
+			backBufferGraphics.fillRect((int) body.current_screen_x, (int) body.current_screen_y, size, size);
+		}
+	}	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {
 		final int centerX = screen.getWidth() / 2;
 		final int centerY = screen.getHeight() / 2;
 		final double angleRad = Math.toRadians(angle);
 		final double cosAngle = Math.cos(angleRad);
 		final double sinAngle = Math.sin(angleRad);
 
-		for (Star star : stars) {
-			float relX = star.baseX - centerX;
-			float relY = star.baseY - centerY;
-
+		for (ShootingStar star : shootingStars) {
+			// Calculate the rotated position for the head of the star
+			float relX = star.x - centerX;
+			float relY = star.y - centerY;
 			double rotatedX = relX * cosAngle - relY * sinAngle;
 			double rotatedY = relX * sinAngle + relY * cosAngle;
-
 			int screenX = (int) (rotatedX + centerX);
 			int screenY = (int) (rotatedY + centerY);
 
-			// Use star's brightness to set its color for twinkling effect
-			float b = star.brightness;
-			if (b < 0) b = 0;
-			if (b > 1) b = 1;
-			backBufferGraphics.setColor(new Color(b, b, b));
-			backBufferGraphics.drawRect(screenX, screenY, 1, 1);
+			// Draw the tail (8 segments, as per user's intention)
+			for (int i = 1; i <= 8; i++) {
+				// Calculate previous positions for the tail
+				float prevRelX = (star.x - star.speedX * i * 0.1f) - centerX;
+				float prevRelY = (star.y - star.speedY * i * 0.1f) - centerY;
+
+				double prevRotatedX = prevRelX * cosAngle - prevRelY * sinAngle;
+				double prevRotatedY = prevRelX * sinAngle + prevRelY * cosAngle;
+
+				int prevScreenX = (int) (prevRotatedX + centerX);
+				int prevScreenY = (int) (prevRotatedY + centerY);
+
+				// Fade the tail out (as per user's intention)
+				float brightness = 1.0f - (i * 0.1f);
+				if (brightness < 0) brightness = 0; // Safety check
+				backBufferGraphics.setColor(new Color(brightness, brightness, brightness));
+				backBufferGraphics.fillRect(prevScreenX, prevScreenY, 2, 2);
+			}
+
+			// Draw the head of the star
+			backBufferGraphics.setColor(Color.WHITE);
+			backBufferGraphics.fillRect(screenX, screenY, 3, 3);
 		}
 	}
+	public void drawEasterEgg(final Screen screen) {
+    
+    	EasterEggScreen eeScreen = (EasterEggScreen) screen;
+    	String[] menuOptions = eeScreen.getMenuOptions();
+    	int selectedOption = eeScreen.getSelectedOption();
+		boolean[] optionStates = eeScreen.getOptionStates();
 
-    	public void drawShootingStars(final Screen screen, final List<ShootingStar> shootingStars, final float angle) {    }
+ 
+    	String titleString = "CHEAT MOD!!";
+    
+    	rainbowHue += 0.04f;
+    	if (rainbowHue > 1.0f) {
+        	rainbowHue -= 1.0f;
+    	}
+    	Color dynamicRainbowColor = Color.getHSBColor(rainbowHue, 1.0f, 1.0f);
+    	backBufferGraphics.setColor(dynamicRainbowColor);
+    	drawCenteredBigString(screen, titleString, screen.getHeight() / 4);
+
+    	Color defaultColor = Color.WHITE;
+    	Color highlightColor = Color.YELLOW;
+
+    	int menuStartY = screen.getHeight() / 3 + 40;
+   	    int menuSpacing = 40;
+
+    	for (int i = 0; i < menuOptions.length; i++) {
+
+        	String menuText = menuOptions[i];
+
+        	String stateText = optionStates[i] ? "ON" : "OFF"; 
+    
+        	String fullMenuText = menuText + ": " + stateText;
+
+        	Color textColor;
+
+        	if (i == selectedOption) {
+            	textColor = highlightColor;
+            	fullMenuText = "> " + fullMenuText + " <"; 
+        	} else {
+            	textColor = defaultColor;
+        	}
+        	backBufferGraphics.setColor(textColor);
+        	drawCenteredRegularString(screen, fullMenuText, menuStartY + (i * menuSpacing));
+
+    	}
+
+    	String instructionsString = "UP/DOWN: Select, ENTER: Apply, SPACE: Exit";
+    	backBufferGraphics.setColor(Color.GRAY);
+    	drawCenteredRegularString(screen, instructionsString, screen.getHeight() - 80);
+	}
 }

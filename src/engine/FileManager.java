@@ -71,8 +71,7 @@ public final class FileManager {
 		InputStream inputStream = null;
 
 		try {
-			inputStream = DrawManager.class.getClassLoader()
-                    .getResourceAsStream("graphics");
+			inputStream = new FileInputStream("res/graphics");
             char c;
 
 			// Sprite loading.
@@ -112,18 +111,22 @@ public final class FileManager {
 	 */
 	public Font loadFont(final float size) throws IOException,
 			FontFormatException {
-		InputStream inputStream = null;
 		Font font;
 
 		try {
 			// Font loading.
-			inputStream = FileManager.class.getClassLoader()
+			InputStream inputStream = FileManager.class.getClassLoader()
 					.getResourceAsStream("font.ttf");
-			font = Font.createFont(Font.TRUETYPE_FONT, inputStream).deriveFont(
-					size);
-		} finally {
-			if (inputStream != null)
+			if (inputStream != null) {
+				font = Font.createFont(Font.TRUETYPE_FONT, inputStream).deriveFont(size);
 				inputStream.close();
+			} else {
+				logger.warning("Font file not found, using default font.");
+				font = new Font("Monospaced", Font.PLAIN, (int) size);
+			}
+		} catch (Exception e) {
+			logger.warning("Failed to load font, using default font.");
+			font = new Font("Monospaced", Font.PLAIN, (int) size);
 		}
 
 		return font;
@@ -143,8 +146,7 @@ public final class FileManager {
 		BufferedReader reader = null;
 
 		try {
-			inputStream = FileManager.class.getClassLoader()
-					.getResourceAsStream("scores");
+			inputStream = new FileInputStream("res/scores");
 			reader = new BufferedReader(new InputStreamReader(inputStream));
 
 			Score highScore = null;

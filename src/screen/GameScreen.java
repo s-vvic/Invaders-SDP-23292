@@ -46,13 +46,17 @@ public class GameScreen extends Screen {
 	/** Time from finishing the level to screen change. */
 	private static final int SCREEN_CHANGE_INTERVAL = 1500;
 	/** Height of the interface separation line. */
-	private static final int SEPARATION_LINE_HEIGHT = 45;
+	private static final int SEPARATION_LINE_HEIGHT = 68;
 	/** Height of the items separation line (above items). */
+<<<<<<< HEAD
 	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 400;
     /** Returns the Y-coordinate of the bottom boundary for enemies (above items HUD) */
     public static int getItemsSeparationLineHeight() {
         return ITEMS_SEPARATION_LINE_HEIGHT;
     }
+=======
+	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 600;
+>>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
 
     /** Current level data (direct from Level system). */
     private Level currentLevel;
@@ -138,6 +142,8 @@ public class GameScreen extends Screen {
   private String healthPopupText;
   private Cooldown healthPopupCooldown;
 
+	private boolean isTwoPlayer;
+
 	    private GameState gameState;
 
 	    /**
@@ -159,7 +165,7 @@ public class GameScreen extends Screen {
 	 */
 	public GameScreen(final GameState gameState,
 			final Level level, final boolean bonusLife, final int maxLives,
-			final int width, final int height, final int fps) {
+			final int width, final int height, final int fps, final boolean isTwoPlayer) {
 		super(width, height, fps);
 
         this.currentLevel = level;
@@ -172,9 +178,12 @@ public class GameScreen extends Screen {
 		        this.livesP1 = gameState.getLivesRemaining();
 				this.livesP2 = gameState.getLivesRemainingP2();
 		        this.gameState = gameState;
+				this.isTwoPlayer = isTwoPlayer;
 				if (this.bonusLife) {
 					this.livesP1++;
-					this.livesP2++;
+					if (this.isTwoPlayer) {
+						this.livesP2++;
+					}
 				}
 		this.bulletsShot = gameState.getBulletsShot();
 		this.shipsDestroyed = gameState.getShipsDestroyed();
@@ -190,11 +199,21 @@ public class GameScreen extends Screen {
         enemyShipFormation = new EnemyShipFormation(this.currentLevel);
 		enemyShipFormation.attach(this);
         this.enemyShipFormation.applyEnemyColorByLevel(this.currentLevel);
+<<<<<<< HEAD
 		this.ship = new Ship(this.width / 2 - 100, ITEMS_SEPARATION_LINE_HEIGHT - 20,Color.green);
 		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
         this.shipP2 = new Ship(this.width / 2 + 100, ITEMS_SEPARATION_LINE_HEIGHT - 20,Color.pink);
         this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
+=======
+		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
+		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
+
+		if (this.isTwoPlayer) {
+			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
+			this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
+		}
+>>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
         // special enemy initial
 		enemyShipSpecialFormation = new EnemyShipSpecialFormation(this.currentLevel,
 				Core.getVariableCooldown(BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE),
@@ -228,7 +247,9 @@ public class GameScreen extends Screen {
 		super.run();
 
 		this.score += LIFE_SCORE * (this.livesP1 - 1);
-		this.score += LIFE_SCORE * (this.livesP2 - 1);
+		if (this.isTwoPlayer) {
+			this.score += LIFE_SCORE * (this.livesP2 - 1);
+		}
 		this.logger.info("Screen cleared with a score of " + this.score);
 
 		return this.returnCode;
@@ -432,10 +453,14 @@ public class GameScreen extends Screen {
 
 		// Interface.
         drawManager.drawScore(this, this.scoreP1);   // Top line still displays P1
-        drawManager.drawScoreP2(this, this.scoreP2); // Added second line for P2
+		if (this.isTwoPlayer) {
+			drawManager.drawScoreP2(this, this.scoreP2); // Added second line for P2
+		}
         drawManager.drawCoin(this,this.coin);
 		drawManager.drawLives(this, this.livesP1);
-		drawManager.drawLivesP2(this, this.livesP2);
+		if (this.isTwoPlayer) {
+			drawManager.drawLivesP2(this, this.livesP2);
+		}
 		drawManager.drawTime(this, this.elapsedTime);
 		drawManager.drawItemsHUD(this);
 		drawManager.drawLevel(this, this.currentLevel.getLevelName());
@@ -565,7 +590,7 @@ public class GameScreen extends Screen {
 								engine.level.ItemDrop selectedDrop = successfulDrops.get((int) (Math.random() * successfulDrops.size()));
 								DropItem.ItemType droppedType = DropItem.fromString(selectedDrop.getItemId());
 								if (droppedType != null) {
-									final int ITEM_DROP_SPEED = 2;
+									final int ITEM_DROP_SPEED = 3;
 
 									DropItem newDropItem = ItemPool.getItem(
 											enemyShip.getPositionX() + enemyShip.getWidth() / 2,
@@ -914,7 +939,7 @@ public class GameScreen extends Screen {
 		this.logger.info("Spawning boss: " + bossName);
 		switch (bossName) {
 			case "finalBoss":
-				this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height);
+				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height);
 				this.logger.info("Final Boss has spawned!");
 				break;
 			case "omegaBoss":
