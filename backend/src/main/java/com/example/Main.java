@@ -10,6 +10,5 @@ public class Main {
 
         System.out.println("Server started on http://localhost:7070");
 
-        app.get("/", ctx -> ctx.result("Hello World"));
     }
 }
