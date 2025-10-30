@@ -133,6 +133,12 @@ public final class Core {
 					LOGGER.info("Starting " + currentScreen.getClass().getSimpleName() + " screen.");
 					returnCode = frame.setScreen(currentScreen);
 					break;
+                case 9: // LoginScreen
+                    currentScreen = new LoginScreen(width, height, FPS);
+                    LOGGER.info("Starting Login screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Login screen.");
+                    break;
                 case 10: // 1 Player
                 case 11: // 2 Players
                     boolean isTwoPlayer = (returnCode == 11);

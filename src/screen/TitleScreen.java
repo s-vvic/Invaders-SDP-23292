@@ -2,6 +2,10 @@ package screen;
 
 
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.awt.Desktop;
 import java.awt.Color;
 import java.util.List;
 import java.util.ArrayList;
@@ -346,9 +350,14 @@ public class TitleScreen extends Screen {
                 && this.inputDelay.checkFinished()) {
             
             
-            if (inputManager.isKeyDown(KeyEvent.VK_UP)
-                    || inputManager.isKeyDown(KeyEvent.VK_W)) {
-                
+                        if (inputManager.isKeyDown(KeyEvent.VK_L)) {
+                            this.returnCode = 9; // New return code for LoginScreen
+                            this.isRunning = false;
+                            this.selectionCooldown.reset();
+                        }
+            
+            			if (inputManager.isKeyDown(KeyEvent.VK_UP)
+            					|| inputManager.isKeyDown(KeyEvent.VK_W)) {                
                 if (this.commandState == 0 || this.commandState == 1) {
                     this.commandState++;
                 } else {
@@ -411,7 +420,16 @@ public class TitleScreen extends Screen {
                
                 this.commandState = 0;
                 
-                if (this.returnCode != 5) {
+                if (this.returnCode == 7) { // Web Dashboard
+                    try {
+                        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                            Desktop.getDesktop().browse(new URI("http://localhost:7070"));
+                        }
+                    } catch (IOException | URISyntaxException e) {
+                        e.printStackTrace();
+                    }
+                    this.selectionCooldown.reset();
+                } else if (this.returnCode != 5) {
 					this.isRunning = false;
 				} else {
 					this.soundButton.changeSoundState();
@@ -445,7 +463,9 @@ public class TitleScreen extends Screen {
 		else if (this.returnCode == 6)
 			this.returnCode = 4;
 		else if (this.returnCode == 4)
-			this.returnCode = 0;
+			this.returnCode = 7; // Shop -> Web Dashboard
+		else if (this.returnCode == 7)
+			this.returnCode = 0; // Web Dashboard -> Exit
 		else if (this.returnCode == 0)
 			this.returnCode = 2;
 		else if (this.returnCode == 5) {
@@ -461,7 +481,9 @@ public class TitleScreen extends Screen {
 		if (this.returnCode == 2)
 			this.returnCode = 0;
 		else if (this.returnCode == 0)
-			this.returnCode = 4;
+			this.returnCode = 7; // Exit -> Web Dashboard
+		else if (this.returnCode == 7)
+			this.returnCode = 4; // Web Dashboard -> Shop
 		else if (this.returnCode == 4)
 			this.returnCode = 6;
 		else if (this.returnCode == 6)
