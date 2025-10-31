@@ -203,6 +203,13 @@ public final class Core {
 					SoundManager.stopAll();
 					SoundManager.play("sfx/gameover.wav");
 
+                    // Save score if logged in.
+                    AuthManager authManager = AuthManager.getInstance();
+                    if (authManager.isLoggedIn()) {
+                        ApiClient apiClient = ApiClient.getInstance();
+                        apiClient.saveScore(gameState.getScore());
+                    }
+
                     LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
                             + " score screen at " + FPS + " fps, with a score of "
                             + gameState.getScore() + ", "
