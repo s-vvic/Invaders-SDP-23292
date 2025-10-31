@@ -1,10 +1,16 @@
 package engine;
 
+import java.util.prefs.Preferences;
+
 /**
- * Manages the user's authentication state (session).
+ * Manages the user's authentication state (session), with persistence.
  * This class is a singleton to ensure a single source of truth for the auth state.
  */
 public class AuthManager {
+
+    private static final String PREF_NODE = "com.example.invaders";
+    private static final String AUTH_TOKEN_KEY = "authToken";
+    private static final String USERNAME_KEY = "username";
 
     /** Singleton instance of the class. */
     private static AuthManager instance;
@@ -16,9 +22,11 @@ public class AuthManager {
     private String username;
 
     /**
-     * Private constructor to prevent instantiation.
+     * Private constructor to prevent instantiation and load session data.
      */
-    private AuthManager() { }
+    private AuthManager() {
+        loadSession();
+    }
 
     /**
      * Returns the shared instance of the AuthManager.
@@ -34,6 +42,7 @@ public class AuthManager {
 
     /**
      * Stores the user's token and username upon successful login.
+     * Also persists the session to the Preferences API.
      *
      * @param token The JWT received from the server.
      * @param username The username of the logged-in user.
@@ -41,16 +50,17 @@ public class AuthManager {
     public void login(String token, String username) {
         this.authToken = token;
         this.username = username;
-        // In a real application, you might also want to save the token to preferences here.
+        saveSession();
     }
 
     /**
      * Clears the user's session data upon logout.
+     * Also clears the session from the Preferences API.
      */
     public void logout() {
         this.authToken = null;
         this.username = null;
-        // In a real application, you would also clear the token from preferences here.
+        clearSession();
     }
 
     /**
@@ -78,5 +88,39 @@ public class AuthManager {
      */
     public String getUsername() {
         return this.username;
+    }
+
+    /**
+     * Loads the session token and username from the Preferences API.
+     */
+    private void loadSession() {
+        Preferences prefs = Preferences.userRoot().node(PREF_NODE);
+        this.authToken = prefs.get(AUTH_TOKEN_KEY, null);
+        this.username = prefs.get(USERNAME_KEY, null);
+        if (this.authToken != null) {
+            Core.getLogger().info("Loaded session for user: " + this.username);
+        }
+    }
+
+    /**
+     * Saves the current session token and username to the Preferences API.
+     */
+    private void saveSession() {
+        Preferences prefs = Preferences.userRoot().node(PREF_NODE);
+        if (this.authToken != null && this.username != null) {
+            prefs.put(AUTH_TOKEN_KEY, this.authToken);
+            prefs.put(USERNAME_KEY, this.username);
+            Core.getLogger().info("Saved session for user: " + this.username);
+        }
+    }
+
+    /**
+     * Clears the session data from the Preferences API.
+     */
+    private void clearSession() {
+        Preferences prefs = Preferences.userRoot().node(PREF_NODE);
+        prefs.remove(AUTH_TOKEN_KEY);
+        prefs.remove(USERNAME_KEY);
+        Core.getLogger().info("Cleared session data.");
     }
 }

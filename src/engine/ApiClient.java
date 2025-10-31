@@ -63,4 +63,19 @@ public class ApiClient {
         Core.getLogger().info("[Mock API] Saving upgrade: " + itemId + ", Level: " + level);
         // In the real implementation, this would make an HTTP request.
     }
+
+    /**
+     * Mock register method.
+     * @param username The username to register.
+     * @param password The password for the new account.
+     * @throws IOException if the username is already taken.
+     */
+    public void register(String username, String password) throws IOException {
+        Core.getLogger().info("[Mock API] Attempting to register user: " + username);
+        if ("test".equals(username)) {
+            throw new IOException("Username 'test' is already taken.");
+        }
+        // In a real implementation, this would return nothing on success or throw an error.
+        Core.getLogger().info("[Mock API] Registration successful for user: " + username);
+    }
 }

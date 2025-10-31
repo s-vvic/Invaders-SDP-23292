@@ -414,6 +414,8 @@ public final class DrawManager {
 			backBufferGraphics.setColor(Color.WHITE);
 			String welcomeString = "Welcome, " + authManager.getUsername() + "!";
 			backBufferGraphics.drawString(welcomeString, 20, 30);
+			String logoutString = "[O]ut";
+			backBufferGraphics.drawString(logoutString, 20, 50);
 		} else {
 			backBufferGraphics.setColor(Color.WHITE);
 			String loginString = "[L]ogin";

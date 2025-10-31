@@ -26,6 +26,7 @@ import engine.StarSpeedManager;
 import engine.StarOriginManager;
 import engine.CelestialManager;
 import engine.NebulaSettings;
+import engine.AuthManager;
 
 
 /**
@@ -350,15 +351,17 @@ public class TitleScreen extends Screen {
                 && this.inputDelay.checkFinished()) {
             
             
-                        if (inputManager.isKeyDown(KeyEvent.VK_L)) {
-                            this.returnCode = 9; // New return code for LoginScreen
-                            this.isRunning = false;
-                            this.selectionCooldown.reset();
-                        }
-            
-            			if (inputManager.isKeyDown(KeyEvent.VK_UP)
-            					|| inputManager.isKeyDown(KeyEvent.VK_W)) {                
-                if (this.commandState == 0 || this.commandState == 1) {
+                                    if (inputManager.isKeyDown(KeyEvent.VK_L)) {
+                                        this.returnCode = 9; // New return code for LoginScreen
+                                        this.isRunning = false;
+                                        this.selectionCooldown.reset();
+                                    } else if (inputManager.isKeyDown(KeyEvent.VK_O) && AuthManager.getInstance().isLoggedIn()) {
+                                        AuthManager.getInstance().logout();
+                                        this.selectionCooldown.reset();
+                                    }
+                        
+                        			if (inputManager.isKeyDown(KeyEvent.VK_UP)
+                        					|| inputManager.isKeyDown(KeyEvent.VK_W)) {                if (this.commandState == 0 || this.commandState == 1) {
                     this.commandState++;
                 } else {
                     
