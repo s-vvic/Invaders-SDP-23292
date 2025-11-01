@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- DOM Elements ---
+    
     const canvas = document.getElementById('starfield-canvas');
     const loginView = document.getElementById('login-view');
     const dashboardView = document.getElementById('dashboard-view');
@@ -9,9 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const welcomeMessage = document.getElementById('welcome-message');
     const highScoreEl = document.getElementById('high-score');
 
-    const API_BASE_URL = 'http://localhost:7070/api';
+    const API_BASE_URL = '/api';
 
-    // --- Starfield Animation ---
     const ctx = canvas.getContext('2d');
     let stars = [];
     const numStars = 800;
@@ -54,8 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     animate();
 
-    // --- App Logic ---
-
     function showLoginView() {
         loginView.classList.remove('hidden');
         dashboardView.classList.add('hidden');
@@ -64,10 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function showDashboardView() {
         loginView.classList.add('hidden');
         dashboardView.classList.remove('hidden');
-        // TODO: Fetch and display dashboard data
     }
 
-    // Login form submission
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginError.textContent = '';
@@ -86,11 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Login successful
                 localStorage.setItem('invaders_token', data.token);
                 showDashboardView();
             } else {
-                // Login failed
                 loginError.textContent = data.error || 'Login failed!';
             }
         } catch (error) {
@@ -99,13 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Logout button
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('invaders_token');
         showLoginView();
     });
 
-    // Initial check: If token exists, show dashboard, otherwise show login
     if (localStorage.getItem('invaders_token')) {
         showDashboardView();
     } else {
