@@ -3,4 +3,4 @@ CREATE TABLE user(
     username varchar(16) NOT NULL
     password varchar(16) NOT NULL
     max_score int
-)
+);
