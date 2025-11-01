@@ -68,10 +68,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardView = document.getElementById('dashboard-view');
     const loginForm = document.getElementById('login-form');
 
-    loginForm.addEventListener('submit', (e) => {
+    loginForm.addEventListener('submit', async(e) => {
         e.preventDefault();
+        loginError.textContent = '';
         // In a real scenario, you'd call the API here.
         // For this demo, we'll just switch views.
+        const formData = new FormData(loginForm);
+
+        try {
+            // 2. login.php로 폼 데이터를 POST 방식으로 전송 (fetch)
+            const response = await fetch('login.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            // 3. login.php가 응답한 JSON 데이터를 파싱
+            const data = await response.json();
+
+            // 4. php가 보내준 응답(data.status)에 따라 처리
+            if (data.status === 'success') {
+                // 로그인 성공
+                console.log('Login attempt: Success from PHP');
+                loginView.classList.add('hidden');
+                dashboardView.classList.remove('hidden');
+                welcomeMessage.textContent = data.message; // PHP가 보낸 환영 메시지
+            } else {
+                // 로그인 실패
+                console.log('Login attempt: Failed from PHP');
+                loginError.textContent = data.message; // PHP가 보낸 오류 메시지
+            }
+
+        } catch (error) {
+            // 네트워크 오류 또는 PHP 파일 자체의 오류
+            console.error('Login request error:', error);
+            loginError.textContent = '로그인 서버에 연결할 수 없습니다.';
+        }
         console.log('Login attempt');
         loginView.classList.add('hidden');
         dashboardView.classList.remove('hidden');
