@@ -876,55 +876,53 @@ public final class DrawManager {
 			backBufferGraphics.fillRect(screenX, screenY, 3, 3);
 		}
 	}
+	public void drawEasterEgg(final Screen screen) {
+    
+    	EasterEggScreen eeScreen = (EasterEggScreen) screen;
+    	String[] menuOptions = eeScreen.getMenuOptions();
+    	int selectedOption = eeScreen.getSelectedOption();
+		boolean[] optionStates = eeScreen.getOptionStates();
 
-	/**
-	 * Draws the nebula clouds.
-	 */
-	public void drawNebulas(final Screen screen, final List<Nebula> nebulas) {
-		Graphics2D g2d = (Graphics2D) backBufferGraphics.create();
-		Composite originalComposite = g2d.getComposite();
-		int screenWidth = screen.getWidth();
-		int screenHeight = screen.getHeight();
-		java.util.Random random = new java.util.Random();
+ 
+    	String titleString = "CHEAT MOD!!";
+    
+    	rainbowHue += 0.04f;
+    	if (rainbowHue > 1.0f) {
+        	rainbowHue -= 1.0f;
+    	}
+    	Color dynamicRainbowColor = Color.getHSBColor(rainbowHue, 1.0f, 1.0f);
+    	backBufferGraphics.setColor(dynamicRainbowColor);
+    	drawCenteredBigString(screen, titleString, screen.getHeight() / 4);
 
-		for (Nebula nebula : nebulas) {
-			float scale_factor = (1.0f - nebula.z / (TitleScreen.MAX_STAR_Z * 2.0f));
-			int screenX = (int) (screenWidth / 2 + (nebula.x - screenWidth / 2) * scale_factor);
-			int screenY = (int) (screenHeight / 2 + (nebula.y - screenHeight / 2) * scale_factor);
-			int scaledSize = (int) (nebula.size * scale_factor);
+    	Color defaultColor = Color.WHITE;
+    	Color highlightColor = Color.YELLOW;
 
-			if (scaledSize <= 0) continue;
+    	int menuStartY = screen.getHeight() / 3 + 40;
+   	    int menuSpacing = 40;
 
-			// Set the base color for the nebula
-			g2d.setColor(nebula.color);
+    	for (int i = 0; i < menuOptions.length; i++) {
 
-			// Create a more complex, gaseous cloud shape
-			for (int i = 0; i < NebulaSettings.NUM_PUFFS; i++) {
-				float offsetX = (random.nextFloat() - 0.5f) * scaledSize * NebulaSettings.PUFF_OFFSET_FACTOR;
-				float offsetY = (random.nextFloat() - 0.5f) * scaledSize * NebulaSettings.PUFF_OFFSET_FACTOR;
-				float puffSize = scaledSize * (NebulaSettings.PUFF_SIZE_MIN_FACTOR + random.nextFloat() * (NebulaSettings.PUFF_SIZE_MAX_FACTOR - NebulaSettings.PUFF_SIZE_MIN_FACTOR));
+        	String menuText = menuOptions[i];
 
-				// Create a smooth, time-based pulsation for the alpha
-				double time = System.currentTimeMillis() / NebulaSettings.PULSATION_SPEED;
-				float pulsation = (float) (Math.sin(time + i) + 1.0) / 2.0f; // Use puff index 'i' as an offset
-				int alpha = NebulaSettings.PUFF_ALPHA_BASE + (int)(pulsation * NebulaSettings.PUFF_ALPHA_RANGE);
-				alpha = Math.max(0, Math.min(255, alpha)); // Clamp alpha to the valid 0-255 range
+        	String stateText = optionStates[i] ? "ON" : "OFF"; 
+    
+        	String fullMenuText = menuText + ": " + stateText;
 
-				Color startColor = new Color(nebula.color.getRed(), nebula.color.getGreen(), nebula.color.getBlue(), alpha);
-				Color endColor = new Color(nebula.color.getRed(), nebula.color.getGreen(), nebula.color.getBlue(), 0);
+        	Color textColor;
 
-				java.awt.geom.Point2D center = new java.awt.geom.Point2D.Float(screenX + offsetX, screenY + offsetY);
-				float radius = puffSize / 2;
-				if (radius < 1) continue;
+        	if (i == selectedOption) {
+            	textColor = highlightColor;
+            	fullMenuText = "> " + fullMenuText + " <"; 
+        	} else {
+            	textColor = defaultColor;
+        	}
+        	backBufferGraphics.setColor(textColor);
+        	drawCenteredRegularString(screen, fullMenuText, menuStartY + (i * menuSpacing));
 
-				java.awt.Paint paint = new java.awt.RadialGradientPaint(center, radius, new float[]{0.0f, 1.0f}, new Color[]{startColor, endColor});
-				g2d.setPaint(paint);
+    	}
 
-				// Draw the puff
-				g2d.fill(new java.awt.geom.Ellipse2D.Float(screenX + offsetX - radius, screenY + offsetY - radius, puffSize, puffSize));
-			}
-		}
-
-		g2d.setComposite(originalComposite);
-		g2d.dispose();
-	}}
+    	String instructionsString = "UP/DOWN: Select, ENTER: Apply, SPACE: Exit";
+    	backBufferGraphics.setColor(Color.GRAY);
+    	drawCenteredRegularString(screen, instructionsString, screen.getHeight() - 80);
+	}
+}
