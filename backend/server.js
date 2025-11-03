@@ -43,7 +43,7 @@ async function startServer() {
 
 app.use(express.json());
 
-const publicPath = path.join(__dirname, '../frontend/src/main/resources/public');
+const publicPath = path.join(__dirname, '../frontend');
 app.use(express.static(publicPath));
 
 app.get('/', function(req,res) {
