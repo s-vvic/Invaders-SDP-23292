@@ -296,11 +296,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
             updateSlowdown();
 
 			boolean isAtBottom = positionY
-<<<<<<< HEAD
-					+ this.height > GameScreen.getItemsSeparationLineHeight();
-=======
+
 					+ this.height > 600;
->>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
 			boolean isAtRightSide = positionX
 					+ this.width >= screen.getWidth() - SIDE_MARGIN;
 			boolean isAtLeftSide = positionX <= SIDE_MARGIN;

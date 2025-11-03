@@ -118,13 +118,10 @@ public class OmegaBoss extends MidBoss {
 		if (this.positionY <= 68) {
 			this.positionY = 68;
 			this.isDown = true;
-<<<<<<< HEAD
-		} else if (this.positionY + this.height >= bottomBoundary) {
-			this.positionY = bottomBoundary - this.height;
-=======
+
 		} else if (this.positionY + this.height >= 600) {
 			this.positionY = 600 - this.height;
->>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
+
 			this.isDown = false;
 		}
 	}
