@@ -5,6 +5,10 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
 import entity.ShopItem;
+import engine.AuthManager;
+import engine.ApiClient;
+import engine.AuthManager;
+import engine.ApiClient;
 
 /**
  * Implements the shop screen where players can purchase item upgrades.
@@ -284,6 +288,13 @@ public class ShopScreen extends Screen {
             logger.info("Purchased " + ITEM_NAMES[itemIndex] +
                     " Level " + level + " for " + price + " coins. " +
                     "Remaining: " + gameState.getCoin());
+
+            // If logged in, save the upgrade to the backend.
+            AuthManager authManager = AuthManager.getInstance();
+            if (authManager.isLoggedIn()) {
+                ApiClient apiClient = ApiClient.getInstance();
+                apiClient.saveUpgrade(ITEM_NAMES[itemIndex], level);
+            }
 
             // Return to item selection
             selectionMode = 0;

@@ -80,6 +80,7 @@ public class Screen {
 	 */
 	public int run() {
 		this.isRunning = true;
+		inputManager.clearKeyQueue();
 
 		while (this.isRunning) {
 			long time = System.currentTimeMillis();

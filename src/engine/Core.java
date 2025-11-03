@@ -133,6 +133,18 @@ public final class Core {
 					LOGGER.info("Starting " + currentScreen.getClass().getSimpleName() + " screen.");
 					returnCode = frame.setScreen(currentScreen);
 					break;
+                case 9: // LoginScreen
+                    currentScreen = new LoginScreen(width, height, FPS);
+                    LOGGER.info("Starting Login screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Login screen.");
+                    break;
+                case 12: // RegisterScreen
+                    currentScreen = new RegisterScreen(width, height, FPS);
+                    LOGGER.info("Starting Register screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Register screen.");
+                    break;
                 case 10: // 1 Player
                 case 11: // 2 Players
                     boolean isTwoPlayer = (returnCode == 11);
@@ -196,6 +208,13 @@ public final class Core {
 
 					SoundManager.stopAll();
 					SoundManager.play("sfx/gameover.wav");
+
+                    // Save score if logged in.
+                    AuthManager authManager = AuthManager.getInstance();
+                    if (authManager.isLoggedIn()) {
+                        ApiClient apiClient = ApiClient.getInstance();
+                        apiClient.saveScore(gameState.getScore());
+                    }
 
                     LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
                             + " score screen at " + FPS + " fps, with a score of "
