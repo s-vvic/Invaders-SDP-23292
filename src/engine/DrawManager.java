@@ -305,7 +305,7 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.WHITE);
 		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
 		backBufferGraphics.drawString("P1:", 23, 38);
-		Ship dummyShip = new Ship(0, 0);
+		Ship dummyShip = new Ship(0, 0, Color.blue);
 		for (int i = 0; i < lives; i++)
 			drawEntity(dummyShip, 60 + 53 * i, 15);
 	}
