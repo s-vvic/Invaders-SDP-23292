@@ -1,14 +1,24 @@
 package engine;
 
 
-import audio.SoundManager;
-import engine.level.LevelManager;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import screen.*;
+
+import audio.SoundManager;
+import engine.level.LevelManager;
+import screen.AchievementScreen;
+import screen.CreditScreen;
+import screen.EasterEggScreen;
+import screen.GameScreen;
+import screen.HighScoreScreen;
+import screen.ModeSelectionScreen;
+import screen.ScoreScreen;
+import screen.Screen;
+import screen.ShopScreen;
+import screen.TitleScreen;
 
 /**
  * Implements core game logic.

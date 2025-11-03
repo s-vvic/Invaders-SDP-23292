@@ -48,15 +48,8 @@ public class GameScreen extends Screen {
 	/** Height of the interface separation line. */
 	private static final int SEPARATION_LINE_HEIGHT = 68;
 	/** Height of the items separation line (above items). */
-<<<<<<< HEAD
-	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 400;
-    /** Returns the Y-coordinate of the bottom boundary for enemies (above items HUD) */
-    public static int getItemsSeparationLineHeight() {
-        return ITEMS_SEPARATION_LINE_HEIGHT;
-    }
-=======
+
 	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 600;
->>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
 
     /** Current level data (direct from Level system). */
     private Level currentLevel;
@@ -199,21 +192,15 @@ public class GameScreen extends Screen {
         enemyShipFormation = new EnemyShipFormation(this.currentLevel);
 		enemyShipFormation.attach(this);
         this.enemyShipFormation.applyEnemyColorByLevel(this.currentLevel);
-<<<<<<< HEAD
-		this.ship = new Ship(this.width / 2 - 100, ITEMS_SEPARATION_LINE_HEIGHT - 20,Color.green);
-		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
-        this.shipP2 = new Ship(this.width / 2 + 100, ITEMS_SEPARATION_LINE_HEIGHT - 20,Color.pink);
-        this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
-=======
-		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
+		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75, Color.white);
 		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
 		if (this.isTwoPlayer) {
-			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
+			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75,Color.white);
 			this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
 		}
->>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
+
         // special enemy initial
 		enemyShipSpecialFormation = new EnemyShipSpecialFormation(this.currentLevel,
 				Core.getVariableCooldown(BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE),
@@ -537,7 +524,7 @@ public class GameScreen extends Screen {
 			if (bullet.getSpeed() > 0) {
 				if (this.livesP1 > 0 && checkCollision(bullet, this.ship) && !this.levelFinished) {
 					recyclable.add(bullet);
-					if (!this.ship.isInvincible()) {
+					if (!this.ship.isInvincible()&& !GameState.isInvincible()) {
 						if (!this.ship.isDestroyed()) {
 							this.ship.destroy();
 							this.livesP1--;
@@ -549,7 +536,7 @@ public class GameScreen extends Screen {
 				} else if (this.shipP2 != null && this.livesP2 > 0 && !this.shipP2.isDestroyed()
 						&& checkCollision(bullet, this.shipP2) && !this.levelFinished) {
 					recyclable.add(bullet);
-					if (!this.shipP2.isInvincible()) {
+					if (!this.shipP2.isInvincible()&& !GameState.isInvincible()) {
 						if (!this.shipP2.isDestroyed()) {
 							this.shipP2.destroy();
 							this.livesP2--;
@@ -660,7 +647,7 @@ public class GameScreen extends Screen {
     private void manageShipEnemyCollisions() {
         // ===== P1 collision check =====
         if (!this.levelFinished && this.livesP1 > 0 && !this.ship.isDestroyed()
-                && !this.ship.isInvincible()) {
+                && !this.ship.isInvincible()&& !GameState.isInvincible()) {
             // Check collision with normal enemy ships
             for (EnemyShip enemyShip : this.enemyShipFormation) {
                 if (!enemyShip.isDestroyed() && checkCollision(this.ship, enemyShip)) {
@@ -984,7 +971,7 @@ public class GameScreen extends Screen {
 					bulletsToRemove.add(b);
 				}
 				/** If the bullet collides with ship */
-				else if (this.livesP1 > 0 && this.checkCollision(b, this.ship)) {
+				else if (this.livesP1 > 0 && this.checkCollision(b, this.ship)&& !GameState.isInvincible()) {
 					if (!this.ship.isDestroyed()) {
 						this.ship.destroy();
 						this.livesP1--;

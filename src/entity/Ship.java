@@ -1,12 +1,12 @@
 package entity;
-import audio.SoundManager;
-
 import java.awt.Color;
 import java.util.Set;
 
+import audio.SoundManager;
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager.SpriteType;
+import engine.GameState;
 
 /**
  * Implements a ship, to be controlled by the player.
@@ -157,7 +157,7 @@ public class Ship extends Entity {
 	 * Switches the ship to its destroyed state.
 	 */
 	public final void destroy() {
-        if (!this.isInvincible) {
+        if (!this.isInvincible && !GameState.isInvincible()) {
 			SoundManager.stop("sfx/impact.wav");
             SoundManager.play("sfx/impact.wav");
             this.destructionCooldown.reset();
