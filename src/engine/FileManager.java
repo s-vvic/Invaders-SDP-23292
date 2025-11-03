@@ -71,7 +71,7 @@ public final class FileManager {
 		InputStream inputStream = null;
 
 		try {
-			inputStream = new FileInputStream("res/graphics");
+			inputStream = FileManager.class.getClassLoader().getResourceAsStream("graphics");
             char c;
 
 			// Sprite loading.
@@ -115,8 +115,7 @@ public final class FileManager {
 
 		try {
 			// Font loading.
-			InputStream inputStream = FileManager.class.getClassLoader()
-					.getResourceAsStream("font.ttf");
+			InputStream inputStream = FileManager.class.getClassLoader().getResourceAsStream("font.ttf");
 			if (inputStream != null) {
 				font = Font.createFont(Font.TRUETYPE_FONT, inputStream).deriveFont(size);
 				inputStream.close();
@@ -146,7 +145,7 @@ public final class FileManager {
 		BufferedReader reader = null;
 
 		try {
-			inputStream = new FileInputStream("res/scores");
+			inputStream = FileManager.class.getClassLoader().getResourceAsStream("scores");
 			reader = new BufferedReader(new InputStreamReader(inputStream));
 
 			Score highScore = null;

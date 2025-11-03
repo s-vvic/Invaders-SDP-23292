@@ -31,6 +31,7 @@ import screen.TitleScreen;
 import screen.TitleScreen.Star;
 import screen.TitleScreen.ShootingStar;
 import engine.NebulaSettings;
+import engine.AuthManager;
 
 /**
  * Manages screen drawing.
@@ -176,6 +177,15 @@ public final class DrawManager {
 	}
 
 	/**
+	 * Returns the graphics context of the back buffer.
+	 * 
+	 * @return The graphics context.
+	 */
+	public Graphics getBackBufferGraphics() {
+		return backBufferGraphics;
+	}
+
+	/**
 	 * Sets the frame to draw the image on.
 	 */
 	public void setFrame(final Frame currentFrame) {
@@ -305,7 +315,7 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.WHITE);
 		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
 		backBufferGraphics.drawString("P1:", 23, 38);
-		Ship dummyShip = new Ship(0, 0);
+		Ship dummyShip = new Ship(0, 0, Color.blue);
 		for (int i = 0; i < lives; i++)
 			drawEntity(dummyShip, 60 + 53 * i, 15);
 	}
@@ -396,10 +406,27 @@ public final class DrawManager {
 	public void drawTitle(final Screen screen) {
 		String titleString = "Invaders";
 		String instructionsString = "select with w+s / arrows, confirm with space";
+		
 		backBufferGraphics.setColor(Color.GRAY);
 		drawCenteredRegularString(screen, instructionsString, screen.getHeight() / 2);
+
 		backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, titleString, screen.getHeight() / 3);
+
+		// Draw login status
+		AuthManager authManager = AuthManager.getInstance();
+		backBufferGraphics.setFont(fontRegular);
+		if (authManager.isLoggedIn()) {
+			backBufferGraphics.setColor(Color.WHITE);
+			String welcomeString = "Welcome, " + authManager.getUsername() + "!";
+			backBufferGraphics.drawString(welcomeString, 20, 30);
+			String logoutString = "[O]ut";
+			backBufferGraphics.drawString(logoutString, 20, 50);
+		} else {
+			backBufferGraphics.setColor(Color.WHITE);
+			String loginString = "[L]ogin";
+			backBufferGraphics.drawString(loginString, 20, 30);
+		}
 	}
 
 	/**
@@ -410,6 +437,7 @@ public final class DrawManager {
         String highScoresString = "High scores";
         String achievementsString = "Achievements";
         String shopString = "Shop";
+        String webDashboardString = "Web Dashboard";
         String exitString = "Exit";
 
 		// Pulsing color for selected item
@@ -432,9 +460,13 @@ public final class DrawManager {
         else backBufferGraphics.setColor(Color.WHITE);
         drawCenteredRegularString(screen, shopString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 3);
 
+        if (option == 7) backBufferGraphics.setColor(pulseColor);
+        else backBufferGraphics.setColor(Color.WHITE);
+        drawCenteredRegularString(screen, webDashboardString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 4);
+
         if (option == 0) backBufferGraphics.setColor(pulseColor);
         else backBufferGraphics.setColor(Color.WHITE);
-        drawCenteredRegularString(screen, exitString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 4);
+        drawCenteredRegularString(screen, exitString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 5);
 	}
 
 	/**

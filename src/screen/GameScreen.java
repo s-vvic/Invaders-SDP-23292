@@ -48,15 +48,9 @@ public class GameScreen extends Screen {
 	/** Height of the interface separation line. */
 	private static final int SEPARATION_LINE_HEIGHT = 68;
 	/** Height of the items separation line (above items). */
-<<<<<<< HEAD
-	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 400;
-    /** Returns the Y-coordinate of the bottom boundary for enemies (above items HUD) */
-    public static int getItemsSeparationLineHeight() {
-        return ITEMS_SEPARATION_LINE_HEIGHT;
-    }
-=======
+
 	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 600;
->>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
+
 
     /** Current level data (direct from Level system). */
     private Level currentLevel;
@@ -199,21 +193,15 @@ public class GameScreen extends Screen {
         enemyShipFormation = new EnemyShipFormation(this.currentLevel);
 		enemyShipFormation.attach(this);
         this.enemyShipFormation.applyEnemyColorByLevel(this.currentLevel);
-<<<<<<< HEAD
-		this.ship = new Ship(this.width / 2 - 100, ITEMS_SEPARATION_LINE_HEIGHT - 20,Color.green);
-		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
-        this.shipP2 = new Ship(this.width / 2 + 100, ITEMS_SEPARATION_LINE_HEIGHT - 20,Color.pink);
-        this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
-=======
-		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
+		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75, Color.green);
 		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
 		if (this.isTwoPlayer) {
-			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75);
+			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75,  Color.red);
 			this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
 		}
->>>>>>> 984b1a843380ca4be2474811c43c4d4add0506e2
+
         // special enemy initial
 		enemyShipSpecialFormation = new EnemyShipSpecialFormation(this.currentLevel,
 				Core.getVariableCooldown(BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE),

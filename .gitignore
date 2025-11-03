@@ -181,3 +181,10 @@ production
 achievements.dat
 /backend/target/
 node_modules/
+invaders.db
+
+#############
+## Unignore
+#############
+!src/screen/LoginScreen.java
+!src/screen/LoginDrawer.java
