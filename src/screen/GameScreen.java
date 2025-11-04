@@ -51,6 +51,7 @@ public class GameScreen extends Screen {
 
 	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 600;
 
+
     /** Current level data (direct from Level system). */
     private Level currentLevel;
 	/** Current difficulty level number. */
@@ -193,11 +194,13 @@ public class GameScreen extends Screen {
 		enemyShipFormation.attach(this);
         this.enemyShipFormation.applyEnemyColorByLevel(this.currentLevel);
 
-		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75, Color.white);
+
+		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75, Color.green);
 		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
 		if (this.isTwoPlayer) {
-			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75,Color.white);
+			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75,  Color.red);
+
 			this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
 		}
 

@@ -115,8 +115,7 @@ public final class FileManager {
 
 		try {
 			// Font loading.
-			InputStream inputStream = FileManager.class.getClassLoader()
-					.getResourceAsStream("font.ttf");
+			InputStream inputStream = new FileInputStream("res/font.ttf");
 			if (inputStream != null) {
 				font = Font.createFont(Font.TRUETYPE_FONT, inputStream).deriveFont(size);
 				inputStream.close();
