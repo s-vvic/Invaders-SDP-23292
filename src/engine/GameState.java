@@ -33,7 +33,9 @@ public class GameState {
     private static boolean maxScoreActive = false;
 
 	private static boolean dcreaseEnemyPower = false;
-    
+
+	private static boolean unlimitedCoins = false;
+
 
 
 	/**
@@ -107,6 +109,9 @@ public class GameState {
     public final int getCoin() { return coin; }
 
 	public final boolean deductCoins(final int amount) {
+		if (GameState.isUnlimitedCoins()) {
+			return true;
+		}
 		if (amount < 0) {
 			return false;
 		}
@@ -164,7 +169,14 @@ public class GameState {
     }
 
   
-    public static boolean isMaxScoreActive() {
-        return maxScoreActive;
-    }
-}
+    	public static boolean isMaxScoreActive() {
+            return maxScoreActive;
+        }
+    
+    	public static void setUnlimitedCoins(boolean state) {
+    		unlimitedCoins = state;
+    	}
+    
+    	public static boolean isUnlimitedCoins() {
+    		return unlimitedCoins;
+    	}}
