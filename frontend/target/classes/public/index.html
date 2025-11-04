@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invaders Game Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="starfield-canvas"></canvas>
+    <div id="app">
+        <!-- Login View -->
+        <div id="login-view">
+            <div class="container">
+                <h1>Invaders Game</h1>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit">Login</button>
+                </form>
+                <p id="login-error" class="error-message"></p>
+            </div>
+        </div>
+
+        <!-- Dashboard View (Initially Hidden) -->
+        <div id="dashboard-view" class="hidden">
+            <div class="container">
+                <header>
+                    <h1 id="welcome-message">Welcome, ...</h1>
+                    <button id="logout-btn">Logout</button>
+                </header>
+                <main>
+                    <div class="card">
+                        <h2>High Score</h2>
+                        <p id="high-score">0</p>
+                    </div>
+                    <div class="card">
+                        <h2>Gold</h2>
+                        <p id="gold">0</p>
+                    </div>
+                    <div class="card full-width">
+                        <h3>Upgrades</h3>
+                        <ul id="upgrades-list">
+                            <!-- JS will populate this -->
+                        </ul>
+                    </div>
+                    <div class="card full-width">
+                        <h3>Achievements</h3>
+                        <ul id="achievements-list">
+                            <!-- JS will populate this -->
+                        </ul>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+/* Basic Reset & Dark Theme */
+:root {
+    --primary-green: #00FF41;
+    --dark-background: #121212;
+    --light-background: #1e1e1e;
+    --text-color: #e0e0e0;
+    --border-color: #555;
+    --input-bg: #333;
+}
+
+body {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: var(--dark-background);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+    padding: 2rem;
+}
+
+/* Login Form */
+#login-view .container {
+    max-width: 400px;
+    background-color: var(--light-background);
+    border-radius: 8px;
+    border: 1px solid var(--primary-green);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--primary-green);
+    text-shadow: 0 0 5px var(--primary-green);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--primary-green);
+    border: none;
+    color: var(--dark-background);
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+    background-color: #33ff66; /* Lighter green */
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.7);
+}
+
+.error-message {
+    color: #ff4d4d;
+    text-align: center;
+    height: 1rem;
+    margin-top: 1rem;
+}
+
+/* Dashboard */
+#dashboard-view header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+#dashboard-view main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.card {
+    background-color: var(--light-background);
+    border-radius: 8px;
+    padding: 1.5rem;
+    flex-basis: calc(50% - 0.5rem);
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+}
+
+.card.full-width {
+    flex-basis: 100%;
+}
+
+.card h2, .card h3 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    color: var(--primary-green);
+}
+
+.card p {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 1rem 0 0;
+    color: var(--text-color);
+}
+
+.card ul {
+    list-style: none;
+    padding: 0;
+}
+
+/* Utility */
+
+.hidden {
+
+    display: none;
+
+}
+
+
+
+/* Starfield Canvas */
+
+#starfield-canvas {
+
+    position: fixed;
+
+    top: 0;
+
+    left: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    z-index: -1; /* Place it behind all other content */
+
+}
