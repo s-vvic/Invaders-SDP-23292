@@ -31,6 +31,8 @@ public class GameState {
     private static boolean infiniteLives = false;
   
     private static boolean maxScoreActive = false;
+
+	private static boolean dcreaseEnemyPower = false;
     
 
 
@@ -133,6 +135,10 @@ public class GameState {
         invincible = state;
     }
 
+	public static void setDecreaseEnemyPower(boolean state) {
+		dcreaseEnemyPower = state;
+	}
+
   
     public static void setInfiniteLives(boolean state) {
         infiniteLives = state;
@@ -147,6 +153,10 @@ public class GameState {
     public static boolean isInvincible() {
         return invincible;
     }
+
+	public static boolean isDecreaseEnemyPower() {
+		return dcreaseEnemyPower;
+	}
 
  
     public static boolean isInfiniteLives() {

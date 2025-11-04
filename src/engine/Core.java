@@ -19,6 +19,8 @@ import screen.ScoreScreen;
 import screen.Screen;
 import screen.ShopScreen;
 import screen.TitleScreen;
+import screen.RegisterScreen;
+import screen.LoginScreen;
 
 /**
  * Implements core game logic.
