@@ -77,4 +77,28 @@ app.post('/api/login', async function(req, res) {
     }
 });
 
+app.get('/api/users/:id', async function(req, res) {
+    try {
+        const userId = parseInt(req.params.id, 10); // Convert ID to integer
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        const user = await db.get(
+            'SELECT id, username, max_score FROM users WHERE id = ?',
+            [userId]
+        );
+
+        if (user) {
+            res.json(user); // User found
+        } else {
+            res.status(404).json({ error: 'User not found' }); // User not found
+        }
+    } catch (error) {
+        console.error('Database error while fetching single user:', error);
+        res.status(500).json({ error: 'Server database error' }); // Internal server error
+    }
+});
+
 startServer();
