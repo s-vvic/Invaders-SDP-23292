@@ -194,11 +194,13 @@ public class GameScreen extends Screen {
 		enemyShipFormation.attach(this);
         this.enemyShipFormation.applyEnemyColorByLevel(this.currentLevel);
 
+
 		this.ship = new Ship(this.width / 2 - 150, ITEMS_SEPARATION_LINE_HEIGHT - 75, Color.green);
 		    this.ship.setPlayerId(1);   //=== [ADD] Player 1 ===
 
 		if (this.isTwoPlayer) {
 			this.shipP2 = new Ship(this.width / 2 + 150, ITEMS_SEPARATION_LINE_HEIGHT - 75,  Color.red);
+
 			this.shipP2.setPlayerId(2); // === [ADD] Player2 ===
 		}
 
@@ -525,7 +527,7 @@ public class GameScreen extends Screen {
 			if (bullet.getSpeed() > 0) {
 				if (this.livesP1 > 0 && checkCollision(bullet, this.ship) && !this.levelFinished) {
 					recyclable.add(bullet);
-					if (!this.ship.isInvincible()) {
+					if (!this.ship.isInvincible()&& !GameState.isInvincible()) {
 						if (!this.ship.isDestroyed()) {
 							this.ship.destroy();
 							this.livesP1--;
@@ -537,7 +539,7 @@ public class GameScreen extends Screen {
 				} else if (this.shipP2 != null && this.livesP2 > 0 && !this.shipP2.isDestroyed()
 						&& checkCollision(bullet, this.shipP2) && !this.levelFinished) {
 					recyclable.add(bullet);
-					if (!this.shipP2.isInvincible()) {
+					if (!this.shipP2.isInvincible()&& !GameState.isInvincible()) {
 						if (!this.shipP2.isDestroyed()) {
 							this.shipP2.destroy();
 							this.livesP2--;
@@ -648,7 +650,7 @@ public class GameScreen extends Screen {
     private void manageShipEnemyCollisions() {
         // ===== P1 collision check =====
         if (!this.levelFinished && this.livesP1 > 0 && !this.ship.isDestroyed()
-                && !this.ship.isInvincible()) {
+                && !this.ship.isInvincible()&& !GameState.isInvincible()) {
             // Check collision with normal enemy ships
             for (EnemyShip enemyShip : this.enemyShipFormation) {
                 if (!enemyShip.isDestroyed() && checkCollision(this.ship, enemyShip)) {
@@ -972,7 +974,7 @@ public class GameScreen extends Screen {
 					bulletsToRemove.add(b);
 				}
 				/** If the bullet collides with ship */
-				else if (this.livesP1 > 0 && this.checkCollision(b, this.ship)) {
+				else if (this.livesP1 > 0 && this.checkCollision(b, this.ship)&& !GameState.isInvincible()) {
 					if (!this.ship.isDestroyed()) {
 						this.ship.destroy();
 						this.livesP1--;

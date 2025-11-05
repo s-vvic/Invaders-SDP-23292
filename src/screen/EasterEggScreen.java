@@ -2,6 +2,8 @@ package screen;
 
 import java.awt.event.KeyEvent;
 
+import engine.GameState;
+
 public class EasterEggScreen extends Screen {
 
     // --- (1) 수정: 메뉴 상태를 위한 변수 ---
@@ -22,12 +24,16 @@ public class EasterEggScreen extends Screen {
         this.menuOptions = new String[] {
             "Invincibility",   // "on/off" 텍스트 제거
             "Infinite Lives", // "on/off" 텍스트 제거
-            "Max Score"        // "on/off" 텍스트 제거
+            "Max Score",        // "on/off" 텍스트 제거
+            "Decrease Enemy HP" // 보스 체력 1로 초기화
         };
 
         // 'optionStates' 배열을 메뉴 개수만큼 생성 (기본값은 모두 false/off)
         this.optionStates = new boolean[this.menuOptions.length]; // <<<< 새로 추가
-        
+        this.optionStates[0] = GameState.isInvincible();     // 현재 무적 상태
+        this.optionStates[1] = GameState.isInfiniteLives();  // 현재 무한 목숨 상태
+        this.optionStates[2] = GameState.isMaxScoreActive(); // 현재 최대 점수 상태
+        this.optionStates[3] = GameState.isDecreaseEnemyPower(); // 현재 적 체력 1 상태
         this.selectedOption = 0; 
     }
 
@@ -81,20 +87,25 @@ public class EasterEggScreen extends Screen {
      * 콘솔 출력 대신, 'optionStates'의 boolean 값을 토글(반전)시킵니다.
      */
     private void executeSelectedOption() {
-        // 현재 선택된 옵션의 boolean 값을 반전시킵니다 (true -> false, false -> true)
         this.optionStates[this.selectedOption] = !this.optionStates[this.selectedOption];
 
-        // TODO: 여기에 실제 치트 적용 로직을 구현합니다.
-        // 예시:
-        // boolean newState = this.optionStates[this.selectedOption];
-        // switch (this.selectedOption) {
-        //     case 0: // Invincibility
-        //         GameState.setInvincible(newState);
-        //         break;
-        //     case 1: // Infinite Lives
-        //         GameState.setLives(newState ? 99 : 3); // 켜지면 99, 꺼지면 기본값 3
-        //         break;
-        // }
+        // 2. 반전된 새로운 상태 값을 가져옵니다.
+        boolean newState = this.optionStates[this.selectedOption];
+
+        // ▼▼▼ 3. GameState의 static 메소드를 호출하여 치트 상태를 전역으로 적용합니다. ▼▼▼
+        switch (this.selectedOption) {
+            case 0: // Invincibility
+                GameState.setInvincible(newState);
+                break;
+            case 1: // Infinite Lives
+                GameState.setInfiniteLives(newState);
+                break;
+            case 2: // Max Score
+                GameState.setMaxScoreActive(newState);
+                break;
+            case 3: // Decrease Enemy power(HP)
+                GameState.setDecreaseEnemyPower(newState);
+        }
     }
     
     // --- (5) 수정: Getter 메소드에 optionStates 추가 ---

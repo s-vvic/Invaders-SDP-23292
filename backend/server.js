@@ -29,18 +29,11 @@ async function startServer() {
     
     // [테스트용 사용자 추가 (없을 경우에만)]
     await db.run(
-        'INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)', 
-        'test', 
+        'INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)',
+        'test',
         '1234'
     );
-
-    // --- 5. 서버 리스닝 시작 ---
-    app.listen(8080, function() {
-        console.log('listening on 8080 port');
-        console.log('SQLite DB (invaders.db) is connected and ready.');
-    });
 }
-
 app.use(express.json());
 
 const publicPath = path.join(__dirname, '../frontend');
@@ -50,6 +43,45 @@ app.get('/', function(req,res) {
     res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User management and login
+ */
+
+/**
+ * @swagger
+ * /api/login:
+ *   post:
+ *     summary: Authenticate a user and return a token
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       401:
+ *         description: Invalid username or password
+ *       500:
+ *         description: Server database error
+ */
 app.post('/api/login', async function(req, res) {
     try {
         const { username, password } = req.body;
@@ -77,4 +109,110 @@ app.post('/api/login', async function(req, res) {
     }
 });
 
-startServer();
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Retrieve a list of all users
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: A list of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   username:
+ *                     type: string
+ *                   max_score:
+ *                     type: integer
+ *       500:
+ *         description: Server database error
+ */
+app.get('/api/users', async function(req, res) {
+    try {
+        const users = await db.all('SELECT id, username, max_score FROM users');
+        res.json(users);
+    } catch (error) {
+        console.error('Database error while fetching users:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Retrieve a single user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: A single user object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 max_score:
+ *                   type: integer
+ *       400:
+ *         description: Invalid user ID
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
+ */
+app.get('/api/users/:id', async function(req, res) {
+    try {
+        const userId = parseInt(req.params.id, 10); // Convert ID to integer
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        const user = await db.get(
+            'SELECT id, username, max_score FROM users WHERE id = ?',
+            [userId]
+        );
+
+        if (user) {
+            res.json(user); // User found
+        } else {
+            res.status(404).json({ error: 'User not found' }); // User not found
+        }
+    } catch (error) {
+        console.error('Database error while fetching single user:', error);
+        res.status(500).json({ error: 'Server database error' }); // Internal server error
+    }
+});
+
+const swaggerUi = require('swagger-ui-express');
+const specs = require('./config/swagger.js');
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
+if (require.main === module) {
+    startServer().then(() => {
+        app.listen(8080, () => {
+            console.log('Server listening on port 8080');
+        });
+    });
+}
+
+module.exports = { app, startServer };
