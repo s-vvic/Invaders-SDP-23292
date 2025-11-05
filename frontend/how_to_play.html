@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How To Play</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="starfield-canvas"></canvas>
+    <div class="container">
+        <div class="card full-width">
+            <header>
+                <h1>How To Play</h1>
+                <div>
+                    <button id="lang-en" class="button lang-button">English</button>
+                    <button id="lang-ko" class="button lang-button">Korean</button>
+                </div>
+                <a href="index.html" class="button">Back to Main</a>
+            </header>
+            <main>
+                <p data-ko="게임에 오신 것을 환영합니다! 게임 방법은 다음과 같습니다:">Welcome to the game! Here's how to play:</p>
+
+                <h2 data-ko="조작법">Controls</h2>
+                <ul>
+                    <li>Player 1:
+                        <ul>
+                            <li data-ko="왼쪽으로 이동: A">Move Left: A</li>
+                            <li data-ko="오른쪽으로 이동: D">Move Right: D</li>
+                            <li data-ko="위로 이동: W">Move Up: W</li>
+                            <li data-ko="아래로 이동: S">Move Down: S</li>
+                            <li data-ko="발사: 스페이스바">Shoot: Spacebar</li>
+                        </ul>
+                    </li>
+                    <li>Player 2 (if enabled):
+                        <ul>
+                            <li data-ko="왼쪽으로 이동: 왼쪽 화살표">Move Left: Left Arrow</li>
+                            <li data-ko="오른쪽으로 이동: 오른쪽 화살표">Move Right: Right Arrow</li>
+                            <li data-ko="위로 이동: 위쪽 화살표">Move Up: Up Arrow</li>
+                            <li data-ko="아래로 이동: 아래쪽 화살표">Move Down: Down Arrow</li>
+                            <li data-ko="발사: 엔터">Shoot: Enter</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h2 data-ko="점수">Scoring</h2>
+                <p data-ko="적을 물리치면 점수를 얻습니다. 난이도가 높은 적일수록 더 많은 점수를 줍니다.">Defeat enemies to earn points. Higher difficulty enemies yield more points.</p>
+                <ul>
+                    <li data-ko="일반 적: 10점">Normal Enemy: 10 points</li>
+                    <li data-ko="특별한 적: 50점">Special Enemy: 50 points</li>
+                    <li data-ko="보스: 1000점">Boss: 1000 points</li>
+                </ul>
+
+                <h2 data-ko="적">Enemies</h2>
+                <p data-ko="각기 다른 공격 패턴과 체력을 가진 다양한 종류의 적들을 조심하세요.">Beware of various enemy types, each with unique attack patterns and health.</p>
+                <ul>
+                    <li data-ko="기본 그런트: 표준적인 적, 쉽게 물리칠 수 있습니다.">Basic Grunt: Standard enemy, easy to defeat.</li>
+                    <li data-ko="빠른 공격수: 빠르고 민첩하여 맞추기 어렵습니다.">Fast Attacker: Quick and agile, harder to hit.</li>
+                    <li data-ko="강력한 수비수: 느리지만 중무장하고 있습니다.">Heavy Defender: Slow but heavily armored.</li>
+                    <li data-ko="보스: 각 레벨의 끝에 있는 강력한 적입니다.">Bosses: Powerful enemies at the end of each level.</li>
+                </ul>
+
+                <h2 data-ko="아이템">Items</h2>
+                <p data-ko="물리친 적이 떨어뜨리는 파워업을 모아 우위를 점하세요.">Collect power-ups dropped by defeated enemies to gain an advantage.</p>
+                <ul>
+                    <li data-ko="치유: 생명력을 1 회복합니다.">Heal: Restores one life.</li>
+                    <li data-ko="보호막: 일시적인 무적 상태가 됩니다.">Shield: Grants temporary invincibility.</li>
+                    <li data-ko="정지: 짧은 시간 동안 모든 적을 얼립니다.">Stop: Freezes all enemies for a short duration.</li>
+                    <li data-ko="밀치기: 모든 적을 뒤로 밀어냅니다.">Push: Pushes all enemies back.</li>
+                    <li data-ko="폭발: 화면의 모든 적을 파괴합니다.">Explode: Destroys all on-screen enemies.</li>
+                    <li data-ko="감속: 적의 움직임을 느리게 합니다.">Slow: Slows down enemy movement.</li>
+                </ul>
+            </main>
+        </div>
+    </div>
+    <script src="starfield.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const langEnBtn = document.getElementById('lang-en');
+            const langKoBtn = document.getElementById('lang-ko');
+            const translatableElements = document.querySelectorAll('[data-ko]');
+
+            langEnBtn.classList.add('active');
+
+            const originalTexts = new Map();
+            translatableElements.forEach(el => {
+                originalTexts.set(el, el.innerText);
+            });
+
+            langEnBtn.addEventListener('click', () => {
+                translatableElements.forEach(el => {
+                    el.innerText = originalTexts.get(el);
+                });
+                langEnBtn.classList.add('active');
+                langKoBtn.classList.remove('active');
+            });
+
+            langKoBtn.addEventListener('click', () => {
+                translatableElements.forEach(el => {
+                    el.innerText = el.dataset.ko;
+                });
+                langKoBtn.classList.add('active');
+                langEnBtn.classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>

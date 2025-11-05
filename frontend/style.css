@@ -68,7 +68,8 @@ input[type="password"]:focus {
     box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
 }
 
-button {
+button,
+a.button {
     width: 100%;
     padding: 0.75rem;
     background-color: var(--primary-green);
@@ -80,9 +81,14 @@ button {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none; /* Remove underline from anchor tags */
 }
 
-button:hover {
+button:hover,
+a.button:hover {
     background-color: #33ff66; /* Lighter green */
     box-shadow: 0 0 10px rgba(0, 255, 65, 0.7);
     color: white;
@@ -158,6 +164,15 @@ button:hover {
     padding: 0;
 }
 
+.card li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card li:last-child {
+    border-bottom: none;
+}
+
 #leaderboard-list li {
     display: flex;
     justify-content: space-between;
@@ -167,6 +182,18 @@ button:hover {
 
 #leaderboard-list li:last-child {
     border-bottom: none;
+}
+
+.lang-button {
+    width: auto;
+    padding: 0.5rem 1rem;
+    margin-left: 0.5rem;
+}
+
+.lang-button.active {
+    background-color: #33ff66;
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.7);
+    color: white;
 }
 
 /* Utility */
