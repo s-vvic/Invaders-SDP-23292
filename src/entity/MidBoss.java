@@ -1,6 +1,7 @@
 package entity;
 
 import engine.Core;
+import engine.GameState;
 import screen.Screen;
 
 import java.awt.*;
@@ -35,7 +36,11 @@ public abstract class MidBoss extends Entity implements BossEntity {
 	 */
 	public MidBoss(int positionX, int positionY, int width, int height, int healPoint, int pointValue, Color color) {
 		super(positionX, positionY, width, height, color);
-		this.healPoint=healPoint;
+		if (GameState.isDecreaseEnemyPower()) {
+            this.healPoint = 1;
+        } else {
+            this.healPoint=healPoint;
+        }
 		this.maxHp=healPoint;
 		this.pointValue=pointValue;
 		this.logger = Core.getLogger();

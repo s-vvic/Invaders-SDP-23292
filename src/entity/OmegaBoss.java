@@ -1,7 +1,8 @@
 package entity;
 
+import java.awt.Color;
+
 import engine.DrawManager;
-import java.awt.*;
 
 /**
  * Omega - Middle Boss
@@ -121,7 +122,6 @@ public class OmegaBoss extends MidBoss {
 
 		} else if (this.positionY + this.height >= 600) {
 			this.positionY = 600 - this.height;
-
 			this.isDown = false;
 		}
 	}

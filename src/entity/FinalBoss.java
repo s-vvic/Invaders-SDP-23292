@@ -4,6 +4,7 @@ import audio.SoundManager;
 import engine.DrawManager;
 import engine.Cooldown;
 import engine.Core;
+import engine.GameState;
 import screen.GameScreen;
 
 import java.awt.*;
@@ -40,7 +41,11 @@ public class FinalBoss extends Entity implements BossEntity{
     public FinalBoss(int positionX, int positionY, int screenWidth, int screenHeight){
 
         super(positionX,positionY,100,80, Color.RED);
-        this.healPoint = 80;
+        if (GameState.isDecreaseEnemyPower()) {
+            this.healPoint = 1;
+        } else {
+            this.healPoint = 80;
+        }
         this.maxHp = healPoint;
         this.pointValue = 1000;
         this.spriteType = DrawManager.SpriteType.FinalBoss1;
