@@ -43,6 +43,45 @@ app.get('/', function(req,res) {
     res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User management and login
+ */
+
+/**
+ * @swagger
+ * /api/login:
+ *   post:
+ *     summary: Authenticate a user and return a token
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       401:
+ *         description: Invalid username or password
+ *       500:
+ *         description: Server database error
+ */
 app.post('/api/login', async function(req, res) {
     try {
         const { username, password } = req.body;
@@ -70,6 +109,31 @@ app.post('/api/login', async function(req, res) {
     }
 });
 
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Retrieve a list of all users
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: A list of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   username:
+ *                     type: string
+ *                   max_score:
+ *                     type: integer
+ *       500:
+ *         description: Server database error
+ */
 app.get('/api/users', async function(req, res) {
     try {
         const users = await db.all('SELECT id, username, max_score FROM users');
@@ -80,6 +144,40 @@ app.get('/api/users', async function(req, res) {
     }
 });
 
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Retrieve a single user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: A single user object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 max_score:
+ *                   type: integer
+ *       400:
+ *         description: Invalid user ID
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
+ */
 app.get('/api/users/:id', async function(req, res) {
     try {
         const userId = parseInt(req.params.id, 10); // Convert ID to integer
@@ -103,6 +201,11 @@ app.get('/api/users/:id', async function(req, res) {
         res.status(500).json({ error: 'Server database error' }); // Internal server error
     }
 });
+
+const swaggerUi = require('swagger-ui-express');
+const specs = require('./config/swagger.js');
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 if (require.main === module) {
     startServer().then(() => {
