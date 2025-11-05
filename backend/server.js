@@ -29,18 +29,11 @@ async function startServer() {
     
     // [테스트용 사용자 추가 (없을 경우에만)]
     await db.run(
-        'INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)', 
-        'test', 
+        'INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)',
+        'test',
         '1234'
     );
-
-    // --- 5. 서버 리스닝 시작 ---
-    app.listen(8080, function() {
-        console.log('listening on 8080 port');
-        console.log('SQLite DB (invaders.db) is connected and ready.');
-    });
 }
-
 app.use(express.json());
 
 const publicPath = path.join(__dirname, '../frontend');
@@ -77,6 +70,16 @@ app.post('/api/login', async function(req, res) {
     }
 });
 
+app.get('/api/users', async function(req, res) {
+    try {
+        const users = await db.all('SELECT id, username, max_score FROM users');
+        res.json(users);
+    } catch (error) {
+        console.error('Database error while fetching users:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
 app.get('/api/users/:id', async function(req, res) {
     try {
         const userId = parseInt(req.params.id, 10); // Convert ID to integer
@@ -101,4 +104,12 @@ app.get('/api/users/:id', async function(req, res) {
     }
 });
 
-startServer();
+if (require.main === module) {
+    startServer().then(() => {
+        app.listen(8080, () => {
+            console.log('Server listening on port 8080');
+        });
+    });
+}
+
+module.exports = { app, startServer };
