@@ -31,7 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function mockLogin(username, password) {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                if (username === "test" && password === "1234") resolve({ token: "fake-jwt-token-for-testing" });
+                if (username === "test" && password === "1234") {
+                    resolve({
+                        token: "fake-jwt-token-for-testing",
+                        username: "test"
+                    });
+                }
                 else reject({ error: "Invalid username or password" });
             }, 300);
         });
@@ -89,11 +94,18 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardView.classList.add('hidden');
         leaderboardView.classList.remove('hidden');
         registerView.classList.add('hidden');
+        const username = localStorage.getItem('invaders_username');
+        if (username) {
+            welcomeMessage.textContent = `Welcome, ${username}!`;
+        } else {
+            welcomeMessage.textContent = 'Welcome!';
+        }
         loadLeaderboard();
     }
 
     function logout() {
         localStorage.removeItem('invaders_token');
+        localStorage.removeItem('invaders_username');
         showLoginView();
     }
 
@@ -110,8 +122,15 @@ document.addEventListener('DOMContentLoaded', () => {
         loginError.textContent = 'Logging in...';
         try {
             const { username, password } = loginForm;
-            const data = USE_MOCK_API ? await mockLogin(username.value, password.value) : await (await fetch(`${API_BASE_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username.value, password: password.value }) })).json();
+            const data = USE_MOCK_API ? await mockLogin(username.value, password.value) : await (await fetch(`${API_BASE_URL}/login`, { method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username.value, password: password.value }) })).json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
             localStorage.setItem('invaders_token', data.token);
+            localStorage.setItem('invaders_username', data.username);
             loginError.textContent = '';
             showDashboardView();
         } catch (error) {

@@ -267,7 +267,7 @@ public class ShopScreen extends Screen {
         }
 
         // Check if player has enough coins
-        if (gameState.getCoin() < price) {
+        if (gameState.getCoin() < price && !GameState.isUnlimitedCoins()) {
             feedbackMessage = "Not enough coins!";
             purchaseFeedbackCooldown.reset();
             logger.info("Not enough coins. Need " + price +

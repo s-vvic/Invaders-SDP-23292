@@ -96,7 +96,10 @@ app.post('/api/login', async function(req, res) {
         if (user) {
             // 로그인 성공
             console.log('Login successful:', user.username);
-            res.json({ token: 'your-generated-token-xyz123' });
+            res.json({
+                token: 'your-generated-token-xyz123',
+                username: user.username
+            });
         } else {
             // 로그인 실패
             console.log('Login failed for:', username);

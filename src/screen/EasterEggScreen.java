@@ -25,7 +25,8 @@ public class EasterEggScreen extends Screen {
             "Invincibility",   // "on/off" 텍스트 제거
             "Infinite Lives", // "on/off" 텍스트 제거
             "Max Score",        // "on/off" 텍스트 제거
-            "Decrease Enemy HP" // 보스 체력 1로 초기화
+            "Decrease Enemy HP", // 보스 체력 1로 초기화
+            "Unlimited Coins" // 무한 코인
         };
 
         // 'optionStates' 배열을 메뉴 개수만큼 생성 (기본값은 모두 false/off)
@@ -34,6 +35,7 @@ public class EasterEggScreen extends Screen {
         this.optionStates[1] = GameState.isInfiniteLives();  // 현재 무한 목숨 상태
         this.optionStates[2] = GameState.isMaxScoreActive(); // 현재 최대 점수 상태
         this.optionStates[3] = GameState.isDecreaseEnemyPower(); // 현재 적 체력 1 상태
+        this.optionStates[4] = GameState.isUnlimitedCoins(); // 현재 무한 코인 상태
         this.selectedOption = 0; 
     }
 
@@ -105,6 +107,9 @@ public class EasterEggScreen extends Screen {
                 break;
             case 3: // Decrease Enemy power(HP)
                 GameState.setDecreaseEnemyPower(newState);
+                break;
+            case 4: // Unlimited Coins
+                GameState.setUnlimitedCoins(newState);
         }
     }
     
