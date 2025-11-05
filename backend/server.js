@@ -33,6 +33,7 @@ async function startServer() {
         'test',
         '1234'
     );
+    return db; // Return the database connection
 }
 app.use(express.json());
 
@@ -96,10 +97,7 @@ app.post('/api/login', async function(req, res) {
         if (user) {
             // 로그인 성공
             console.log('Login successful:', user.username);
-            res.json({
-                token: 'your-generated-token-xyz123',
-                username: user.username
-            });
+            res.json({ token: 'your-generated-token-xyz123', user: { id: user.id, username: user.username } });
         } else {
             // 로그인 실패
             console.log('Login failed for:', username);
@@ -205,6 +203,66 @@ app.get('/api/users/:id', async function(req, res) {
     }
 });
 
+/**
+ * @swagger
+ * /api/users/{id}/score:
+ *   put:
+ *     summary: Update a user\'s high score
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               score:
+ *                 type: integer
+ *                 description: The new score to check against the high score
+ *     responses:
+ *       200:
+ *         description: Score checked or updated successfully
+ *       400:
+ *         description: Invalid user ID or score
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
+ */
+app.put('/api/users/:id/score', async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id, 10);
+        const { score } = req.body;
+
+        if (isNaN(userId) || typeof score !== 'number') {
+            return res.status(400).json({ error: 'Invalid user ID or score' });
+        }
+
+        const user = await db.get('SELECT max_score FROM users WHERE id = ?', [userId]);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (score > user.max_score) {
+            await db.run('UPDATE users SET max_score = ? WHERE id = ?', [score, userId]);
+            res.json({ message: 'High score updated successfully', new_max_score: score });
+        } else {
+            res.json({ message: 'Score is not higher than the current high score', new_max_score: user.max_score });
+        }
+    } catch (error) {
+        console.error('Error updating high score:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
 const swaggerUi = require('swagger-ui-express');
 const specs = require('./config/swagger.js');
 
@@ -218,4 +276,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app, startServer };
+module.exports = { app, startServer, db };

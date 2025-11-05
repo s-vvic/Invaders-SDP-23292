@@ -11,6 +11,7 @@ public class AuthManager {
     private static final String PREF_NODE = "com.example.invaders";
     private static final String AUTH_TOKEN_KEY = "authToken";
     private static final String USERNAME_KEY = "username";
+    private static final String USER_ID_KEY = "userId";
 
     /** Singleton instance of the class. */
     private static AuthManager instance;
@@ -20,6 +21,9 @@ public class AuthManager {
 
     /** The username of the logged-in user. */
     private String username;
+
+    /** The ID of the logged-in user. */
+    private int userId;
 
     /**
      * Private constructor to prevent instantiation and load session data.
@@ -41,15 +45,17 @@ public class AuthManager {
     }
 
     /**
-     * Stores the user's token and username upon successful login.
+     * Stores the user's token, username, and ID upon successful login.
      * Also persists the session to the Preferences API.
      *
      * @param token The JWT received from the server.
      * @param username The username of the logged-in user.
+     * @param userId The ID of the logged-in user.
      */
-    public void login(String token, String username) {
+    public void login(String token, String username, int userId) {
         this.authToken = token;
         this.username = username;
+        this.userId = userId;
         saveSession();
     }
 
@@ -60,6 +66,7 @@ public class AuthManager {
     public void logout() {
         this.authToken = null;
         this.username = null;
+        this.userId = 0; // Reset userId
         clearSession();
     }
 
@@ -91,14 +98,24 @@ public class AuthManager {
     }
 
     /**
+     * Gets the current user ID.
+     *
+     * @return The user ID, or 0 if not logged in.
+     */
+    public int getUserId() {
+        return this.userId;
+    }
+
+    /**
      * Loads the session token and username from the Preferences API.
      */
     private void loadSession() {
         Preferences prefs = Preferences.userRoot().node(PREF_NODE);
         this.authToken = prefs.get(AUTH_TOKEN_KEY, null);
         this.username = prefs.get(USERNAME_KEY, null);
+        this.userId = prefs.getInt(USER_ID_KEY, 0);
         if (this.authToken != null) {
-            Core.getLogger().info("Loaded session for user: " + this.username);
+            Core.getLogger().info("Loaded session for user: " + this.username + " (ID: " + this.userId + ")");
         }
     }
 
@@ -110,7 +127,8 @@ public class AuthManager {
         if (this.authToken != null && this.username != null) {
             prefs.put(AUTH_TOKEN_KEY, this.authToken);
             prefs.put(USERNAME_KEY, this.username);
-            Core.getLogger().info("Saved session for user: " + this.username);
+            prefs.putInt(USER_ID_KEY, this.userId);
+            Core.getLogger().info("Saved session for user: " + this.username + " (ID: " + this.userId + ")");
         }
     }
 
@@ -121,6 +139,7 @@ public class AuthManager {
         Preferences prefs = Preferences.userRoot().node(PREF_NODE);
         prefs.remove(AUTH_TOKEN_KEY);
         prefs.remove(USERNAME_KEY);
+        prefs.remove(USER_ID_KEY);
         Core.getLogger().info("Cleared session data.");
     }
 }
