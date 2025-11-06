@@ -22,10 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const achievementsListEl = document.getElementById('achievements-list');
     const leaderboardView = document.getElementById('leaderboard-view');
     const leaderboardListEl = document.getElementById('leaderboard-list');
+    const simulateGameOverBtn = document.getElementById('simulate-game-over-btn');
 
     // --- API Configuration ---
     const API_BASE_URL = 'http://localhost:8080/api';
-    const USE_MOCK_API = true; // Set to false to use real API
+    const USE_MOCK_API = false; // Set to false to use real API
 
     // --- Mock API ---
     function mockLogin(username, password) {
@@ -64,8 +65,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- App Logic & View Management ---
-    async function loadDashboard() { /* ... same as before ... */ }
-    async function loadLeaderboard() { /* ... same as before ... */ }
+    async function loadDashboard() {
+        try {
+            const username = localStorage.getItem('invaders_username');
+            const userId = localStorage.getItem('invaders_userId');
+
+            if (username) {
+                welcomeMessage.textContent = `Welcome, ${username}!`;
+            } else {
+                welcomeMessage.textContent = 'Welcome!';
+            }
+
+            // Fetch user's specific data (including max_score)
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const userData = await response.json();
+
+            highScoreEl.textContent = userData.max_score;
+            // goldEl.textContent = data.gold; // We don't have gold in our user data yet
+            // upgradesListEl // Not implemented yet
+            // achievementsListEl // Not implemented yet
+
+        } catch (error) {
+            console.error('Failed to load dashboard data:', error);
+            welcomeMessage.textContent = 'Welcome!'; // Fallback
+            highScoreEl.textContent = 'Error';
+        }
+    }
+    async function loadLeaderboard() {
+        leaderboardListEl.innerHTML = ''; // Clear previous list
+        try {
+            const response = await fetch(`${API_BASE_URL}/users`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const users = await response.json();
+
+            if (users.length === 0) {
+                leaderboardListEl.innerHTML = '<li>No users found.</li>';
+                return;
+            }
+
+            users.sort((a, b) => b.max_score - a.max_score); // Sort by max_score descending
+
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${user.username}: ${user.max_score}`;
+                leaderboardListEl.appendChild(listItem);
+            });
+        } catch (error) {
+            console.error('Error loading leaderboard:', error);
+            leaderboardListEl.innerHTML = '<li>Failed to load leaderboard.</li>';
+        }
+    }
 
     function showLoginView() {
         loginView.classList.remove('hidden');
@@ -117,6 +171,46 @@ document.addEventListener('DOMContentLoaded', () => {
     viewLeaderboardBtn.addEventListener('click', showLeaderboardView);
     backToDashboardBtn.addEventListener('click', showDashboardView);
 
+    simulateGameOverBtn.addEventListener('click', async (e) => {
+        e.preventDefault(); // 기본 동작 방지
+
+        const userId = localStorage.getItem('invaders_userId');
+        const username = localStorage.getItem('invaders_username');
+
+        if (!userId) {
+            alert('로그인된 사용자 정보가 없습니다. 먼저 로그인해주세요.');
+            return;
+        }
+
+        // 100에서 10000 사이의 랜덤 점수 생성
+        const randomScore = Math.floor(Math.random() * (10000 - 100 + 1)) + 100;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}/score`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ score: randomScore }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || '점수 업데이트 실패');
+            }
+
+            alert(`${username}님, 게임 종료! 점수: ${randomScore}. ${data.message}`);
+
+            // 대시보드 정보를 새로고침하여 최고 점수 업데이트 반영
+            loadDashboard();
+
+        } catch (error) {
+            console.error('게임 종료 시뮬레이션 중 오류 발생:', error);
+            alert(`점수 업데이트 중 오류 발생: ${error.message}`);
+        }
+    });
+
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginError.textContent = 'Logging in...';
@@ -130,7 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             localStorage.setItem('invaders_token', data.token);
-            localStorage.setItem('invaders_username', data.username);
+            localStorage.setItem('invaders_username', data.user.username);
+            localStorage.setItem('invaders_userId', data.user.id);
             loginError.textContent = '';
             showDashboardView();
         } catch (error) {

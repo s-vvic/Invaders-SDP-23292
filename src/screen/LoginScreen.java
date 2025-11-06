@@ -90,10 +90,12 @@ public class LoginScreen extends Screen {
                 this.errorMessage = ""; // Clear previous error
                 try {
                     ApiClient apiClient = ApiClient.getInstance();
-                    String token = apiClient.login(username.toString(), password.toString());
+                    // login now returns a structured response
+                    ApiClient.LoginResponse loginResponse = apiClient.login(username.toString(), password.toString());
                     
                     AuthManager authManager = AuthManager.getInstance();
-                    authManager.login(token, username.toString());
+                    // Call login with all three required arguments
+                    authManager.login(loginResponse.token(), loginResponse.username(), loginResponse.userId());
 
                     this.returnCode = 1; // Go back to TitleScreen
                     this.isRunning = false;
