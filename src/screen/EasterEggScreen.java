@@ -22,20 +22,16 @@ public class EasterEggScreen extends Screen {
 
         // --- (2) 수정: 메뉴 옵션 초기화 ---
         this.menuOptions = new String[] {
-            "Invincibility",   // "on/off" 텍스트 제거
-            "Infinite Lives", // "on/off" 텍스트 제거
-            "Max Score",        // "on/off" 텍스트 제거
-            "Decrease Enemy HP", // 보스 체력 1로 초기화
-            "Unlimited Coins" // 무한 코인
+            "Invincibility",   
+            "Decrease Enemy HP", 
+            "Unlimited Coins" 
         };
 
         // 'optionStates' 배열을 메뉴 개수만큼 생성 (기본값은 모두 false/off)
         this.optionStates = new boolean[this.menuOptions.length]; // <<<< 새로 추가
         this.optionStates[0] = GameState.isInvincible();     // 현재 무적 상태
-        this.optionStates[1] = GameState.isInfiniteLives();  // 현재 무한 목숨 상태
-        this.optionStates[2] = GameState.isMaxScoreActive(); // 현재 최대 점수 상태
-        this.optionStates[3] = GameState.isDecreaseEnemyPower(); // 현재 적 체력 1 상태
-        this.optionStates[4] = GameState.isUnlimitedCoins(); // 현재 무한 코인 상태
+        this.optionStates[1] = GameState.isDecreaseEnemyPower(); // 현재 적 체력 1 상태
+        this.optionStates[2] = GameState.isUnlimitedCoins(); // 현재 무한 코인 상태
         this.selectedOption = 0; 
     }
 
@@ -71,13 +67,11 @@ public class EasterEggScreen extends Screen {
                 }
                 this.inputDelay.reset(); // <<< (2) 이 줄도 다시 추가합니다.
 
-            } else if (inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
-                // 엔터 키: 선택 실행
+            } else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
                 executeSelectedOption();
                 this.inputDelay.reset(); 
 
-            } else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-                // 스페이스 키: 화면 나가기
+            } else if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
                 this.isRunning = false;
                 this.inputDelay.reset(); 
             }
@@ -94,21 +88,15 @@ public class EasterEggScreen extends Screen {
         // 2. 반전된 새로운 상태 값을 가져옵니다.
         boolean newState = this.optionStates[this.selectedOption];
 
-        // ▼▼▼ 3. GameState의 static 메소드를 호출하여 치트 상태를 전역으로 적용합니다. ▼▼▼
+        // ▼▼▼ 3. GameState의 static 메소드를 호출하여 치트 상태를 전역으로 적용합니다.
         switch (this.selectedOption) {
             case 0: // Invincibility
                 GameState.setInvincible(newState);
                 break;
-            case 1: // Infinite Lives
-                GameState.setInfiniteLives(newState);
-                break;
-            case 2: // Max Score
-                GameState.setMaxScoreActive(newState);
-                break;
-            case 3: // Decrease Enemy power(HP)
+            case 1: // Decrease Enemy power(HP)
                 GameState.setDecreaseEnemyPower(newState);
                 break;
-            case 4: // Unlimited Coins
+            case 2: // Unlimited Coins
                 GameState.setUnlimitedCoins(newState);
         }
     }

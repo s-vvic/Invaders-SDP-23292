@@ -7,7 +7,7 @@ import java.awt.Color;
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager.SpriteType;
-
+import engine.GameState;
 /**
  * Implements a enemy ship, to be destroyed by the player.
  * 
@@ -164,8 +164,14 @@ public class EnemyShip extends Entity {
         if (!this.isDestroyed) {
             this.isDestroyed = true;
             this.spriteType = SpriteType.Explosion;
-			SoundManager.stop("sfx/disappearance.wav");
-            SoundManager.play("sfx/disappearance.wav");
+			if(GameState.isDecreaseEnemyPower()){
+				SoundManager.stop("sfx/meow.wav");
+            	SoundManager.play("sfx/meow.wav");
+			}
+			else{
+				SoundManager.stop("sfx/disappearance.wav");
+            	SoundManager.play("sfx/disappearance.wav");
+			}			
             this.explosionCooldown.reset();
         }
 	}

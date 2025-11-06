@@ -2,7 +2,9 @@ package entity;
 
 import java.awt.Color;
 
+import audio.SoundManager;
 import engine.DrawManager;
+import engine.GameState;
 
 /**
  * Omega - Middle Boss
@@ -142,6 +144,14 @@ public class OmegaBoss extends MidBoss {
 	@Override
 	public void takeDamage(int damage) {
 		this.healPoint -= damage;
+		if(GameState.isDecreaseEnemyPower()){
+				SoundManager.stop("sfx/meow.wav");
+            	SoundManager.play("sfx/meow.wav");
+			}
+		else{
+				SoundManager.stop("sfx/disappearance.wav");
+            	SoundManager.play("sfx/disappearance.wav");
+			}	
 	}
 
 	/**
