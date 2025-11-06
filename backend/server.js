@@ -37,6 +37,13 @@ async function startServer() {
 }
 app.use(express.json());
 
+app.use((req, res, next) => {
+    if (req.url.endsWith('.ttf')) {
+        res.setHeader('Content-Type', 'font/ttf');
+    }
+    next();
+});
+
 const publicPath = path.join(__dirname, '../frontend');
 app.use(express.static(publicPath));
 

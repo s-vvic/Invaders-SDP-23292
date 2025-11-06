@@ -1,0 +1,27 @@
+@font-face {
+    font-family: 'DungGeunMo';
+    src: url('font/DungGeunMo.eot');
+    src: url('font/DungGeunMo.eot?#iefix') format('embedded-opentype'),
+         url('font/DungGeunMo.woff2') format('woff2'),
+         url('font/DungGeunMo.woff') format('woff');
+}
+
+/* Basic Reset & Dark Theme */
+:root {
+    --primary-green: #00FF41;
+    --dark-background: #121212;
+    --light-background: #1e1e1e;
+    --text-color: #e0e0e0;
+    --border-color: #555;
+    --input-bg: #333;
+}
+
+body {
+    font-family: 'DungGeunMo', 'Courier New', Courier, monospace;
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
