@@ -1,16 +1,14 @@
 package entity;
 
-import audio.SoundManager;
-import engine.DrawManager;
-import engine.Cooldown;
-import engine.Core;
-import engine.GameState;
-import screen.GameScreen;
-
-import java.awt.*;
+import java.awt.Color;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
+
+import audio.SoundManager;
+import engine.Cooldown;
+import engine.Core;
+import engine.DrawManager;
+import engine.GameState;
 
 public class FinalBoss extends Entity implements BossEntity{
 
@@ -86,8 +84,14 @@ public class FinalBoss extends Entity implements BossEntity{
     @Override
     public void takeDamage(int damage){
         this.healPoint -= damage;
-        SoundManager.stop("sfx/pikachu.wav");
-        SoundManager.play("sfx/pikachu.wav");
+        if(GameState.isDecreaseEnemyPower()){
+				SoundManager.stop("sfx/meow.wav");
+            	SoundManager.play("sfx/meow.wav");
+			}
+		else{
+				SoundManager.stop("sfx/pikachu.wav");
+                SoundManager.play("sfx/pikachu.wav");
+			}	
         if(this.healPoint <= 0){
             this.destroy();
         }
