@@ -21,6 +21,9 @@ import screen.ShopScreen;
 import screen.TitleScreen;
 import screen.RegisterScreen;
 import screen.LoginScreen;
+import screen.TransitionScreen;
+import screen.GameOverScreen;
+import java.awt.image.BufferedImage;
 
 /**
  * Implements core game logic.
@@ -29,6 +32,9 @@ import screen.LoginScreen;
  * 
  */
 public final class Core {
+
+	/** A static image to hold the last screen capture for game over effects. */
+    public static BufferedImage lastScreenCapture;
 
 			/** Width of current screen. */
 
@@ -157,6 +163,18 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing Register screen.");
                     break;
+                case 13: // Transition to 1P
+                    currentScreen = new TransitionScreen(width, height, FPS, 10);
+                    LOGGER.info("Starting transition screen to 1P game.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing transition screen.");
+                    break;
+                case 14: // Transition to 2P
+                    currentScreen = new TransitionScreen(width, height, FPS, 11);
+                    LOGGER.info("Starting transition screen to 2P game.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing transition screen.");
+                    break;
                 case 10: // 1 Player
                 case 11: // 2 Players
                     boolean isTwoPlayer = (returnCode == 11);
@@ -190,8 +208,14 @@ public final class Core {
 
                         LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
                                 + " game screen at " + FPS + " fps.");
-                        frame.setScreen(currentScreen);
+                        int gameScreenReturnCode = frame.setScreen(currentScreen);
                         LOGGER.info("Closing game screen.");
+
+                        if (gameScreenReturnCode == 99) {
+                            returnCode = 99; // Set the main loop's return code
+                            break; // Break from the level loop to go to GameOverScreen
+                        }
+
                         gameState = ((GameScreen) currentScreen).getGameState();
                         if (gameState.getLivesRemaining() > 0 || gameState.getLivesRemainingP2() > 0) {
 							SoundManager.stopAll();
@@ -218,6 +242,10 @@ public final class Core {
                         }
                     } while (gameState.getLivesRemaining() > 0);
 
+                    if (returnCode == 99) {
+                        break; // Break from switch case to process case 99
+                    }
+
 					SoundManager.stopAll();
 					                    SoundManager.play("sfx/gameover.wav");
 					
@@ -243,6 +271,12 @@ public final class Core {
                     currentScreen = new ScoreScreen(width, height, FPS, gameState);
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing score screen.");
+                    break;
+                case 99: // Game Over
+                    currentScreen = new GameOverScreen(width, height, FPS, lastScreenCapture);
+                    LOGGER.info("Starting Game Over screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Game Over screen.");
                     break;
 				case 100:
 					currentScreen = new EasterEggScreen(width, height, FPS);
