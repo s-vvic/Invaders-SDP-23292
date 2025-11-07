@@ -383,22 +383,25 @@ public class GameScreen extends Screen {
 				}
 			}
 		}
-		if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
-			if (this.livesP1 > 0 || (this.shipP2 != null && this.livesP2 > 0)) { // Check for win condition
-				if (this.currentlevel.getCompletionBonus() != null) {
-					this.coin += this.currentlevel.getCompletionBonus().getCurrency();
-					this.logger.info("Awarded " + this.currentlevel.getCompletionBonus().getCurrency() + " coins for level completion.");
-				}
-
-				String achievement = this.currentlevel.getAchievementTrigger();
-				if (achievement != null && !achievement.isEmpty()) {
-					AchievementManager.getInstance().unlockAchievement(achievement);
-					this.logger.info("Unlocked achievement: " + achievement);
-				}
-			}
-			this.isRunning = false;
-		}
-	}
+		        if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
+		            if (this.livesP1 > 0 || (this.shipP2 != null && this.livesP2 > 0)) { // Check for win condition
+		                if (this.currentlevel.getCompletionBonus() != null) {
+		                    this.coin += this.currentlevel.getCompletionBonus().getCurrency();
+		                    this.logger.info("Awarded " + this.currentlevel.getCompletionBonus().getCurrency() + " coins for level completion.");
+		                }
+		
+		                String achievement = this.currentlevel.getAchievementTrigger();
+		                if (achievement != null && !achievement.isEmpty()) {
+		                    AchievementManager.getInstance().unlockAchievement(achievement);
+		                    this.logger.info("Unlocked achievement: " + achievement);
+		                }
+		            } else { // Game Over condition
+		                draw(); // Draw the final frame before capturing.
+		                Core.lastScreenCapture = drawManager.getBackBuffer();
+		                this.returnCode = 99;
+		            }
+		            this.isRunning = false;
+		        }	}
 
 
 	/**

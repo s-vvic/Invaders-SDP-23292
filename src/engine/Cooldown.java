@@ -46,18 +46,29 @@ public class Cooldown {
 		this.time = 0;
 	}
 
-	/**
-	 * Checks if the cooldown is finished.
-	 * 
-	 * @return Cooldown state.
-	 */
-	public final boolean checkFinished() {
-		if ((this.time == 0)
-				|| this.time + this.duration < System.currentTimeMillis())
-			return true;
-		return false;
-	}
-
+	    /**
+	     * Checks if the cooldown is finished.
+	     * 
+	     * @return Cooldown state.
+	     */
+	    public final boolean checkFinished() {
+	        if ((this.time == 0)
+	                || this.time + this.duration < System.currentTimeMillis())
+	            return true;
+	        return false;
+	    }
+	
+	    /**
+	     * Gets the remaining time on the cooldown.
+	     * @return Remaining time in milliseconds.
+	     */
+	    public final long getRemainingMilliseconds() {
+	        if (this.time == 0 || checkFinished()) {
+	            return 0;
+	        }
+	        long remaining = (this.time + this.duration) - System.currentTimeMillis();
+	        return remaining;
+	    }
 	/**
 	 * Restarts the cooldown.
 	 */
