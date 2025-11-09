@@ -97,27 +97,38 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadLeaderboard() {
         leaderboardListEl.innerHTML = ''; // Clear previous list
         try {
-            const response = await fetch(`${API_BASE_URL}/users`);
+            // 1. API 엔드포인트를 /api/users -> /api/scores 로 변경합니다.
+            //    (이전에 server.js에 추가한 엔드포인트)
+            const response = await fetch(`${API_BASE_URL}/scores`); 
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const users = await response.json();
+            
+            // 2. 이제 users 배열이 아닌 scores 배열을 받습니다.
+            const scores = await response.json();
 
-            if (users.length === 0) {
-                leaderboardListEl.innerHTML = '<li>No users found.</li>';
+            if (scores.length === 0) {
+                leaderboardListEl.innerHTML = '<li>아직 기록된 점수가 없습니다.</li>';
                 return;
             }
 
-            users.sort((a, b) => b.max_score - a.max_score); // Sort by max_score descending
+            // 3. 정렬이 필요 없습니다. (서버에서 이미 ORDER BY s.score DESC 로 정렬함)
 
-            users.forEach(user => {
+            // 4. 받아온 점수 기록(record)을 <li> 항목으로 만듭니다.
+            scores.forEach(record => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `${user.username}: ${user.max_score}`;
+                
+                // 날짜 포맷을 보기 좋게 변경합니다. (예: 2025. 11. 9. 오후 9:30:00)
+                const gameDate = new Date(record.created_at).toLocaleString('ko-KR'); 
+                
+                listItem.textContent = `${record.username}: ${record.score} 점 (${gameDate})`;
                 leaderboardListEl.appendChild(listItem);
             });
+
         } catch (error) {
             console.error('Error loading leaderboard:', error);
-            leaderboardListEl.innerHTML = '<li>Failed to load leaderboard.</li>';
+            leaderboardListEl.innerHTML = '<li>점수판을 불러오는 데 실패했습니다.</li>';
         }
     }
 
