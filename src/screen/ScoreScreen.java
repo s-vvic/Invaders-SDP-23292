@@ -9,6 +9,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
 import engine.Score;
+import engine.ApiClient;
 
 /**
  * Implements the score screen.
@@ -151,6 +152,7 @@ public class ScoreScreen extends Screen {
 	 * Saves the score as a high score.
 	 */
 	private void saveScore() {
+		ApiClient.getInstance().saveScore(this.score);
 		highScores.add(new Score(new String(this.name), score));
 		Collections.sort(highScores);
 		if (highScores.size() > MAX_HIGH_SCORE_NUM)

@@ -21,7 +21,7 @@ public class LevelManager {
      * Loads the levels from the maps.json resource file.
      */
     private void loadLevels() {
-        try (InputStream inputStream = new java.io.FileInputStream("res/maps/maps.json")) {
+        try (InputStream inputStream = LevelManager.class.getClassLoader().getResourceAsStream("maps/maps.json")) {
             if (inputStream == null) {
                 throw new IOException("Cannot find resource file: maps/maps.json");
             }

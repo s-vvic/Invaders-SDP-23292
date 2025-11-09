@@ -23,6 +23,21 @@ public class GameState {
     private int coin;
 
 
+
+
+	//cheat list
+	private static boolean invincible = false;
+
+    private static boolean infiniteLives = false;
+  
+    private static boolean maxScoreActive = false;
+
+	private static boolean dcreaseEnemyPower = false;
+
+	private static boolean unlimitedCoins = false;
+
+
+
 	/**
 	 * Constructor.
 	 * 
@@ -94,6 +109,9 @@ public class GameState {
     public final int getCoin() { return coin; }
 
 	public final boolean deductCoins(final int amount) {
+		if (GameState.isUnlimitedCoins()) {
+			return true;
+		}
 		if (amount < 0) {
 			return false;
 		}
@@ -115,4 +133,50 @@ public class GameState {
 			this.coin = amount;
 		}
 	}
-}
+
+
+	//cheat
+	public static void setInvincible(boolean state) {
+        invincible = state;
+    }
+
+	public static void setDecreaseEnemyPower(boolean state) {
+		dcreaseEnemyPower = state;
+	}
+
+  
+    public static void setInfiniteLives(boolean state) {
+        infiniteLives = state;
+    }
+
+ 
+    public static void setMaxScoreActive(boolean state) {
+        maxScoreActive = state;
+    }
+
+   
+    public static boolean isInvincible() {
+        return invincible;
+    }
+
+	public static boolean isDecreaseEnemyPower() {
+		return dcreaseEnemyPower;
+	}
+
+ 
+    public static boolean isInfiniteLives() {
+        return infiniteLives;
+    }
+
+  
+    	public static boolean isMaxScoreActive() {
+            return maxScoreActive;
+        }
+    
+    	public static void setUnlimitedCoins(boolean state) {
+    		unlimitedCoins = state;
+    	}
+    
+    	public static boolean isUnlimitedCoins() {
+    		return unlimitedCoins;
+    	}}

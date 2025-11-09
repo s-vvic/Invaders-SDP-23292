@@ -61,6 +61,12 @@ public class ModeSelectionScreen extends Screen {
         }
         if (this.selectionCooldown.checkFinished()
                 && this.inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+            // Set a new returnCode to trigger the transition screen
+            if (this.returnCode == 10) { // 1 Player
+                this.returnCode = 13;
+            } else if (this.returnCode == 11) { // 2 Players
+                this.returnCode = 14;
+            }
             this.isRunning = false;
         }
     }

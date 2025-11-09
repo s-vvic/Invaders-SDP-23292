@@ -1,7 +1,10 @@
 package entity;
 
+import java.awt.Color;
+
+import audio.SoundManager;
 import engine.DrawManager;
-import java.awt.*;
+import engine.GameState;
 
 /**
  * Omega - Middle Boss
@@ -121,7 +124,6 @@ public class OmegaBoss extends MidBoss {
 
 		} else if (this.positionY + this.height >= 600) {
 			this.positionY = 600 - this.height;
-
 			this.isDown = false;
 		}
 	}
@@ -142,6 +144,14 @@ public class OmegaBoss extends MidBoss {
 	@Override
 	public void takeDamage(int damage) {
 		this.healPoint -= damage;
+		if(GameState.isDecreaseEnemyPower()){
+				SoundManager.stop("sfx/meow.wav");
+            	SoundManager.play("sfx/meow.wav");
+			}
+		else{
+				SoundManager.stop("sfx/disappearance.wav");
+            	SoundManager.play("sfx/disappearance.wav");
+			}	
 	}
 
 	/**

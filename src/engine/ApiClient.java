@@ -1,12 +1,18 @@
 package engine;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 /**
  * Handles all communication with the backend API.
- * This is a mock implementation for frontend development.
  */
 public class ApiClient {
+
+    /** Helper record to hold structured login response data. */
+    public record LoginResponse(String token, int userId, String username) {}
 
     /** Singleton instance of the class. */
     private static ApiClient instance;
@@ -29,29 +35,78 @@ public class ApiClient {
     }
 
     /**
-     * Mock login method.
+     * Performs a real login request to the backend API.
      * @param username The user's username.
      * @param password The user's password.
-     * @return A fake JWT on success.
-     * @throws IOException if login fails.
+     * @return A LoginResponse object on success.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
      */
-    public String login(String username, String password) throws IOException {
-        Core.getLogger().info("[Mock API] Attempting login for user: " + username);
-        if ("test".equals(username) && "1234".equals(password)) {
-            Core.getLogger().info("[Mock API] Login successful.");
-            return "fake-jwt-token-for-testing";
-        } else {
-            throw new IOException("Invalid username or password");
+    public LoginResponse login(String username, String password) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/login"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Attempting login for user: " + username);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Login failed with status code: " + response.statusCode());
+            throw new IOException("Login failed: " + response.body());
         }
+
+        Core.getLogger().info("Login successful. Parsing response...");
+        String responseBody = response.body();
+
+        // Manual JSON parsing
+        String token = parseJsonField(responseBody, "token");
+        String userJson = parseJsonObject(responseBody, "user");
+        int userId = Integer.parseInt(parseJsonField(userJson, "id"));
+        String parsedUsername = parseJsonField(userJson, "username");
+
+        return new LoginResponse(token, userId, parsedUsername);
     }
 
     /**
-     * Mock method to save the score.
+     * Saves the score by making a PUT request to the backend.
      * @param score The score to save.
      */
     public void saveScore(int score) {
-        Core.getLogger().info("[Mock API] Saving score: " + score);
-        // In the real implementation, this would make an HTTP request.
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isLoggedIn()) {
+            Core.getLogger().warning("Cannot save score: User is not logged in.");
+            return;
+        }
+        int userId = authManager.getUserId();
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String jsonPayload = "{\"score\": " + score + "}";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:8080/api/users/" + userId + "/score"))
+                    .header("Content-Type", "application/json")
+                    .PUT(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            Core.getLogger().info("Sending score " + score + " for user " + userId + " to the backend.");
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenAccept(response -> {
+                        Core.getLogger().info("Save score response status code: " + response.statusCode());
+                        Core.getLogger().info("Save score response body: " + response.body());
+                    }).exceptionally(e -> {
+                        Core.getLogger().severe("Failed to save score: " + e.getMessage());
+                        return null;
+                    });
+
+        } catch (Exception e) {
+            Core.getLogger().severe("Exception while trying to save score: " + e.getMessage());
+        }
     }
 
     /**
@@ -75,7 +130,68 @@ public class ApiClient {
         if ("test".equals(username)) {
             throw new IOException("Username 'test' is already taken.");
         }
-        // In a real implementation, this would return nothing on success or throw an error.
         Core.getLogger().info("[Mock API] Registration successful for user: " + username);
+    }
+
+    /**
+     * A very basic and brittle parser for a string value from a JSON object.
+     * Assumes the value is a string enclosed in double quotes or a number/boolean.
+     */
+    private String parseJsonField(String json, String fieldName) {
+        try {
+            String key = "\"" + fieldName + "\":";
+            int keyIndex = json.indexOf(key);
+            if (keyIndex == -1) return null;
+
+            int valueStartIndex = keyIndex + key.length();
+            char firstChar = json.charAt(valueStartIndex);
+
+            if (firstChar == '"') { // It's a string
+                valueStartIndex++; // Move past the opening quote
+                int valueEndIndex = json.indexOf('"', valueStartIndex);
+                return json.substring(valueStartIndex, valueEndIndex);
+            } else { // It's a number or boolean
+                int valueEndIndex = json.indexOf(',', valueStartIndex);
+                if (valueEndIndex == -1) { // It might be the last field
+                    valueEndIndex = json.indexOf('}', valueStartIndex);
+                }
+                return json.substring(valueStartIndex, valueEndIndex).trim();
+            }
+        } catch (Exception e) {
+            Core.getLogger().severe("Failed to parse field '" + fieldName + "' from JSON: " + json);
+            return null;
+        }
+    }
+
+    /**
+     * A very basic and brittle parser for a nested JSON object.
+     */
+    private String parseJsonObject(String json, String fieldName) {
+        try {
+            String key = "\"" + fieldName + "\":{";
+            int keyIndex = json.indexOf(key);
+            if (keyIndex == -1) return null;
+
+            int objectStartIndex = keyIndex + key.length() - 1;
+            int braceCount = 1;
+            int objectEndIndex = -1;
+
+            for (int i = objectStartIndex + 1; i < json.length(); i++) {
+                char c = json.charAt(i);
+                if (c == '{') {
+                    braceCount++;
+                } else if (c == '}') {
+                    braceCount--;
+                }
+                if (braceCount == 0) {
+                    objectEndIndex = i + 1;
+                    break;
+                }
+            }
+            return json.substring(objectStartIndex, objectEndIndex);
+        } catch (Exception e) {
+            Core.getLogger().severe("Failed to parse object '" + fieldName + "' from JSON: " + json);
+            return null;
+        }
     }
 }

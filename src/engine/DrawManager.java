@@ -11,7 +11,9 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.AlphaComposite;
 import java.awt.Composite;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.RenderingHints;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -176,15 +178,23 @@ public final class DrawManager {
 		return instance;
 	}
 
-	/**
-	 * Returns the graphics context of the back buffer.
-	 * 
-	 * @return The graphics context.
-	 */
-	public Graphics getBackBufferGraphics() {
-		return backBufferGraphics;
-	}
-
+	    /**
+	     * Returns the graphics context of the back buffer.
+	     * 
+	     * @return The graphics context.
+	     */
+	    public Graphics getBackBufferGraphics() {
+	        return backBufferGraphics;
+	    }
+	
+	    /**
+	     * Returns the back buffer image.
+	     * 
+	     * @return The back buffer image.
+	     */
+	    public BufferedImage getBackBuffer() {
+	        return backBuffer;
+	    }
 	/**
 	 * Sets the frame to draw the image on.
 	 */
@@ -291,8 +301,7 @@ public final class DrawManager {
         seconds %= 60;
         String timeString = String.format("Time: %02d:%02d", minutes, seconds);
 		int x = 15;
-		int y = screen.getHeight() - 30;
-		backBufferGraphics.drawString(timeString, x, y);
+		        int y = screen.getHeight() - 50;		backBufferGraphics.drawString(timeString, x, y);
     }
 
     /**
@@ -315,7 +324,19 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.WHITE);
 		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
 		backBufferGraphics.drawString("P1:", 23, 38);
-		Ship dummyShip = new Ship(0, 0, Color.blue);
+		Ship dummyShip = null;
+		if(GameState.isInvincible()){
+			rainbowHue += 0.01f;
+    		if (rainbowHue > 1.0f) {
+        		rainbowHue -= 1.0f;
+    		}
+    		Color dynamicRainbowColor = Color.getHSBColor(rainbowHue, 1.0f, 1.0f);
+			dummyShip = new Ship(0, 0, dynamicRainbowColor);
+		}
+		else{
+			dummyShip = new Ship(0, 0, Color.green);
+		}
+		
 		for (int i = 0; i < lives; i++)
 			drawEntity(dummyShip, 60 + 53 * i, 15);
 	}
@@ -630,11 +651,24 @@ public final class DrawManager {
 	/**
 	 * Draws a centered string on big font.
 	 */
-	public void drawCenteredBigString(final Screen screen, final String string, final int height) {
-		backBufferGraphics.setFont(fontBig);
-		backBufferGraphics.drawString(string, screen.getWidth() / 2 - fontBigMetrics.stringWidth(string) / 2, height);
-	}
-
+	    public void drawCenteredBigString(final Screen screen, final String string, final int height) {
+	        backBufferGraphics.setFont(fontBig);
+	        backBufferGraphics.drawString(string, screen.getWidth() / 2 - fontBigMetrics.stringWidth(string) / 2, height);
+	    }
+	
+		/**
+		 * Draws a centered string on big font onto a given image.
+		 */
+		public void drawCenteredBigStringOnImage(BufferedImage image, final String string, final int height) {
+			if (image == null) return;
+			Graphics2D g = image.createGraphics();
+			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g.setFont(fontBig);
+			FontMetrics metrics = g.getFontMetrics(fontBig);
+			g.setColor(Color.GREEN);
+			g.drawString(string, image.getWidth() / 2 - metrics.stringWidth(string) / 2, height);
+			g.dispose();
+		}
 	/**
 	 * Countdown to game start.
 	 */
@@ -953,7 +987,7 @@ public final class DrawManager {
 
     	}
 
-    	String instructionsString = "UP/DOWN: Select, ENTER: Apply, SPACE: Exit";
+    	String instructionsString = "UP/DOWN: Select, SPACE: Apply, ESC: Exit";
     	backBufferGraphics.setColor(Color.GRAY);
     	drawCenteredRegularString(screen, instructionsString, screen.getHeight() - 80);
 	}
