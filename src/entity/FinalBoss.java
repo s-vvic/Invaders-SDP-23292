@@ -16,10 +16,7 @@ public class FinalBoss extends Entity implements BossEntity{
     private int maxHp;
     private final int pointValue;
     private boolean isDestroyed;
-    /** The Position X of Player Ship */
-    //private int playerPosX;
-    /** The Position Y of Player Ship */
-    //private int playerPosY;
+
     /** The Ship of player */
     private Ship player;
     /** The Fixed Position X of player ship when start dash pattern*/
@@ -38,9 +35,9 @@ public class FinalBoss extends Entity implements BossEntity{
     private double subDashVelX;
     /** The Decimal Point of dashVelY */
     private double subDashVelY;
-    /**  */
+    /** Degree of shaking X axis */
     private int shakeOffX = 0;
-
+    /** Degree of shaking Y axis */
     private int shakeOffY = 0;
 
     private Cooldown animationCooldown;
@@ -238,7 +235,7 @@ public class FinalBoss extends Entity implements BossEntity{
         }
     }
 
-    /** dash pattern */
+    /** Dash Pattern */
     public void dash() {
         double distance = Math.sqrt(Math.pow(fixedPositionX-positionX, 2) + Math.pow(fixedPositionY-positionY, 2));
         double currentSpeed = Math.sqrt(dashVelX*dashVelX + dashVelY*dashVelY);
