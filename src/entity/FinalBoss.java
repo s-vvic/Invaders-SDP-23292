@@ -240,7 +240,7 @@ public class FinalBoss extends Entity implements BossEntity{
         double distance = Math.sqrt((fixedPositionX-positionX) * (fixedPositionX-positionX) + (fixedPositionY-positionY) * (fixedPositionY-positionY));
         double currentSpeed = Math.sqrt(dashVelX*dashVelX + dashVelY*dashVelY);
 
-        if (distance <= currentSpeed || currentSpeed == 0) {
+        if (distance <= currentSpeed) {
             this.positionX = this.fixedPositionX;
             this.positionY = this.fixedPositionY;
 
