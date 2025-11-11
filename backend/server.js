@@ -128,27 +128,27 @@ app.post('/api/login', async function(req, res) {
 /**
  * @swagger
  * /api/register:
- * post:
- * summary: Register a new user
- * tags: [Users]
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * username:
- * type: string
- * password:
- * type: string
- * responses:
- * 201:
- * description: User registered successfully
- * 400:
- * description: Username already taken or bad request
- * 500:
- * description: Server database error
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Username already taken or bad request
+ *       500:
+ *         description: Server database error
  */
 app.post('/api/register', async (req, res) => {
     try {
@@ -280,27 +280,27 @@ app.get('/api/users/:id', async function(req, res) {
 /**
  * @swagger
  * /api/scores:
- * get:
- * summary: Retrieve a list of all scores
- * tags: [Scores]
- * responses:
- * 200:
- * description: A list of scores with usernames, ordered by score descending
- * content:
- * application/json:
- * schema:
- * type: array
- * items:
- * type: object
- * properties:
- * username:
- * type: string
- * score:
- * type: integer
- * created_at:
- * type: string
- * 500:
- * description: Server database error
+ *   get:
+ *     summary: Retrieve a list of all scores
+ *     tags: [Scores]
+ *     responses:
+ *       200:
+ *         description: A list of scores with usernames, ordered by score descending
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   username:
+ *                     type: string
+ *                   score:
+ *                     type: integer
+ *                   created_at:
+ *                     type: string
+ *       500:
+ *         description: Server database error
  */
 app.get('/api/scores', async function(req, res) {
     try {
@@ -385,47 +385,6 @@ app.put('/api/users/:id/score', async (req, res) => {
         
         console.log(`Logged score ${score} for user ${userId}`);
 
-        app.put('/api/users/:id/score', async (req, res) => {
-    try {
-        const userId = parseInt(req.params.id, 10);
-        const { score } = req.body;
-
-        if (isNaN(userId) || typeof score !== 'number') {
-            return res.status(400).json({ error: 'Invalid user ID or score' });
-        }
-
-        // --- 1. 최고 점수 업데이트 (기존 로직) ---
-        const user = await db.get('SELECT max_score FROM users WHERE id = ?', [userId]);
-
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        let responseMessage = 'Score checked.';
-        let newMaxScore = user.max_score;
-
-        if (score > user.max_score) {
-            await db.run('UPDATE users SET max_score = ? WHERE id = ?', [score, userId]);
-            responseMessage = 'High score updated successfully';
-            newMaxScore = score;
-        }
-
-        // --- 2. score 테이블에 현재 점수 기록 (새로 추가) ---
-        // 이 코드를 추가합니다.
-        await db.run(
-            'INSERT INTO score (user_id, score) VALUES (?, ?)',
-            [userId, score]
-        );
-        
-        console.log(`Logged score ${score} for user ${userId}`);
-
-        res.json({ message: responseMessage, new_max_score: newMaxScore });
-
-    } catch (error) {
-        console.error('Error updating/logging score:', error);
-        res.status(500).json({ error: 'Server database error' });
-    }
-});
         res.json({ message: responseMessage, new_max_score: newMaxScore });
 
     } catch (error) {
