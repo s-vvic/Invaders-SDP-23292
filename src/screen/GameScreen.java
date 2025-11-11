@@ -996,7 +996,7 @@ public class GameScreen extends Screen {
 		this.logger.info("Spawning boss: " + bossName);
 		switch (bossName) {
 			case "finalBoss":
-				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship);
+				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height);
 				this.logger.info("Final Boss has spawned!");
 				break;
 			case "omegaBoss":
@@ -1096,7 +1096,7 @@ public class GameScreen extends Screen {
 					if (this.omegaBoss.isDestroyed()) {
 						if ("omegaAndFinal".equals(this.currentlevel.getBossId())) {
 							this.omegaBoss = null;
-							this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height, this.ship);
+							this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height);
 							this.logger.info("Final Boss has spawned!");
 						} else {
 							this.levelFinished = true;
