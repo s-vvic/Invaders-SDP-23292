@@ -228,8 +228,8 @@ public class FinalBoss extends Entity implements BossEntity{
             this.move(-shakeOffX, -shakeOffY);
 
             int shakeAmount = 2;
-            this.shakeOffX = (((int) (Math.random() * 3)) - 1) * shakeAmount;
-            this.shakeOffY = (((int) (Math.random() * 3)) - 1) * shakeAmount;
+            this.shakeOffX = java.util.concurrent.ThreadLocalRandom.current().nextInt(-1, 2) * shakeAmount;
+            this.shakeOffY = java.util.concurrent.ThreadLocalRandom.current().nextInt(-1, 2) * shakeAmount;
 
             this.move(this.shakeOffX, this.shakeOffY);
         }
