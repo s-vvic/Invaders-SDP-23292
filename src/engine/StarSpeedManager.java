@@ -2,7 +2,6 @@ package engine;
 
 public class StarSpeedManager {
     private static final float MIN_GLOBAL_SPEED_MULTIPLIER = 1.0f; // Min speed boost
-    private static final float INITIAL_GLOBAL_SPEED_MULTIPLIER = MIN_GLOBAL_SPEED_MULTIPLIER;
     private static final float MAX_GLOBAL_SPEED_MULTIPLIER = 6.0f; // Max speed boost
     private static final float SPEED_CHANGE_RATE = 0.00001f; // How fast speed changes per update
     private static final long SPEED_CYCLE_INTERVAL = 5000; // Time in ms for one speed phase (e.g., 10 seconds)

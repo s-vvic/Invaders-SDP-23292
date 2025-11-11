@@ -7,8 +7,6 @@ import engine.GameState;
 import entity.ShopItem;
 import engine.AuthManager;
 import engine.ApiClient;
-import engine.AuthManager;
-import engine.ApiClient;
 
 /**
  * Implements the shop screen where players can purchase item upgrades.
@@ -267,7 +265,7 @@ public class ShopScreen extends Screen {
         }
 
         // Check if player has enough coins
-        if (gameState.getCoin() < price) {
+        if (gameState.getCoin() < price && !GameState.isUnlimitedCoins()) {
             feedbackMessage = "Not enough coins!";
             purchaseFeedbackCooldown.reset();
             logger.info("Not enough coins. Need " + price +

@@ -2,7 +2,9 @@ package entity;
 
 import java.awt.Color;
 
+import audio.SoundManager;
 import engine.DrawManager;
+import engine.GameState;
 
 /**
  * Omega - Middle Boss
@@ -33,8 +35,6 @@ public class OmegaBoss extends MidBoss {
 	private boolean isRight = true;
 	/** Current vertical movement direction. true for down, false for up. */
 	private boolean isDown = true;
-	/** Boss cannot move below this boundary. */
-	private final int bottomBoundary;
 	/**
 	 * Constructor, establishes the boss entity's generic properties.
 	 *
@@ -43,7 +43,6 @@ public class OmegaBoss extends MidBoss {
 	 */
 	public OmegaBoss(Color color,int bottomBoundary) {
 		super(INIT_POS_X, INIT_POS_Y, OMEGA_WIDTH, OMEGA_HEIGHT, OMEGA_HEALTH, OMEGA_POINT_VALUE, color);
-		this.bottomBoundary = bottomBoundary;
 		this.spriteType= DrawManager.SpriteType.OmegaBoss1;
 		this.logger.info("OMEGA : Initializing Boss OMEGA");
 		this.logger.info("OMEGA : move using the default pattern");
@@ -142,6 +141,14 @@ public class OmegaBoss extends MidBoss {
 	@Override
 	public void takeDamage(int damage) {
 		this.healPoint -= damage;
+		if(GameState.isDecreaseEnemyPower()){
+				SoundManager.stop("sfx/meow.wav");
+            	SoundManager.play("sfx/meow.wav");
+			}
+		else{
+				SoundManager.stop("sfx/disappearance.wav");
+            	SoundManager.play("sfx/disappearance.wav");
+			}	
 	}
 
 	/**

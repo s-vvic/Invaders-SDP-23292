@@ -6,11 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.Collections;
 import java.awt.Color;
 
 import screen.Screen;
-import screen.GameScreen;
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager;
@@ -44,8 +42,6 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	/** Margin on the sides of the screen. */
 	private static final int SIDE_MARGIN = 20;
 
-	/** Distance to go down each pass. */
-	private static final int DESCENT_DISTANCE = 20;
 	/** Minimum speed allowed. */
 	private static final int MINIMUM_SPEED = 10;
 
@@ -55,10 +51,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private Logger logger;
 	/** Screen to draw ships on. */
 	private Screen screen;
-    /** Level reference to read enemyTypes/counts. */
-    private Level levelObj;
-
-	/** List of enemy ships forming the formation. */
+    /** List of enemy ships forming the formation. */
 	private List<List<EnemyShip>> enemyShips;
 	/** Minimum time between shots. */
 	private Cooldown shootingCooldown;
@@ -76,8 +69,6 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private int movementSpeed;
 	/** Current direction the formation is moving on. */
 	private Direction currentDirection;
-	/** Direction the formation was moving previously. */
-	private Direction previousDirection;
 	/** Interval between movements, in frames. */
 	private int movementInterval;
 	/** Total width of the formation. */
@@ -201,9 +192,6 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         this.positionX = INIT_POS_X;
         this.positionY = INIT_POS_Y;
         this.shooters = new ArrayList<EnemyShip>();
-        this.levelObj = level;
-        SpriteType spriteType;
-
         this.logger.info("Initializing " + nShipsWide + "x" + nShipsHigh
                 + " ship formation in (" + positionX + "," + positionY + ")");
 
@@ -281,114 +269,140 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 		cleanUp();
 
-		int movementX = 0;
-		int movementY = 0;
-		double remainingProportion = (double) this.shipCount
-				/ (this.nShipsHigh * this.nShipsWide);
-		this.movementSpeed = (int) (Math.pow(remainingProportion, 2)
-				* this.baseSpeed);
-		this.movementSpeed += MINIMUM_SPEED;
+		updateMovementSpeed(); // Call the new method
 
 		movementInterval++;
 		if (movementInterval >= this.movementSpeed) {
 			movementInterval = 0;
 
             updateSlowdown();
+            updateDirection();
+            moveFormation();
+            cleanupExplodedShips();
+		}
+	}
 
-			boolean isAtBottom = positionY
-					+ this.height > 600;
-			boolean isAtRightSide = positionX
-					+ this.width >= screen.getWidth() - SIDE_MARGIN;
-			boolean isAtLeftSide = positionX <= SIDE_MARGIN;
-            boolean isAtTop = positionY <= INIT_POS_Y;
-
-            // Diagonal movement direction change logic
-            if (currentDirection == Direction.DOWN_RIGHT) {
-                if (isAtBottom && isAtRightSide) {
-                    currentDirection = Direction.UP_LEFT;
-                    this.logger.info("Formation now moving up-left (hit corner)");
-                } else if (isAtBottom) {
-                    currentDirection = Direction.UP_RIGHT;
-                    this.logger.info("Formation now moving up-right (hit bottom)");
-                } else if (isAtRightSide) {
-                    currentDirection = Direction.DOWN_LEFT;
-                    this.logger.info("Formation now moving down-left (hit right wall)");
-                }
-            } else if (currentDirection == Direction.DOWN_LEFT) {
-                if (isAtBottom && isAtLeftSide) {
-                    currentDirection = Direction.UP_RIGHT;
-                    this.logger.info("Formation now moving up-right (hit corner)");
-                } else if (isAtBottom) {
-                    currentDirection = Direction.UP_LEFT;
-                    this.logger.info("Formation now moving up-left (hit bottom)");
-                } else if (isAtLeftSide) {
-                    currentDirection = Direction.DOWN_RIGHT;
-                    this.logger.info("Formation now moving down-right (hit left wall)");
-                }
-            } else if (currentDirection == Direction.UP_RIGHT) {
-                if (isAtTop && isAtRightSide) {
-                    currentDirection = Direction.DOWN_LEFT;
-                    this.logger.info("Formation now moving down-left (hit corner)");
-                } else if (isAtTop) {
-                    currentDirection = Direction.DOWN_RIGHT;
-                    this.logger.info("Formation now moving down-right (back to top)");
-                } else if (isAtRightSide) {
-                    currentDirection = Direction.UP_LEFT;
-                    this.logger.info("Formation now moving up-left (hit right wall)");
-                }
-            } else if (currentDirection == Direction.UP_LEFT) {
-                if (isAtTop && isAtLeftSide) {
-                    currentDirection = Direction.DOWN_RIGHT;
-                    this.logger.info("Formation now moving down-right (hit corner)");
-                } else if (isAtTop) {
-                    currentDirection = Direction.DOWN_LEFT;
-                    this.logger.info("Formation now moving down-left (back to top)");
-                } else if (isAtLeftSide) {
-                    currentDirection = Direction.UP_RIGHT;
-                    this.logger.info("Formation now moving up-right (hit left wall)");
-                }
-            }
-
-            int currentXSpeed = getCurrentXSpeed();
-            if (currentDirection == Direction.DOWN_RIGHT) {
-                movementX = currentXSpeed;   // right
-                movementY = Y_SPEED;   // down
-            } else if (currentDirection == Direction.DOWN_LEFT) {
-                movementX = -currentXSpeed;  // left
-                movementY = Y_SPEED;   // down
-            } else if (currentDirection == Direction.UP_RIGHT) {
-                movementX = currentXSpeed;   // right
-                movementY = -Y_SPEED;  // up
-            } else if (currentDirection == Direction.UP_LEFT) {
-                movementX = -currentXSpeed;  // left
-                movementY = -Y_SPEED;  // up
-            }
-
-			positionX += movementX;
-			positionY += movementY;
-
-			// Cleans explosions.
-			List<EnemyShip> destroyed;
-			for (List<EnemyShip> column : this.enemyShips) {
-				destroyed = new ArrayList<EnemyShip>();
-				for (EnemyShip ship : column) {
-					if (ship != null && ship.isExplosionFinished()) {
-						destroyed.add(ship);
-						this.logger.info("Removed enemy "
-								+ column.indexOf(ship) + " from column "
-								+ this.enemyShips.indexOf(column));
-					}
+	/**
+	 * Removes enemy ships that have finished their explosion animation from the formation.
+	 */
+	private void cleanupExplodedShips() {
+		List<EnemyShip> destroyed;
+		for (List<EnemyShip> column : this.enemyShips) {
+			destroyed = new ArrayList<EnemyShip>();
+			for (EnemyShip ship : column) {
+				if (ship != null && ship.isExplosionFinished()) {
+					destroyed.add(ship);
+					this.logger.info("Removed enemy "
+							+ column.indexOf(ship) + " from column "
+							+ this.enemyShips.indexOf(column));
 				}
-
-				column.removeAll(destroyed);
 			}
 
-			for (List<EnemyShip> column : this.enemyShips)
-				for (EnemyShip enemyShip : column) {
-					enemyShip.move(movementX, movementY);
-					enemyShip.update();
-				}
+			column.removeAll(destroyed);
 		}
+	}
+
+	/**
+	 * Calculates the movement vector based on the current direction and speed,
+	 * then applies it to the formation's position and all individual enemy ships.
+	 */
+	private void moveFormation() {
+		int movementX = 0;
+		int movementY = 0;
+		int currentXSpeed = getCurrentXSpeed();
+
+		if (currentDirection == Direction.DOWN_RIGHT) {
+			movementX = currentXSpeed;   // right
+			movementY = Y_SPEED;   // down
+		} else if (currentDirection == Direction.DOWN_LEFT) {
+			movementX = -currentXSpeed;  // left
+			movementY = Y_SPEED;   // down
+		} else if (currentDirection == Direction.UP_RIGHT) {
+			movementX = currentXSpeed;   // right
+			movementY = -Y_SPEED;  // up
+		} else if (currentDirection == Direction.UP_LEFT) {
+			movementX = -currentXSpeed;  // left
+			movementY = -Y_SPEED;  // up
+		}
+
+		positionX += movementX;
+		positionY += movementY;
+
+		for (List<EnemyShip> column : this.enemyShips)
+			for (EnemyShip enemyShip : column) {
+				enemyShip.move(movementX, movementY);
+				enemyShip.update();
+			}
+	}
+
+	/**
+	 * Determines the new direction of the formation based on its current position and screen boundaries.
+	 */
+	private void updateDirection() {
+		boolean isAtBottom = positionY
+				+ this.height > 600;
+		boolean isAtRightSide = positionX
+				+ this.width >= screen.getWidth() - SIDE_MARGIN;
+		boolean isAtLeftSide = positionX <= SIDE_MARGIN;
+		boolean isAtTop = positionY <= INIT_POS_Y;
+
+		// Diagonal movement direction change logic
+		if (currentDirection == Direction.DOWN_RIGHT) {
+			if (isAtBottom && isAtRightSide) {
+				currentDirection = Direction.UP_LEFT;
+				this.logger.info("Formation now moving up-left (hit corner)");
+			} else if (isAtBottom) {
+				currentDirection = Direction.UP_RIGHT;
+				this.logger.info("Formation now moving up-right (hit bottom)");
+			} else if (isAtRightSide) {
+				currentDirection = Direction.DOWN_LEFT;
+				this.logger.info("Formation now moving down-left (hit right wall)");
+			}
+		} else if (currentDirection == Direction.DOWN_LEFT) {
+			if (isAtBottom && isAtLeftSide) {
+				currentDirection = Direction.UP_RIGHT;
+				this.logger.info("Formation now moving up-right (hit corner)");
+			} else if (isAtBottom) {
+				currentDirection = Direction.UP_LEFT;
+				this.logger.info("Formation now moving up-left (hit bottom)");
+			} else if (isAtLeftSide) {
+				currentDirection = Direction.DOWN_RIGHT;
+				this.logger.info("Formation now moving down-right (hit left wall)");
+			}
+		} else if (currentDirection == Direction.UP_RIGHT) {
+			if (isAtTop && isAtRightSide) {
+				currentDirection = Direction.DOWN_LEFT;
+				this.logger.info("Formation now moving down-left (hit corner)");
+			} else if (isAtTop) {
+				currentDirection = Direction.DOWN_RIGHT;
+				this.logger.info("Formation now moving down-right (back to top)");
+			} else if (isAtRightSide) {
+				currentDirection = Direction.UP_LEFT;
+				this.logger.info("Formation now moving up-left (hit right wall)");
+			}
+		} else if (currentDirection == Direction.UP_LEFT) {
+			if (isAtTop && isAtLeftSide) {
+				currentDirection = Direction.DOWN_RIGHT;
+				this.logger.info("Formation now moving down-right (hit corner)");
+			} else if (isAtTop) {
+				currentDirection = Direction.DOWN_LEFT;
+				this.logger.info("Formation now moving down-left (back to top)");
+			} else if (isAtLeftSide) {
+				currentDirection = Direction.UP_RIGHT;
+				this.logger.info("Formation now moving up-right (hit left wall)");
+			}
+		}
+	}
+
+	/**
+	 * Calculates and updates the movement speed of the formation based on the proportion of remaining ships.
+	 */
+	private void updateMovementSpeed() {
+		double remainingProportion = (double) this.shipCount
+				/ (this.nShipsHigh * this.nShipsWide);
+		this.movementSpeed = (int) (Math.pow(remainingProportion, 2)
+				* this.baseSpeed);
+		this.movementSpeed += MINIMUM_SPEED;
 	}
 
 	/**
