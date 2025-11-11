@@ -30,10 +30,6 @@ public class FinalBoss extends Entity implements BossEntity{
     private Cooldown shootCooldown3;
     private int screenWidth;
     private int screenHeight;
-    /** random x coordinate of Shoot2's bullet  */
-    private int random_x;
-
-
     /** basic attribute of final boss */
 
     public FinalBoss(int positionX, int positionY, int screenWidth, int screenHeight){
@@ -73,6 +69,8 @@ public class FinalBoss extends Entity implements BossEntity{
                     break;
                 case FinalBoss2:
                     this.spriteType = DrawManager.SpriteType.FinalBoss1;
+                    break;
+                default:
                     break;
             }
         }

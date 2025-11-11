@@ -3,17 +3,11 @@ package engine;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
-import java.awt.geom.Ellipse2D;
-import java.awt.Paint;
-import java.awt.RadialGradientPaint;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.AlphaComposite;
-import java.awt.Composite;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.awt.RenderingHints;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,17 +17,12 @@ import java.util.logging.Logger;
 import entity.Entity;
 import entity.FinalBoss;
 import entity.Ship;
-import engine.Nebula;
-import engine.Achievement;
 import screen.CreditScreen;
 import screen.EasterEggScreen;
 import screen.Screen;
-import engine.Score;
 import screen.TitleScreen;
 import screen.TitleScreen.Star;
 import screen.TitleScreen.ShootingStar;
-import engine.NebulaSettings;
-import engine.AuthManager;
 
 /**
  * Manages screen drawing.
