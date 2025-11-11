@@ -237,10 +237,10 @@ public class FinalBoss extends Entity implements BossEntity{
 
     /** Dash Pattern */
     public void dash() {
-        double distance = Math.sqrt((fixedPositionX-positionX) * (fixedPositionX-positionX) + (fixedPositionY-positionY) * (fixedPositionY-positionY));
-        double currentSpeed = Math.sqrt(dashVelX*dashVelX + dashVelY*dashVelY);
-
-        if (distance <= currentSpeed) {
+        double distanceSq = (double)(fixedPositionX - positionX) * (fixedPositionX - positionX) + (double)(fixedPositionY - positionY) * (fixedPositionY - positionY);
+        double speedSq = dashVelX * dashVelX + dashVelY * dashVelY;
+        
+		if (distanceSq <= speedSq) {
             this.positionX = this.fixedPositionX;
             this.positionY = this.fixedPositionY;
 
