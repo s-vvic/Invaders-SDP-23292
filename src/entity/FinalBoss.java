@@ -164,14 +164,14 @@ public class FinalBoss extends Entity implements BossEntity{
         } 
         else if (this.healPoint > this.maxHp/4) {
             switch (this.dashOption) {
-                case DashPattern.FOLLOWING:
+                case FOLLOWING:
                     this.follow(10);
                     this.chargeCooldown.reset();
                     break;
-                case DashPattern.CHARGING:
+                case CHARGING:
                     this.charge();
                     break;
-                case DashPattern.DASH:
+                case DASH:
                     dash();
                     break;
             }
