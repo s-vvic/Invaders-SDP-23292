@@ -201,8 +201,8 @@ public class FinalBoss extends Entity implements BossEntity{
     /** Fix the Position of Player Ship */
     public void follow(int dashSpeed) {
         this.dashCooldown.reset();
-        this.fixedPositionX = this.player.getPositionX() - this.getWidth()/2; 
-        this.fixedPositionY = this.player.getPositionY() - this.getHeight()/2;
+        this.fixedPositionX = this.player.getPositionX() - this.getWidth()/2 + this.player.getWidth()/2; 
+        this.fixedPositionY = this.player.getPositionY() - this.getHeight()/2 + this.player.getHeight()/2;
 
         double angle = Math.atan2(fixedPositionY - positionY, fixedPositionX - positionX);
 
