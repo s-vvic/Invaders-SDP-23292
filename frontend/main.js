@@ -23,10 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const leaderboardView = document.getElementById('leaderboard-view');
     const leaderboardListEl = document.getElementById('leaderboard-list');
     const simulateGameOverBtn = document.getElementById('simulate-game-over-btn');
+    const weeklyLeaderboardListEl = document.getElementById('weekly-leaderboard-list');
+    const yearlyLeaderboardListEl = document.getElementById('yearly-leaderboard-list');
 
     // --- API Configuration ---
     const API_BASE_URL = 'http://localhost:8080/api';
-    const USE_MOCK_API = false; // Set to false to use real API
+    const USE_MOCK_API = true; // Set to false to use real API
 
     // --- Mock API ---
     function mockLogin(username, password) {
@@ -64,6 +66,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return fetch('./mock_data/leaderboard.json').then(res => res.json());
     }
 
+    // Helper function to render scores into an <ol> element
+    function renderScores(element, scores) {
+        element.innerHTML = ''; // Clear previous list
+        if (scores.length === 0) {
+            element.innerHTML = '<li>No scores recorded yet.</li>';
+            return;
+        }
+        scores.forEach(record => {
+            const listItem = document.createElement('li');
+            const gameDate = new Date(record.created_at).toLocaleString('ko-KR');
+            listItem.textContent = `${record.username}: ${record.score} 점 (${gameDate})`;
+            element.appendChild(listItem);
+        });
+    }
+
     // --- App Logic & View Management ---
     async function loadDashboard() {
         try {
@@ -77,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Fetch user's specific data (including max_score)
-            const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -89,9 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // achievementsListEl // Not implemented yet
 
         } catch (error) {
-            console.error('Failed to load dashboard data:', error);
-            welcomeMessage.textContent = 'Welcome!'; // Fallback
-            highScoreEl.textContent = 'Error';
+            if (error.message !== 'Unauthorized') { // Avoid double-logging the error
+                console.error('Failed to load dashboard data:', error);
+                welcomeMessage.textContent = 'Welcome!'; // Fallback
+                highScoreEl.textContent = 'Error';
+            }
         }
     }
     async function loadLeaderboard() {
@@ -99,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // 1. API 엔드포인트를 /api/users -> /api/scores 로 변경합니다.
             //    (이전에 server.js에 추가한 엔드포인트)
-            const response = await fetch(`${API_BASE_URL}/scores`); 
+            const response = await fetchWithAuth(`${API_BASE_URL}/scores`); 
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -126,9 +145,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 leaderboardListEl.appendChild(listItem);
             });
 
+            // --- Load Weekly High Scores ---
+            const weeklyScores = USE_MOCK_API
+                ? await (await fetch('./mock_data/weekly_scores.json')).json()
+                : await (await fetchWithAuth(`${API_BASE_URL}/scores/weekly`)).json();
+            
+            renderScores(weeklyLeaderboardListEl, weeklyScores);
+
+            // --- Load Yearly High Scores ---
+            const yearlyScores = USE_MOCK_API
+                ? await (await fetch('./mock_data/yearly_scores.json')).json()
+                : await (await fetchWithAuth(`${API_BASE_URL}/scores/yearly`)).json();
+            
+            renderScores(yearlyLeaderboardListEl, yearlyScores);
+
         } catch (error) {
-            console.error('Error loading leaderboard:', error);
-            leaderboardListEl.innerHTML = '<li>점수판을 불러오는 데 실패했습니다.</li>';
+            if (error.message !== 'Unauthorized') { // Avoid double-logging the error
+                console.error('Error loading leaderboard:', error);
+                leaderboardListEl.innerHTML = '<li>점수판을 불러오는 데 실패했습니다.</li>';
+            }
         }
     }
 
@@ -138,6 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
         leaderboardView.classList.add('hidden');
         registerView.classList.add('hidden');
     }
+
+    // Pass the view handler to the API module
+    setLoginViewHandler(showLoginView);
 
     function showRegisterView() {
         loginView.classList.add('hidden');
@@ -197,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const randomScore = Math.floor(Math.random() * (10000 - 100 + 1)) + 100;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/users/${userId}/score`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/score`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -217,8 +255,10 @@ document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
 
         } catch (error) {
-            console.error('게임 종료 시뮬레이션 중 오류 발생:', error);
-            alert(`점수 업데이트 중 오류 발생: ${error.message}`);
+            if (error.message !== 'Unauthorized') { // Avoid double-logging the error
+                console.error('게임 종료 시뮬레이션 중 오류 발생:', error);
+                alert(`점수 업데이트 중 오류 발생: ${error.message}`);
+            }
         }
     });
 

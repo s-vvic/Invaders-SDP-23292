@@ -87,6 +87,7 @@
                             <!-- JS will populate this -->
                         </ul>
                     </div>
+
                     <button id="view-leaderboard-btn" class="full-width">View Leaderboard</button>
                     <button id="simulate-game-over-btn" class="full-width">Simulate Game Over</button>
                     <a href="how_to_play.html" class="full-width button">How To Play</a>
@@ -107,6 +108,20 @@
                             <!-- JS will populate this -->
                         </ol>
                     </div>
+                    <div class="card full-width">
+                        <h3>Weekly High Scores</h3>
+                        <ol id="weekly-leaderboard-list">
+                            <!-- JS will populate this -->
+                            <li>Loading weekly scores...</li>
+                        </ol>
+                    </div>
+                    <div class="card full-width">
+                        <h3>Yearly High Scores</h3>
+                        <ol id="yearly-leaderboard-list">
+                            <!-- JS will populate this -->
+                            <li>Loading yearly scores...</li>
+                        </ol>
+                    </div>
                 </main>
             </div>
         </div>
@@ -115,6 +130,7 @@
         </div>
     </div>
     <script src="starfield.js"></script>
+    <script src="api.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

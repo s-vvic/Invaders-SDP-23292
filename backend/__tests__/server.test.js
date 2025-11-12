@@ -43,15 +43,22 @@ describe('User API Endpoints', () => {
 });
 
 describe('PUT /api/users/:id/score', () => {
-    // Reset the user's score to 0 before each test in this block
+    let token;
+
+    // Before each test in this block, log in and get a fresh token
     beforeEach(async () => {
         await db.run('UPDATE users SET max_score = 0 WHERE id = 1');
+        const loginResponse = await request(app)
+            .post('/api/login')
+            .send({ username: 'test', password: '1234' });
+        token = loginResponse.body.token;
     });
 
     test('should update max_score if new score is higher', async () => {
         const newScore = 100;
         const response = await request(app)
             .put('/api/users/1/score')
+            .set('Authorization', `Bearer ${token}`)
             .send({ score: newScore });
 
         expect(response.statusCode).toBe(200);
@@ -70,6 +77,7 @@ describe('PUT /api/users/:id/score', () => {
         const newScore = 100;
         const response = await request(app)
             .put('/api/users/1/score')
+            .set('Authorization', `Bearer ${token}`)
             .send({ score: newScore });
 
         expect(response.statusCode).toBe(200);
@@ -84,6 +92,7 @@ describe('PUT /api/users/:id/score', () => {
     test('should return 404 for a non-existent user', async () => {
         const response = await request(app)
             .put('/api/users/9999/score')
+            .set('Authorization', `Bearer ${token}`)
             .send({ score: 100 });
 
         expect(response.statusCode).toBe(404);
@@ -92,8 +101,51 @@ describe('PUT /api/users/:id/score', () => {
     test('should return 400 for an invalid score', async () => {
         const response = await request(app)
             .put('/api/users/1/score')
+            .set('Authorization', `Bearer ${token}`)
             .send({ score: 'a-string-not-a-number' });
 
         expect(response.statusCode).toBe(400);
+    });
+});
+
+describe('Authentication Middleware', () => {
+    const protectedUrl = '/api/users/1/score';
+
+    test('should return 401 if no token is provided', async () => {
+        const response = await request(app)
+            .put(protectedUrl)
+            .send({ score: 50 });
+        
+        expect(response.statusCode).toBe(401);
+        expect(response.body.error).toBe('Unauthorized: No token provided');
+    });
+
+    test('should return 401 if token is invalid', async () => {
+        const response = await request(app)
+            .put(protectedUrl)
+            .set('Authorization', 'Bearer FAKE_INVALID_TOKEN')
+            .send({ score: 50 });
+
+        expect(response.statusCode).toBe(401);
+        expect(response.body.error).toBe('Unauthorized: Invalid token');
+    });
+
+    test('should return 200 if token is valid', async () => {
+        // 1. Log in to get a valid token
+        const loginResponse = await request(app)
+            .post('/api/login')
+            .send({ username: 'test', password: '1234' });
+        
+        const token = loginResponse.body.token;
+        expect(token).toBeDefined();
+
+        // 2. Use the valid token to access the protected route
+        const response = await request(app)
+            .put(protectedUrl)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ score: 50 });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.message).toBeDefined();
     });
 });
