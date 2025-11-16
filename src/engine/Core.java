@@ -14,7 +14,6 @@ import screen.CreditScreen;
 import screen.EasterEggScreen;
 import screen.GameScreen;
 import screen.HighScoreScreen;
-import screen.ModeSelectionScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.ShopScreen;
@@ -97,12 +96,12 @@ public final class Core {
 		int height = frame.getHeight();
 
 		levelManager = new LevelManager();
-		GameState gameState = new GameState(1, 0, MAX_LIVES, MAX_LIVES, 0, 0,0);
+		GameState gameState = new GameState(1, 0, MAX_LIVES, 0, 0, 0);
 
 
         int returnCode = 1;
 		do {
-            gameState = new GameState(1, 0, MAX_LIVES,MAX_LIVES, 0, 0,gameState.getCoin());
+            gameState = new GameState(1, 0, MAX_LIVES, 0, 0, gameState.getCoin());
 			switch (returnCode) {
                 case 1:
                     // Main menu.
@@ -115,12 +114,8 @@ public final class Core {
                     LOGGER.info("Closing title screen.");
                     break;
                 case 2:
-                    // Mode selection.
-                    currentScreen = new ModeSelectionScreen(width, height, FPS);
-                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
-                            + " mode selection screen at " + FPS + " fps.");
-                    returnCode = frame.setScreen(currentScreen);
-                    LOGGER.info("Closing mode selection screen.");
+                    // Mode selection disabled, defaulting to 1P.
+                    returnCode = 13; // Directly transition to 1P game.
                     break;
                 case 3:
                     // High scores.
@@ -132,7 +127,6 @@ public final class Core {
                     break;
                 case 4:
                     // Shop opened manually from main menu
-
                     currentScreen = new ShopScreen(gameState, width, height, FPS, false);
                     LOGGER.info("Starting shop screen (menu) with " + gameState.getCoin() + " coins.");
                     returnCode = frame.setScreen(currentScreen);
@@ -169,15 +163,7 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing transition screen.");
                     break;
-                case 14: // Transition to 2P
-                    currentScreen = new TransitionScreen(width, height, FPS, 11);
-                    LOGGER.info("Starting transition screen to 2P game.");
-                    returnCode = frame.setScreen(currentScreen);
-                    LOGGER.info("Closing transition screen.");
-                    break;
                 case 10: // 1 Player
-                case 11: // 2 Players
-                    boolean isTwoPlayer = (returnCode == 11);
                     do {
                         // One extra life every few levels
                         boolean bonusLife = gameState.getLevel()
@@ -202,8 +188,7 @@ public final class Core {
                                 MAX_LIVES,
                                 width,
                                 height,
-                                FPS,
-                                isTwoPlayer
+                                FPS
                         );
 
                         LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
@@ -217,7 +202,7 @@ public final class Core {
                         }
 
                         gameState = ((GameScreen) currentScreen).getGameState();
-                        if (gameState.getLivesRemaining() > 0 || gameState.getLivesRemainingP2() > 0) {
+                        if (gameState.getLivesRemaining() > 0) {
 							SoundManager.stopAll();
 							SoundManager.play("sfx/levelup.wav");
 
@@ -234,7 +219,6 @@ public final class Core {
                                     gameState.getLevel() + 1,          // Increment level
                                     gameState.getScore(),              // Keep current score
                                     gameState.getLivesRemaining(),     // Keep remaining lives
-									gameState.getLivesRemainingP2(),   // Keep remaining livesP2
                                     gameState.getBulletsShot(),        // Keep bullets fired
                                     gameState.getShipsDestroyed(),     // Keep ships destroyed
                                     gameState.getCoin()                // Keep current coins
@@ -247,20 +231,14 @@ public final class Core {
                     }
 
 					SoundManager.stopAll();
-					                    SoundManager.play("sfx/gameover.wav");
+					SoundManager.play("sfx/gameover.wav");
 					
-					                    // Save score if logged in.
-					                    AuthManager authManager = AuthManager.getInstance();
-					                    // --- DEBUG LOGGING ---
-					                    LOGGER.info("Game Over! Checking login status...");
-					                    LOGGER.info("AuthManager.isLoggedIn() = " + authManager.isLoggedIn());
-					                    LOGGER.info("AuthManager.getUserId() = " + authManager.getUserId());
-					                    LOGGER.info("AuthManager.getToken() = " + authManager.getToken());
-					                    // --- END DEBUG LOGGING ---
-					                    if (authManager.isLoggedIn()) {
-					                        ApiClient apiClient = ApiClient.getInstance();
-					                        apiClient.saveScore(gameState.getScore());
-					                    }
+					// Save score if logged in.
+					AuthManager authManager = AuthManager.getInstance();
+					if (authManager.isLoggedIn()) {
+						ApiClient apiClient = ApiClient.getInstance();
+						apiClient.saveScore(gameState.getScore());
+					}
                     LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
                             + " score screen at " + FPS + " fps, with a score of "
                             + gameState.getScore() + ", "

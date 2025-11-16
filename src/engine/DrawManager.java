@@ -267,17 +267,9 @@ public final class DrawManager {
 	public void drawScore(final Screen screen, final int score) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		String scoreString = String.format("P1:%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 180, 38);
+		String scoreString = String.format("%04d", score);
+		backBufferGraphics.drawString(scoreString, screen.getWidth() - 120, 38);
 	}
-    //  === [ADD] Draw P2's score on the line below P1's score ===
-    public void drawScoreP2(final Screen screen, final int scoreP2) {
-        backBufferGraphics.setFont(fontRegular);
-        backBufferGraphics.setColor(Color.WHITE);
-        String text = String.format("P2:%04d", scoreP2);
-        //  Y coordinate is 15px lower than P1 score to avoid overlapping
-        backBufferGraphics.drawString(text, screen.getWidth() - 180, 60);
-    }
 
     /**
      * Draws the elapsed time on screen.
@@ -311,8 +303,7 @@ public final class DrawManager {
 	public void drawLives(final Screen screen, final int lives) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
-		backBufferGraphics.drawString("P1:", 23, 38);
+		backBufferGraphics.drawString("Lives:", 23, 38);
 		Ship dummyShip = null;
 		if(GameState.isInvincible()){
 			rainbowHue += 0.01f;
@@ -327,21 +318,8 @@ public final class DrawManager {
 		}
 		
 		for (int i = 0; i < lives; i++)
-			drawEntity(dummyShip, 60 + 53 * i, 15);
+			drawEntity(dummyShip, 80 + 53 * i, 15);
 	}
-
-	public void drawLivesP2(final Screen screen, final int lives) {
-		backBufferGraphics.setFont(fontRegular);
-		backBufferGraphics.setColor(Color.WHITE);
-		// backBufferGraphics.drawString("P2:" + Integer.toString(lives), 10, 40);
-		backBufferGraphics.drawString("P2:", 23, 60);
-
-		Ship dummyShip = new Ship(0, 0,Color.pink);
-		for (int i = 0; i < lives; i++) {
-			drawEntity(dummyShip, 60 + 53 * i, 45);
-		}
-	}
-
 
 	/**
 	 * Draws the items HUD.
@@ -477,31 +455,6 @@ public final class DrawManager {
         if (option == 0) backBufferGraphics.setColor(pulseColor);
         else backBufferGraphics.setColor(Color.WHITE);
         drawCenteredRegularString(screen, exitString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 5);
-	}
-
-	/**
-	 * Draws the mode selection menu.
-	 *
-	 * @param screen
-	 *            Screen to draw on.
-	 * @param option
-	 *            Option selected.
-	 */
-	public void drawModeSelection(final Screen screen, final int option) {
-		String onePlayerString = "1 Player";
-		String twoPlayersString = "2 Players";
-
-		if (option == 10)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, onePlayerString, screen.getHeight() / 3 * 2);
-
-		if (option == 11)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, twoPlayersString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 2);
 	}
 
 	/**
