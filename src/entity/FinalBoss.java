@@ -16,6 +16,16 @@ public class FinalBoss extends Entity implements BossEntity{
     private int maxHp;
     private final int pointValue;
     private boolean isDestroyed;
+    /** Distance between normal state position and Power-up state position*/
+    private final static int OFFSET = 30;
+    /** Normal width */
+    private final static int NORMAL_WIDTH = 100;
+    /** Normal height */
+    private final static int NORMAL_HEIGHT = 80;
+    /** power-up width */
+    private final static int POWERUP_WIDTH = 160;
+    /** power-up height */
+    private final static int POWERUP_HEIGHT = 140;
     /** The State of Dash Power Up */
     private boolean isPowerUp = false;
     /** The Ship of player */
@@ -314,12 +324,16 @@ public class FinalBoss extends Entity implements BossEntity{
 
     /** Dash Pattern */
     public void dash() {
-        double distanceSq = (double)(fixedPositionX - positionX) * (fixedPositionX - positionX) + (double)(fixedPositionY - positionY) * (fixedPositionY - positionY);
+        double dx = fixedPositionX - positionX;
+        double dy = fixedPositionY - positionY;
+        double distanceSq = dx * dx + dy * dy;
         double speedSq = dashVelX * dashVelX + dashVelY * dashVelY;
         
 		if (distanceSq <= speedSq || !this.isPowerUp) {
 
             if (this.isPowerUp) {
+                this.positionX = this.fixedPositionX;
+                this.positionY = this.fixedPositionY;
                 this.changeToPowerUpMode();
             }
 
@@ -351,19 +365,19 @@ public class FinalBoss extends Entity implements BossEntity{
         if (this.isPowerUp) {
             this.isPowerUp = false;
             this.setColor(Color.RED);
-            this.setPositionX(positionX+30);
-            this.setPositionY(positionY+30);
-            this.setHeight(80);
-            this.setWidth(100);
+            this.setPositionX(positionX+OFFSET);
+            this.setPositionY(positionY+OFFSET);
+            this.setHeight(NORMAL_HEIGHT);
+            this.setWidth(NORMAL_WIDTH);
             this.animationCooldown.reset();
             this.spriteType = DrawManager.SpriteType.FinalBoss1;
         } else {
             this.isPowerUp = true;
             this.setColor(Color.YELLOW);
-            this.setPositionX(positionX-30);
-            this.setPositionY(positionY-30);
-            this.setHeight(140);
-            this.setWidth(160);
+            this.setPositionX(positionX-OFFSET);
+            this.setPositionY(positionY-OFFSET);
+            this.setHeight(POWERUP_HEIGHT);
+            this.setWidth(POWERUP_WIDTH);
             this.animationPowerUpCooldown.reset();
             this.spriteType = DrawManager.SpriteType.FinalBossPowerUp1;
         }
@@ -432,7 +446,7 @@ public class FinalBoss extends Entity implements BossEntity{
                     this.laserDuration.reset();
 
                     for (int i=0; i<9; i++) {
-                        BossLaser laser = new BossLaser(this.getPositionX()+30, this.getPositionY()+140 + 80*i, 100, 80, this, i, this.laserDuration);
+                        BossLaser laser = new BossLaser(this.getPositionX()+OFFSET, this.getPositionY()+POWERUP_HEIGHT + NORMAL_HEIGHT*i, NORMAL_WIDTH, NORMAL_HEIGHT, this, i, this.laserDuration);
                         lasers.add(laser);
                     }
                 }

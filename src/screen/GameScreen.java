@@ -957,7 +957,7 @@ public class GameScreen extends Screen {
 		if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
 			this.finalBoss.update();
 			/** called the boss shoot logic */
-			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * 3/4) {
+			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * 3 / 4) {
 				bossBullets.addAll(this.finalBoss.shoot1());
 				bossBullets.addAll(this.finalBoss.shoot2());
 			} else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp()/2) {

@@ -138,8 +138,8 @@ public class Entity {
 	 * @param width
 	 *            New width of the entity.
 	 */
-	public final int setWidth(final int width) {
-		return this.width = width;
+	public final void setWidth(final int width) {
+		this.width = width;
 	}
 
 	/**
@@ -148,7 +148,7 @@ public class Entity {
 	 * @param height
 	 *            New height of the entity.
 	 */
-	public final int setHeight(final int height) {
-		return this.height = height;
+	public final void setHeight(final int height) {
+		this.height = height;
 	}
 }

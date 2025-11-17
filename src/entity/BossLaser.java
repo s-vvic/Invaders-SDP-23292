@@ -11,6 +11,10 @@ import engine.Core;
  * 
  */
 public class BossLaser extends Entity {
+    /** X_OFFSET to change position */
+    private final static int X_OFFSET = 30;
+    /** Y_OFFSET to change position */
+    private final static int Y_OFFSET = 140;
     /** The shooter of this BossLaser */
     private FinalBoss shooter;
     /** The index of n-th created laser */
@@ -82,8 +86,8 @@ public class BossLaser extends Entity {
                 }
             }
         }
-        this.setPositionX(this.shooter.getPositionX() + 30);
-        this.setPositionY(this.shooter.getPositionY() + 140 + this.laserIndex*80);
+        this.setPositionX(this.shooter.getPositionX() + X_OFFSET);
+        this.setPositionY(this.shooter.getPositionY() + Y_OFFSET + this.laserIndex*this.getHeight());
     }
 
     public boolean isRemoved() {
