@@ -5,6 +5,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Handles all communication with the backend API.
@@ -131,6 +133,71 @@ public class ApiClient {
             throw new IOException("Username 'test' is already taken.");
         }
         Core.getLogger().info("[Mock API] Registration successful for user: " + username);
+    }
+
+    /**
+     * Fetches the global high scores from the backend.
+     * @return A list of Score objects representing the leaderboard.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public List<Score> getHighScores() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/scores"))
+                .GET()
+                .build();
+
+        Core.getLogger().info("Requesting high scores from backend.");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Failed to fetch high scores with status code: " + response.statusCode());
+            throw new IOException("Failed to fetch high scores: " + response.body());
+        }
+
+        String responseBody = response.body();
+        return parseScoreList(responseBody);
+    }
+
+    /**
+     * A very basic and brittle parser for a list of score objects from a JSON array.
+     * Assumes a format like: [{"username":"x","score":X},{"username":"y","score":Y}]
+     * @param jsonArray The JSON string representing the array of scores.
+     * @return A List of Score objects.
+     */
+    private List<Score> parseScoreList(String jsonArray) {
+        List<Score> scores = new ArrayList<>();
+
+        if (jsonArray == null || jsonArray.trim().isEmpty() || !jsonArray.startsWith("[") || !jsonArray.endsWith("]")) {
+            Core.getLogger().warning("Invalid JSON array for scores: " + jsonArray);
+            return scores;
+        }
+
+        String innerContent = jsonArray.substring(1, jsonArray.length() - 1); // Remove outer []
+        if (innerContent.isEmpty()) { // Handle empty array
+            return scores;
+        }
+
+        // Split by "},{" to get individual score objects as strings
+        String[] scoreStrings = innerContent.split("\\},\\{");
+
+        for (String scoreStr : scoreStrings) {
+            // Reconstruct a valid JSON object string for parsing
+            String fullScoreObject = "{" + scoreStr + "}";
+            String username = parseJsonField(fullScoreObject, "username");
+            String scoreValue = parseJsonField(fullScoreObject, "score");
+            
+            if (username != null && scoreValue != null) {
+                try {
+                    scores.add(new Score(username, Integer.parseInt(scoreValue.trim())));
+                } catch (NumberFormatException e) {
+                    Core.getLogger().warning("Failed to parse score value: " + scoreValue + " from JSON object: " + fullScoreObject);
+                }
+            }
+        }
+        return scores;
     }
 
     /**

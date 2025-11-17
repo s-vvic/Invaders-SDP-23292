@@ -352,7 +352,25 @@ app.get('/api/scores', async function(req, res) {
  *       500:
  *         description: Server database error
  */
-app.put('/api/users/:id/score', async (req, res) => {
+// Middleware to check for a valid token
+const authMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    // In a real app, you'd verify a real JWT. Here, we'll just check our hardcoded token.
+    if (token === 'your-generated-token-xyz123') {
+        next(); // Token is valid, proceed to the route handler
+    } else {
+        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    }
+};
+
+app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
     try {
         const userId = parseInt(req.params.id, 10);
         const { score } = req.body;
@@ -367,18 +385,20 @@ app.put('/api/users/:id/score', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        let responseMessage = 'Score checked.';
+        let responseMessage = '';
         let newMaxScore = user.max_score;
 
         if (score > user.max_score) {
             await db.run('UPDATE users SET max_score = ? WHERE id = ?', [score, userId]);
             responseMessage = 'High score updated successfully';
             newMaxScore = score;
+        } else {
+            responseMessage = 'Score is not higher than the current high score';
         }
 
-        // score 테이블에 현재 점수 기록
+        // scores 테이블에 현재 점수 기록
         await db.run(
-            'INSERT INTO score (user_id, score) VALUES (?, ?)',
+            'INSERT INTO scores (user_id, score) VALUES (?, ?)',
             [userId, score]
         );
         

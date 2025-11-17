@@ -34,9 +34,11 @@ public class HighScoreScreen extends Screen {
 		this.returnCode = 1;
 
 		try {
-			this.highScores = Core.getFileManager().loadHighScores();
-		} catch (NumberFormatException | IOException e) {
-			logger.warning("Couldn't load high scores!");
+			this.highScores = engine.ApiClient.getInstance().getHighScores();
+		} catch (IOException | InterruptedException e) {
+			logger.warning("Couldn't load high scores from API: " + e.getMessage());
+			// Fallback to an empty list if API call fails
+			this.highScores = new java.util.ArrayList<>();
 		}
 	}
 

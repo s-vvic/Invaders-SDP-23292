@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="button.css">
     <link rel="stylesheet" href="login.css">
     <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="toast.css">
+    <link rel="stylesheet" href="skeleton.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -75,6 +77,32 @@
                         <h2>Gold</h2>
                         <p id="gold">0</p>
                     </div>
+                    <div class="card">
+                        <h2>Total Games</h2>
+                        <p id="total-games">0</p>
+                    </div>
+                    <div class="card">
+                        <h2>Average Score</h2>
+                        <p id="average-score">0</p>
+                    </div>
+                    <div class="card">
+                        <h2>Rank</h2>
+                        <p id="user-rank">-</p>
+                    </div>
+                    <div class="card full-width">
+                        <h3>Recent Games</h3>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>점수</th>
+                                    <th>날짜</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-games-list">
+                                <tr><td colspan="2" class="loading-message">로딩 중...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <div class="card full-width">
                         <h3>Upgrades</h3>
                         <ul id="upgrades-list">
@@ -87,6 +115,7 @@
                             <!-- JS will populate this -->
                         </ul>
                     </div>
+
                     <button id="view-leaderboard-btn" class="full-width">View Leaderboard</button>
                     <button id="simulate-game-over-btn" class="full-width">Simulate Game Over</button>
                     <a href="how_to_play.html" class="full-width button">How To Play</a>
@@ -99,19 +128,74 @@
             <div class="container">
                 <header>
                     <h1>Leaderboard</h1>
+                    <div class="leaderboard-nav">
+                        <button id="btn-leaderboard-overall" class="leaderboard-nav-btn">Overall</button>
+                        <button id="btn-leaderboard-weekly" class="leaderboard-nav-btn">Weekly</button>
+                        <button id="btn-leaderboard-yearly" class="leaderboard-nav-btn">Yearly</button>
+                    </div>
+                    <div class="leaderboard-search-container">
+                        <input type="text" id="leaderboard-search" placeholder="사용자명으로 검색..." class="leaderboard-search-input">
+                        <button id="leaderboard-search-clear" class="leaderboard-search-clear hidden">✕</button>
+                    </div>
                     <button id="back-to-dashboard-btn">Back to Dashboard</button>
                 </header>
                 <main>
-                    <div class="card full-width">
-                        <ol id="leaderboard-list">
-                            <!-- JS will populate this -->
-                        </ol>
+                    <div id="card-leaderboard-overall" class="card full-width">
+                        <h3>Overall High Scores</h3>
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>순위</th>
+                                    <th>사용자명</th>
+                                    <th>점수</th>
+                                    <th>날짜</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-list">
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="card-leaderboard-weekly" class="card full-width hidden">
+                        <h3>Weekly High Scores</h3>
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>순위</th>
+                                    <th>사용자명</th>
+                                    <th>점수</th>
+                                    <th>날짜</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weekly-leaderboard-list">
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="card-leaderboard-yearly" class="card full-width hidden">
+                        <h3>Yearly High Scores</h3>
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>순위</th>
+                                    <th>사용자명</th>
+                                    <th>점수</th>
+                                    <th>날짜</th>
+                                </tr>
+                            </thead>
+                            <tbody id="yearly-leaderboard-list">
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
                     </div>
                 </main>
             </div>
         </div>
     </div>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
     <script src="starfield.js"></script>
+    <script src="api.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

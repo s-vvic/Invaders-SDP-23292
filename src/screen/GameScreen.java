@@ -11,6 +11,8 @@ import engine.GameState;
 import engine.GameTimer;
 import engine.AchievementManager;
 import engine.ItemHUDManager;
+import engine.AuthManager;
+import engine.ApiClient;
 import entity.*;
 import engine.level.Level;
 
@@ -729,6 +731,18 @@ public class GameScreen extends Screen {
 				draw(); // Draw the final frame before capturing.
 				Core.lastScreenCapture = drawManager.getBackBuffer();
 				this.returnCode = 99;
+			}
+			// Submit score to backend if logged in
+			AuthManager authManager = AuthManager.getInstance();
+			if (authManager.isLoggedIn()) {
+				try {
+					ApiClient.getInstance().saveScore(this.score);
+					this.logger.info("Score " + this.score + " submitted to backend for user " + authManager.getUserId());
+				} catch (Exception e) { // saveScore is async, but catching potential sync exceptions
+					this.logger.severe("Error submitting score to backend: " + e.getMessage());
+				}
+			} else {
+				this.logger.info("User not logged in, score not submitted to backend.");
 			}
 			this.isRunning = false;
 		}

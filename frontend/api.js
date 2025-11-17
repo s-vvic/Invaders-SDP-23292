@@ -40,7 +40,12 @@ async function fetchWithAuth(url, options = {}) {
         localStorage.removeItem('invaders_username'); // Corrected key
         localStorage.removeItem('invaders_userId'); // Added to clear userId
 
-        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        // Toast will be shown by main.js if available
+        if (typeof toastWarning === 'function') {
+            toastWarning("세션이 만료되었습니다. 다시 로그인해주세요.");
+        } else {
+            alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        }
 
         // main.js에 의해 showLoginView가 설정되는 것에 의존합니다.
         if (typeof showLoginView === 'function') {

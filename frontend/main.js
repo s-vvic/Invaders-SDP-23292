@@ -18,11 +18,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const welcomeMessage = document.getElementById('welcome-message');
     const highScoreEl = document.getElementById('high-score');
     const goldEl = document.getElementById('gold');
+    const totalGamesEl = document.getElementById('total-games');
+    const averageScoreEl = document.getElementById('average-score');
+    const userRankEl = document.getElementById('user-rank');
+    const recentGamesListEl = document.getElementById('recent-games-list');
     const upgradesListEl = document.getElementById('upgrades-list');
     const achievementsListEl = document.getElementById('achievements-list');
     const leaderboardView = document.getElementById('leaderboard-view');
     const leaderboardListEl = document.getElementById('leaderboard-list');
     const simulateGameOverBtn = document.getElementById('simulate-game-over-btn');
+    const weeklyLeaderboardListEl = document.getElementById('weekly-leaderboard-list');
+    const yearlyLeaderboardListEl = document.getElementById('yearly-leaderboard-list');
+
+    // Leaderboard Tab Elements
+    const btnLeaderboardOverall = document.getElementById('btn-leaderboard-overall');
+    const btnLeaderboardWeekly = document.getElementById('btn-leaderboard-weekly');
+    const btnLeaderboardYearly = document.getElementById('btn-leaderboard-yearly');
+    const cardLeaderboardOverall = document.getElementById('card-leaderboard-overall');
+    const cardLeaderboardWeekly = document.getElementById('card-leaderboard-weekly');
+    const cardLeaderboardYearly = document.getElementById('card-leaderboard-yearly');
+
+    const leaderboardNavBtns = [btnLeaderboardOverall, btnLeaderboardWeekly, btnLeaderboardYearly];
+    const leaderboardCards = [cardLeaderboardOverall, cardLeaderboardWeekly, cardLeaderboardYearly];
+    const leaderboardSearchInput = document.getElementById('leaderboard-search');
+    const leaderboardSearchClear = document.getElementById('leaderboard-search-clear');
+    
+    // Store original scores for filtering
+    let currentScores = {
+        overall: [],
+        weekly: [],
+        yearly: []
+    };
+
 
     // --- API Configuration ---
     const API_BASE_URL = 'http://localhost:8080/api';
@@ -117,6 +144,73 @@ document.addEventListener('DOMContentLoaded', () => {
         return '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
     }
 
+    // --- Toast Notification System ---
+    const toastContainer = document.getElementById('toast-container');
+
+    function showToast(type, title, message, duration = 3000) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = {
+            success: '✓',
+            error: '✕',
+            info: 'ℹ',
+            warning: '⚠'
+        };
+        
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" aria-label="Close">×</button>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        // Close button handler
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => {
+            removeToast(toast);
+        });
+        
+        // Auto remove after duration
+        if (duration > 0) {
+            setTimeout(() => {
+                removeToast(toast);
+            }, duration);
+        }
+        
+        return toast;
+    }
+
+    function removeToast(toast) {
+        toast.style.animation = 'fadeOut 0.3s ease-in forwards';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }
+
+    // Convenience functions
+    function toastSuccess(message, title = '성공') {
+        return showToast('success', title, message);
+    }
+
+    function toastError(message, title = '오류') {
+        return showToast('error', title, message, 5000); // Errors stay longer
+    }
+
+    function toastInfo(message, title = '알림') {
+        return showToast('info', title, message);
+    }
+
+    function toastWarning(message, title = '경고') {
+        return showToast('warning', title, message);
+    }
+
     // --- Mock API ---
     function mockLogin(username, password) {
         return new Promise((resolve, reject) => {
@@ -153,6 +247,232 @@ document.addEventListener('DOMContentLoaded', () => {
         return fetch('./mock_data/leaderboard.json').then(res => res.json());
     }
 
+    function mockGetWeeklyLeaderboard() {
+        return fetch('./mock_data/weekly_scores.json').then(res => res.json());
+    }
+
+    function mockGetYearlyLeaderboard() {
+        return fetch('./mock_data/yearly_scores.json').then(res => res.json());
+    }
+
+    function mockGetUserStats() {
+        return fetch('./mock_data/user_stats.json').then(res => res.json());
+    }
+
+    // --- Utility Functions ---
+    function formatDate(dateString) {
+        if (!dateString) return '날짜 없음';
+        return new Date(dateString).toLocaleString('ko-KR');
+    }
+
+    function getRankEmoji(rank) {
+        if (rank === 1) return '🥇';
+        if (rank === 2) return '🥈';
+        if (rank === 3) return '🥉';
+        return `${rank}`;
+    }
+
+    // --- Number Animation ---
+    function animateNumber(element, start, end, duration = 1000, formatter = null) {
+        if (!element) return;
+        
+        const startTime = performance.now();
+        const difference = end - start;
+        
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing function (ease-out)
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const current = Math.floor(start + difference * easeOut);
+            
+            if (formatter) {
+                element.textContent = formatter(current);
+            } else {
+                element.textContent = current.toLocaleString();
+            }
+            
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                // Ensure final value is set
+                if (formatter) {
+                    element.textContent = formatter(end);
+                } else {
+                    element.textContent = end.toLocaleString();
+                }
+            }
+        }
+        
+        requestAnimationFrame(update);
+    }
+
+    function animateValue(element, targetValue, options = {}) {
+        if (!element) return;
+        
+        const {
+            duration = 1000,
+            formatter = null,
+            prefix = '',
+            suffix = ''
+        } = options;
+        
+        const currentText = element.textContent || '0';
+        const currentValue = parseInt(currentText.replace(/[^0-9]/g, '')) || 0;
+        const target = typeof targetValue === 'number' ? targetValue : parseInt(targetValue) || 0;
+        
+        if (currentValue === target) {
+            if (formatter) {
+                element.textContent = formatter(target);
+            } else {
+                element.textContent = prefix + target.toLocaleString() + suffix;
+            }
+            return;
+        }
+        
+        animateNumber(element, currentValue, target, duration, (value) => {
+            if (formatter) {
+                return formatter(value);
+            }
+            return prefix + value.toLocaleString() + suffix;
+        });
+    }
+
+    function createLeaderboardRow(record, rank) {
+        const row = document.createElement('tr');
+        
+        const rankCell = document.createElement('td');
+        rankCell.className = 'rank-emoji';
+        rankCell.textContent = getRankEmoji(rank);
+        
+        const usernameCell = document.createElement('td');
+        usernameCell.textContent = record.username;
+        
+        const scoreCell = document.createElement('td');
+        scoreCell.textContent = record.score.toLocaleString();
+        
+        const dateCell = document.createElement('td');
+        dateCell.textContent = formatDate(record.created_at);
+        
+        row.appendChild(rankCell);
+        row.appendChild(usernameCell);
+        row.appendChild(scoreCell);
+        row.appendChild(dateCell);
+        
+        return row;
+    }
+
+    function renderLeaderboardTable(tbodyElement, scores, errorMessage) {
+        tbodyElement.innerHTML = '';
+        
+        if (scores.length === 0) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = '<td colspan="4" class="empty-message">아직 기록된 점수가 없습니다.</td>';
+            tbodyElement.appendChild(emptyRow);
+            return;
+        }
+
+        scores.forEach((record, index) => {
+            const row = createLeaderboardRow(record, index + 1);
+            // Add fade-in animation with stagger
+            row.style.opacity = '0';
+            row.style.transform = 'translateY(10px)';
+            row.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            row.style.transitionDelay = `${index * 0.05}s`;
+            tbodyElement.appendChild(row);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+            });
+        });
+    }
+
+    function filterLeaderboard(scores, searchTerm) {
+        if (!searchTerm || searchTerm.trim() === '') {
+            return scores;
+        }
+        
+        const term = searchTerm.toLowerCase().trim();
+        return scores.filter(record => 
+            record.username.toLowerCase().includes(term)
+        );
+    }
+
+    function applyLeaderboardFilter() {
+        const searchTerm = leaderboardSearchInput.value;
+        const activeTab = getActiveLeaderboardTab();
+        
+        if (!activeTab) return;
+        
+        const originalScores = currentScores[activeTab];
+        if (!originalScores || originalScores.length === 0) return;
+        
+        const filteredScores = filterLeaderboard(originalScores, searchTerm);
+        
+        // Update clear button visibility
+        if (searchTerm.trim() !== '') {
+            leaderboardSearchClear.classList.remove('hidden');
+        } else {
+            leaderboardSearchClear.classList.add('hidden');
+        }
+        
+        // Render filtered results
+        const tbodyElement = getActiveLeaderboardTbody();
+        if (tbodyElement) {
+            renderLeaderboardTable(tbodyElement, filteredScores);
+        }
+    }
+
+    function getActiveLeaderboardTab() {
+        if (btnLeaderboardOverall.classList.contains('active')) return 'overall';
+        if (btnLeaderboardWeekly.classList.contains('active')) return 'weekly';
+        if (btnLeaderboardYearly.classList.contains('active')) return 'yearly';
+        return null;
+    }
+
+    function getActiveLeaderboardTbody() {
+        const activeTab = getActiveLeaderboardTab();
+        if (activeTab === 'overall') return leaderboardListEl;
+        if (activeTab === 'weekly') return weeklyLeaderboardListEl;
+        if (activeTab === 'yearly') return yearlyLeaderboardListEl;
+        return null;
+    }
+
+    function showLoadingMessage(tbodyElement) {
+        tbodyElement.innerHTML = generateSkeletonTableRows(5);
+    }
+
+    function generateSkeletonTableRows(count = 5) {
+        let html = '';
+        for (let i = 0; i < count; i++) {
+            html += `
+                <tr class="skeleton-table-row">
+                    <td><div class="skeleton skeleton-text short"></div></td>
+                    <td><div class="skeleton skeleton-text medium"></div></td>
+                    <td><div class="skeleton skeleton-text short"></div></td>
+                    <td><div class="skeleton skeleton-text medium"></div></td>
+                </tr>
+            `;
+        }
+        return html;
+    }
+
+    function generateSkeletonCard() {
+        return `
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-number"></div>
+            </div>
+        `;
+    }
+
+    function showErrorMessage(tbodyElement, message) {
+        tbodyElement.innerHTML = `<tr><td colspan="4" class="error-message-cell">${message}</td></tr>`;
+    }
+
     // --- App Logic & View Management ---
     async function loadDashboard() {
         try {
@@ -166,43 +486,120 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Fetch user's specific data (including max_score)
-            const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}`);
             if (!response.ok) {
                 throw { status: response.status, error: `HTTP error! status: ${response.status}` };
             }
             const userData = await response.json();
 
-            highScoreEl.textContent = userData.max_score || 0;
+            // Animate high score
+            animateValue(highScoreEl, userData.max_score || 0, { duration: 1000 });
             // goldEl.textContent = data.gold; // We don't have gold in our user data yet
             // upgradesListEl // Not implemented yet
             // achievementsListEl // Not implemented yet
+
+            // Load user statistics
+            await loadUserStats(userId);
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
             welcomeMessage.textContent = 'Welcome!'; // Fallback
             highScoreEl.textContent = 'Error';
-            // Show error notification (optional - could add a notification system)
+            toastError('대시보드 데이터를 불러오는 데 실패했습니다.');
         }
     }
-    async function loadLeaderboard() {
-        leaderboardListEl.innerHTML = '<li>로딩 중...</li>'; // Show loading state
+
+    async function loadUserStats(userId) {
         try {
-            showLoading('리더보드 불러오는 중...');
+            let stats;
+            
+            if (USE_MOCK_API) {
+                stats = await mockGetUserStats();
+            } else {
+                // Use real API (when implemented)
+                // const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/stats`);
+                // stats = await response.json();
+                stats = await mockGetUserStats(); // Fallback to mock for now
+            }
+
+            // Update statistics with animation
+            animateValue(totalGamesEl, stats.totalGames || 0, { duration: 800 });
+            animateValue(averageScoreEl, stats.averageScore || 0, { duration: 1000 });
+            
+            if (stats.rank && stats.rankOutOf) {
+                userRankEl.textContent = `${stats.rank} / ${stats.rankOutOf}`;
+            } else {
+                userRankEl.textContent = '-';
+            }
+
+            // Render recent games
+            renderRecentGames(stats.recentGames || []);
+
+        } catch (error) {
+            console.error('Failed to load user stats:', error);
+            totalGamesEl.textContent = 'Error';
+            averageScoreEl.textContent = 'Error';
+            userRankEl.textContent = '-';
+            recentGamesListEl.innerHTML = '<tr><td colspan="2" class="error-message-cell">통계를 불러오는 데 실패했습니다.</td></tr>';
+        }
+    }
+
+    function renderRecentGames(games) {
+        recentGamesListEl.innerHTML = '';
+
+        if (games.length === 0) {
+            recentGamesListEl.innerHTML = '<tr><td colspan="2" class="empty-message">아직 게임 기록이 없습니다.</td></tr>';
+            return;
+        }
+
+        games.forEach((game, index) => {
+            const row = document.createElement('tr');
+            
+            const scoreCell = document.createElement('td');
+            scoreCell.textContent = game.score.toLocaleString();
+            
+            const dateCell = document.createElement('td');
+            dateCell.textContent = formatDate(game.created_at);
+            
+            row.appendChild(scoreCell);
+            row.appendChild(dateCell);
+            
+            // Add fade-in animation with stagger
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(-10px)';
+            row.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            row.style.transitionDelay = `${index * 0.05}s`;
+            recentGamesListEl.appendChild(row);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                row.style.opacity = '1';
+                row.style.transform = 'translateX(0)';
+            });
+        });
+    }
+    // --- Leaderboard Loading Functions ---
+    async function loadLeaderboardData(endpoint, mockDataFn, tbodyElement, loadingMessage, tabKey) {
+        showLoadingMessage(tbodyElement);
+        try {
+            showLoading(loadingMessage);
             
             let scores;
             
             if (USE_MOCK_API) {
-                // Use mock data
-                const mockData = await mockGetLeaderboard();
-                // Convert mock data format to server format
-                scores = mockData.map((item, index) => ({
-                    username: item.username,
-                    score: item.score,
-                    created_at: new Date().toISOString() // Use current date for mock data
-                }));
+                if (endpoint === '/scores') {
+                    // Overall leaderboard needs date conversion
+                    const mockData = await mockDataFn();
+                    scores = mockData.map((item) => ({
+                        username: item.username,
+                        score: item.score,
+                        created_at: new Date().toISOString()
+                    }));
+                } else {
+                    scores = await mockDataFn();
+                }
             } else {
-                // Use real API
-                const response = await fetch(`${API_BASE_URL}/scores`); 
+                const response = await fetch(`${API_BASE_URL}${endpoint}`);
                 
                 if (!response.ok) {
                     throw { status: response.status, error: `HTTP error! status: ${response.status}` };
@@ -211,76 +608,115 @@ document.addEventListener('DOMContentLoaded', () => {
                 scores = await response.json();
             }
 
-            leaderboardListEl.innerHTML = ''; // Clear loading message
-
-            if (scores.length === 0) {
-                leaderboardListEl.innerHTML = '<li>아직 기록된 점수가 없습니다.</li>';
-                hideLoading();
-                return;
+            // Store original scores for filtering
+            if (tabKey) {
+                currentScores[tabKey] = scores;
             }
 
-            // 정렬이 필요 없습니다. (서버에서 이미 ORDER BY s.score DESC 로 정렬함)
-            // 또는 목업 데이터는 이미 정렬되어 있음
-
-            // 받아온 점수 기록(record)을 <li> 항목으로 만듭니다.
-            scores.forEach((record, index) => {
-                const listItem = document.createElement('li');
-                
-                // 날짜 포맷을 보기 좋게 변경합니다. (예: 2025. 11. 9. 오후 9:30:00)
-                const gameDate = record.created_at 
-                    ? new Date(record.created_at).toLocaleString('ko-KR')
-                    : '날짜 없음';
-                
-                // Add ranking
-                const rank = index + 1;
-                const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-                
-                listItem.textContent = `${rankEmoji} ${record.username}: ${record.score.toLocaleString()} 점${record.created_at ? ` (${gameDate})` : ''}`;
-                leaderboardListEl.appendChild(listItem);
-            });
-
+            // Apply current filter if any
+            const searchTerm = leaderboardSearchInput.value;
+            const filteredScores = filterLeaderboard(scores, searchTerm);
+            
+            renderLeaderboardTable(tbodyElement, filteredScores);
             hideLoading();
         } catch (error) {
-            console.error('Error loading leaderboard:', error);
-            leaderboardListEl.innerHTML = `<li>점수판을 불러오는 데 실패했습니다: ${getErrorMessage(error)}</li>`;
+            console.error(`Error loading leaderboard (${endpoint}):`, error);
+            showErrorMessage(tbodyElement, `점수판을 불러오는 데 실패했습니다: ${getErrorMessage(error)}`);
             hideLoading();
+        }
+    }
+
+    async function loadLeaderboard() {
+        await loadLeaderboardData(
+            '/scores',
+            mockGetLeaderboard,
+            leaderboardListEl,
+            '리더보드 불러오는 중...',
+            'overall'
+        );
+    }
+
+    // --- View Management ---
+    const views = {
+        login: loginView,
+        register: registerView,
+        dashboard: dashboardView,
+        leaderboard: leaderboardView
+    };
+
+    function showView(viewName) {
+        // Hide all views
+        Object.values(views).forEach(view => view.classList.add('hidden'));
+        // Show selected view
+        if (views[viewName]) {
+            views[viewName].classList.remove('hidden');
         }
     }
 
     function showLoginView() {
-        loginView.classList.remove('hidden');
-        dashboardView.classList.add('hidden');
-        leaderboardView.classList.add('hidden');
-        registerView.classList.add('hidden');
+        showView('login');
     }
 
+    // Pass the view handler to the API module
+    setLoginViewHandler(showLoginView);
+
     function showRegisterView() {
-        loginView.classList.add('hidden');
-        dashboardView.classList.add('hidden');
-        leaderboardView.classList.add('hidden');
-        registerView.classList.remove('hidden');
+        showView('register');
     }
 
     function showDashboardView() {
-        loginView.classList.add('hidden');
-        dashboardView.classList.remove('hidden');
-        leaderboardView.classList.add('hidden');
-        registerView.classList.add('hidden');
+        showView('dashboard');
         loadDashboard();
     }
 
-    function showLeaderboardView() {
-        loginView.classList.add('hidden');
-        dashboardView.classList.add('hidden');
-        leaderboardView.classList.remove('hidden');
-        registerView.classList.add('hidden');
-        const username = localStorage.getItem('invaders_username');
-        if (username) {
-            welcomeMessage.textContent = `Welcome, ${username}!`;
-        } else {
-            welcomeMessage.textContent = 'Welcome!';
+    async function loadWeeklyLeaderboard() {
+        await loadLeaderboardData(
+            '/scores/weekly',
+            mockGetWeeklyLeaderboard,
+            weeklyLeaderboardListEl,
+            '주간 리더보드 불러오는 중...',
+            'weekly'
+        );
+    }
+
+    async function loadYearlyLeaderboard() {
+        await loadLeaderboardData(
+            '/scores/yearly',
+            mockGetYearlyLeaderboard,
+            yearlyLeaderboardListEl,
+            '연간 리더보드 불러오는 중...',
+            'yearly'
+        );
+    }
+
+    function showLeaderboardTab(tabName) {
+        // Hide all cards and remove active class from all buttons
+        leaderboardCards.forEach(card => card.classList.add('hidden'));
+        leaderboardNavBtns.forEach(btn => btn.classList.remove('active'));
+
+        // Show the selected card and set the corresponding button to active
+        if (tabName === 'overall') {
+            cardLeaderboardOverall.classList.remove('hidden');
+            btnLeaderboardOverall.classList.add('active');
+        } else if (tabName === 'weekly') {
+            cardLeaderboardWeekly.classList.remove('hidden');
+            btnLeaderboardWeekly.classList.add('active');
+            loadWeeklyLeaderboard();
+        } else if (tabName === 'yearly') {
+            cardLeaderboardYearly.classList.remove('hidden');
+            btnLeaderboardYearly.classList.add('active');
+            loadYearlyLeaderboard();
         }
+    }
+
+    function showLeaderboardView() {
+        showView('leaderboard');
+        
+        const username = localStorage.getItem('invaders_username');
+        welcomeMessage.textContent = username ? `Welcome, ${username}!` : 'Welcome!';
+        
         loadLeaderboard();
+        showLeaderboardTab('overall'); // Show the overall tab by default
     }
 
     function logout() {
@@ -297,6 +733,26 @@ document.addEventListener('DOMContentLoaded', () => {
     viewLeaderboardBtn.addEventListener('click', showLeaderboardView);
     backToDashboardBtn.addEventListener('click', showDashboardView);
 
+    // Leaderboard Tab Listeners
+    btnLeaderboardOverall.addEventListener('click', () => showLeaderboardTab('overall'));
+    btnLeaderboardWeekly.addEventListener('click', () => showLeaderboardTab('weekly'));
+    btnLeaderboardYearly.addEventListener('click', () => showLeaderboardTab('yearly'));
+
+    // Leaderboard Search Listeners
+    if (leaderboardSearchInput) {
+        leaderboardSearchInput.addEventListener('input', () => {
+            applyLeaderboardFilter();
+        });
+    }
+
+    if (leaderboardSearchClear) {
+        leaderboardSearchClear.addEventListener('click', () => {
+            leaderboardSearchInput.value = '';
+            leaderboardSearchClear.classList.add('hidden');
+            applyLeaderboardFilter();
+        });
+    }
+
     simulateGameOverBtn.addEventListener('click', async (e) => {
         e.preventDefault(); // 기본 동작 방지
 
@@ -304,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = localStorage.getItem('invaders_username');
 
         if (!userId) {
-            alert('로그인된 사용자 정보가 없습니다. 먼저 로그인해주세요.');
+            toastWarning('로그인된 사용자 정보가 없습니다. 먼저 로그인해주세요.');
             return;
         }
 
@@ -315,7 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading('점수 업데이트 중...');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/users/${userId}/score`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/score`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -330,7 +786,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             hideLoading();
-            alert(`${username}님, 게임 종료! 점수: ${randomScore.toLocaleString()}. ${data.message}`);
+            toastSuccess(
+                `${username}님, 게임 종료! 점수: ${randomScore.toLocaleString()}. ${data.message}`,
+                '게임 종료'
+            );
 
             // 대시보드 정보를 새로고침하여 최고 점수 업데이트 반영
             await loadDashboard();
@@ -338,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('게임 종료 시뮬레이션 중 오류 발생:', error);
             hideLoading();
-            alert(`점수 업데이트 중 오류 발생: ${getErrorMessage(error)}`);
+            toastError(`점수 업데이트 중 오류 발생: ${getErrorMessage(error)}`);
         } finally {
             setButtonLoading(simulateGameOverBtn, false);
         }
