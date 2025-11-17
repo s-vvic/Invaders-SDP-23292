@@ -99,7 +99,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
     private static final int SLOWDOWN_DURATION = 18;
 
     /** Directions the formation can move. */
-    private enum Direction {
+    public enum Direction {
         /** Movement to the right-down diagonal. */
         DOWN_RIGHT,
         /** Movement to the left-down diagonal. */
@@ -175,11 +175,11 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
      * Constructor that uses Level directly (without GameSettings).
      * @param level Current level data.
      */
-    public EnemyShipFormation(final Level level) {
+    public EnemyShipFormation(final Level level,final int offsetX, final int offsetY,final Direction initialDirection) {
         this.drawManager = Core.getDrawManager();
         this.logger = Core.getLogger();
         this.enemyShips = new ArrayList<List<EnemyShip>>();
-        this.currentDirection = Direction.DOWN_RIGHT;
+        this.currentDirection = initialDirection;
         this.movementInterval = 0;
 
         // Read values directly from Level
@@ -189,8 +189,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         this.shootingVariance = (int) (level.getShootingFrecuency() * SHOOTING_VARIANCE);
         this.baseSpeed = level.getBaseSpeed();
         this.movementSpeed = this.baseSpeed;
-        this.positionX = INIT_POS_X;
-        this.positionY = INIT_POS_Y;
+        this.positionX = INIT_POS_X + offsetX; 
+		this.positionY = INIT_POS_Y + offsetY;
         this.shooters = new ArrayList<EnemyShip>();
         this.logger.info("Initializing " + nShipsWide + "x" + nShipsHigh
                 + " ship formation in (" + positionX + "," + positionY + ")");
@@ -236,6 +236,9 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         for (List<EnemyShip> column : this.enemyShips)
             this.shooters.add(column.get(column.size() - 1));
     }
+	public EnemyShipFormation(final Level level) {
+		this(level, 0, 0, Direction.DOWN_RIGHT);
+	}
 
 	/**
 	 * Associates the formation to a given screen.
