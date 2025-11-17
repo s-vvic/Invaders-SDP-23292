@@ -2,8 +2,13 @@ const express = require("express");
 const path = require("path");
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
+const jwt = require('jsonwebtoken');
 
 const app = express();
+
+// --- 추가 ---
+// JWT 비밀 키 (실제 운영에서는 .env 파일로 숨겨야 합니다)
+const JWT_SECRET = 'your-very-strong-secret-key-12345!';
 
 let db;
 
@@ -111,8 +116,24 @@ app.post('/api/login', async function(req, res) {
 
         if (user) {
             // 로그인 성공
+            // --- 수정 ---
+            // 로그인 성공 시 JWT 생성
+            const payload = {
+                id: user.id,
+                username: user.username
+            };
+            
+            // 토큰 서명 (유효기간 1시간)
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+
             console.log('Login successful:', user.username);
-            res.json({ token: 'your-generated-token-xyz123', user: { id: user.id, username: user.username } });
+            
+            // 생성된 토큰과 사용자 정보를 반환
+            res.json({ 
+                token: token, 
+                user: { id: user.id, username: user.username } 
+            });
+            // --- 수정 끝 ---
         } else {
             // 로그인 실패
             console.log('Login failed for:', username);
@@ -124,6 +145,33 @@ app.post('/api/login', async function(req, res) {
         res.status(500).json({ error: 'Server database error' });
     }
 });
+
+// --- 추가 ---
+// JWT 인증 미들웨어
+// ===============================================
+function authenticateToken(req, res, next) {
+    // 요청 헤더(Authorization)에서 'Bearer [token]' 형식의 토큰을 가져옵니다.
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // 'Bearer' 다음의 토큰 값
+
+    if (token == null) {
+        // 토큰이 없으면 401 Unauthorized (권한 없음)
+        return res.status(401).json({ error: 'Access token is required' });
+    }
+
+    // 토큰 검증
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            // 토큰이 유효하지 않거나 만료된 경우
+            console.log('JWT verification failed:', err.message);
+            return res.status(403).json({ error: 'Invalid or expired token' });
+        }
+        // 토큰이 유효하면, req.user에 사용자 정보를 추가합니다.
+        req.user = user;
+        next(); // 다음 핸들러로 이동
+    });
+}
+// ===============================================
 
 /**
  * @swagger
@@ -209,7 +257,7 @@ app.post('/api/register', async (req, res) => {
  *       500:
  *         description: Server database error
  */
-app.get('/api/users', async function(req, res) {
+app.get('/api/users', authenticateToken, async function(req, res) {
     try {
         const users = await db.all('SELECT id, username, max_score FROM users');
         res.json(users);
@@ -253,7 +301,7 @@ app.get('/api/users', async function(req, res) {
  *       500:
  *         description: Server database error
  */
-app.get('/api/users/:id', async function(req, res) {
+app.get('/api/users/:id', authenticateToken, async function(req, res) {
     try {
         const userId = parseInt(req.params.id, 10); // Convert ID to integer
 
@@ -302,24 +350,23 @@ app.get('/api/users/:id', async function(req, res) {
  *       500:
  *         description: Server database error
  */
-app.get('/api/scores', async function(req, res) {
+app.get('/api/scores', authenticateToken, async function(req, res) {
     try {
         // score 테이블과 users 테이블을 JOIN 하여
         // 유저이름, 점수, 생성일자를 점수 내림차순으로 100개 가져옵니다.
         const scores = await db.all(`
             SELECT u.username, s.score, s.created_at 
-            FROM score s
+            FROM scores s 
             JOIN users u ON s.user_id = u.id
             ORDER BY s.score DESC
             LIMIT 100 
-        `);
+        `); // --- 수정: 'score' -> 'scores'
         res.json(scores);
     } catch (error) {
         console.error('Database error while fetching scores:', error);
         res.status(500).json({ error: 'Server database error' });
     }
 });
-
 /**
  * @swagger
  * /api/users/{id}/score:
@@ -353,9 +400,13 @@ app.get('/api/scores', async function(req, res) {
  *       500:
  *         description: Server database error
  */
-app.put('/api/users/:id/score', async (req, res) => {
+app.put('/api/users/:id/score', authenticateToken, async (req, res) => {
     try {
-        const userId = parseInt(req.params.id, 10);
+        // --- 수정 ---
+        // URL의 ID 대신, 인증된 토큰의 사용자 ID를 사용하는 것이 더 안전합니다.
+        const userId = req.user.id; 
+        // const userId = parseInt(req.params.id, 10); // (이전 코드)
+        
         const { score } = req.body;
 
         if (isNaN(userId) || typeof score !== 'number') {
@@ -379,12 +430,15 @@ app.put('/api/users/:id/score', async (req, res) => {
 
         // score 테이블에 현재 점수 기록
         await db.run(
-            'INSERT INTO score (user_id, score) VALUES (?, ?)',
+            'INSERT INTO scores (user_id, score) VALUES (?, ?)', // --- 수정: 'score' -> 'scores'
             [userId, score]
         );
         
         console.log(`Logged score ${score} for user ${userId}`);
 
+        // --- 수정 ---
+        // (중첩되었던 불필요한 app.put 핸들러 제거)
+        
         res.json({ message: responseMessage, new_max_score: newMaxScore });
 
     } catch (error) {
