@@ -59,6 +59,9 @@ public class GameScreen extends Screen {
 	/** Time until Boss explosion disappears. */
 	private Cooldown bossExplosionCooldown;
 	/** Time from finishing the level to screen change. */
+
+	private EnemyShipChaserFormation chaserFormation;
+
 	private Cooldown screenFinishedCooldown;
 	/** OmegaBoss */
 	private MidBoss omegaBoss;
@@ -168,6 +171,9 @@ public class GameScreen extends Screen {
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
         this.dropItems = new HashSet<DropItem>();
+
+		this.chaserFormation = new EnemyShipChaserFormation(this.currentLevel, this.width, this.ship);
+		this.chaserFormation.attach(this);
 
 		// Special input delay / countdown.
 		this.gameStartTime = System.currentTimeMillis();
@@ -448,6 +454,24 @@ public class GameScreen extends Screen {
 								}
 								recyclable.add(bullet);
 							}
+							for (Chaser currentChaser : this.chaserFormation) {
+								 if (!currentChaser.isDestroyed() && checkCollision(bullet, currentChaser)) {
+
+									currentChaser.takeDamage(1); 
+									 if (currentChaser.isDestroyed()) {
+										int pts = currentChaser.getPointValue();
+ 										addPointsFor(bullet, pts);
+										this.coin += (pts / 10);
+										this.shipsDestroyed++;
+ 									}
+									if (!bullet.penetration()) {
+										recyclable.add(bullet);
+										break; 
+									}
+								}
+							}
+
+							
 						}				
 					    	/**
 				
@@ -692,6 +716,17 @@ public class GameScreen extends Screen {
                 }
             }
 
+			for (Chaser currentChaser : this.chaserFormation) {
+				 if (!currentChaser.isDestroyed()&& checkCollision(this.ship, currentChaser)) { 
+					 	currentChaser.destroy(); 
+						this.ship.destroy();
+						this.livesP1--;
+						showHealthPopup("-1 Life (Collision!)");
+						this.logger.info("Ship collided with Chaser! " + this.livesP1 + " lives remaining.");
+				 	return; 
+				}
+}
+
             // Check collision with omega boss (mid boss - yellow/pink ship)
             if (this.omegaBoss != null && !this.omegaBoss.isDestroyed()
                     && checkCollision(this.ship, this.omegaBoss)) {
@@ -922,7 +957,7 @@ public class GameScreen extends Screen {
 			case wave:
 				if (!DropItem.isTimeFreezeActive()) {
 					this.enemyShipFormation.update();
-					this.enemyShipFormation.shoot(this.bullets);
+					this.enemyShipFormation.shoot(this.bullets);				
 				}
 				if (this.enemyShipFormation.isEmpty()) {
 					this.currentPhase = StagePhase.boss_wave;
@@ -960,6 +995,7 @@ public class GameScreen extends Screen {
 		this.ship.update();
 		// special enemy update
 		this.enemyShipSpecialFormation.update();
+		this.chaserFormation.update(this.ship);
 	}
 	/**
 	 * Handles player input for both player 1 and player 2.

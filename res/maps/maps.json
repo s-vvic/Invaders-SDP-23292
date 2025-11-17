@@ -31,9 +31,7 @@
         { "enemyType": "enemyA", "itemId": "Heal", "dropChance": 0.15 },
         { "enemyType": "enemyA", "itemId": "Shield", "dropChance": 0.05 },
         { "enemyType": "enemyB", "itemId": "Shield", "dropChance": 0.1 }
-      ],
-      "bossId": "omegaBoss",
-      "completionBonus": { "currency": 20 }
+      ]     
     },
     {
       "level": 3,
