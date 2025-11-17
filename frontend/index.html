@@ -100,22 +100,28 @@
             <div class="container">
                 <header>
                     <h1>Leaderboard</h1>
+                    <div class="leaderboard-nav">
+                        <button id="btn-leaderboard-overall" class="leaderboard-nav-btn">Overall</button>
+                        <button id="btn-leaderboard-weekly" class="leaderboard-nav-btn">Weekly</button>
+                        <button id="btn-leaderboard-yearly" class="leaderboard-nav-btn">Yearly</button>
+                    </div>
                     <button id="back-to-dashboard-btn">Back to Dashboard</button>
                 </header>
                 <main>
-                    <div class="card full-width">
+                    <div id="card-leaderboard-overall" class="card full-width">
+                        <h3>Overall High Scores</h3>
                         <ol id="leaderboard-list">
                             <!-- JS will populate this -->
                         </ol>
                     </div>
-                    <div class="card full-width">
+                    <div id="card-leaderboard-weekly" class="card full-width hidden">
                         <h3>Weekly High Scores</h3>
                         <ol id="weekly-leaderboard-list">
                             <!-- JS will populate this -->
                             <li>Loading weekly scores...</li>
                         </ol>
                     </div>
-                    <div class="card full-width">
+                    <div id="card-leaderboard-yearly" class="card full-width hidden">
                         <h3>Yearly High Scores</h3>
                         <ol id="yearly-leaderboard-list">
                             <!-- JS will populate this -->

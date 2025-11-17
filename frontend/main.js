@@ -26,6 +26,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const weeklyLeaderboardListEl = document.getElementById('weekly-leaderboard-list');
     const yearlyLeaderboardListEl = document.getElementById('yearly-leaderboard-list');
 
+    // Leaderboard Tab Elements
+    const btnLeaderboardOverall = document.getElementById('btn-leaderboard-overall');
+    const btnLeaderboardWeekly = document.getElementById('btn-leaderboard-weekly');
+    const btnLeaderboardYearly = document.getElementById('btn-leaderboard-yearly');
+    const cardLeaderboardOverall = document.getElementById('card-leaderboard-overall');
+    const cardLeaderboardWeekly = document.getElementById('card-leaderboard-weekly');
+    const cardLeaderboardYearly = document.getElementById('card-leaderboard-yearly');
+
+    const leaderboardNavBtns = [btnLeaderboardOverall, btnLeaderboardWeekly, btnLeaderboardYearly];
+    const leaderboardCards = [cardLeaderboardOverall, cardLeaderboardWeekly, cardLeaderboardYearly];
+
+
     // --- API Configuration ---
     const API_BASE_URL = 'http://localhost:8080/api';
     const USE_MOCK_API = true; // Set to false to use real API
@@ -192,18 +204,39 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDashboard();
     }
 
+    function showLeaderboardTab(tabName) {
+        // Hide all cards and remove active class from all buttons
+        leaderboardCards.forEach(card => card.classList.add('hidden'));
+        leaderboardNavBtns.forEach(btn => btn.classList.remove('active'));
+
+        // Show the selected card and set the corresponding button to active
+        if (tabName === 'overall') {
+            cardLeaderboardOverall.classList.remove('hidden');
+            btnLeaderboardOverall.classList.add('active');
+        } else if (tabName === 'weekly') {
+            cardLeaderboardWeekly.classList.remove('hidden');
+            btnLeaderboardWeekly.classList.add('active');
+        } else if (tabName === 'yearly') {
+            cardLeaderboardYearly.classList.remove('hidden');
+            btnLeaderboardYearly.classList.add('active');
+        }
+    }
+
     function showLeaderboardView() {
         loginView.classList.add('hidden');
         dashboardView.classList.add('hidden');
         leaderboardView.classList.remove('hidden');
         registerView.classList.add('hidden');
+        
         const username = localStorage.getItem('invaders_username');
         if (username) {
             welcomeMessage.textContent = `Welcome, ${username}!`;
         } else {
             welcomeMessage.textContent = 'Welcome!';
         }
+        
         loadLeaderboard();
+        showLeaderboardTab('overall'); // Show the overall tab by default
     }
 
     function logout() {
@@ -219,6 +252,11 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', logout);
     viewLeaderboardBtn.addEventListener('click', showLeaderboardView);
     backToDashboardBtn.addEventListener('click', showDashboardView);
+
+    // Leaderboard Tab Listeners
+    btnLeaderboardOverall.addEventListener('click', () => showLeaderboardTab('overall'));
+    btnLeaderboardWeekly.addEventListener('click', () => showLeaderboardTab('weekly'));
+    btnLeaderboardYearly.addEventListener('click', () => showLeaderboardTab('yearly'));
 
     simulateGameOverBtn.addEventListener('click', async (e) => {
         e.preventDefault(); // 기본 동작 방지
