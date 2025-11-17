@@ -162,10 +162,22 @@ function authenticateToken(req, res, next) {
     // 토큰 검증
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
+            // --- 수정 ---
             // 토큰이 유효하지 않거나 만료된 경우
+            // 403 (Forbidden) 대신 401 (Unauthorized)을 보냅니다.
+            // 401은 "인증 실패" (토큰 만료/없음)에 더 적합합니다.
             console.log('JWT verification failed:', err.message);
-            return res.status(403).json({ error: 'Invalid or expired token' });
+
+            let errorMessage = 'Invalid token. Please log in again.';
+            // 만료 오류인지 명확히 확인
+            if (err.name === 'TokenExpiredError') {
+                errorMessage = 'Token expired. Please log in again.';
+            }
+            
+            return res.status(401).json({ error: errorMessage });
+            // --- 수정 끝 ---
         }
+
         // 토큰이 유효하면, req.user에 사용자 정보를 추가합니다.
         req.user = user;
         next(); // 다음 핸들러로 이동
