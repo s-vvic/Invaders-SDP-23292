@@ -1,0 +1,102 @@
+[
+    {
+        "username": "WeeklyPro1",
+        "score": 15000,
+        "created_at": "2025-11-10 10:00:00"
+    },
+    {
+        "username": "WeeklyPro2",
+        "score": 14500,
+        "created_at": "2025-11-09 11:00:00"
+    },
+    {
+        "username": "WeeklyPro3",
+        "score": 14000,
+        "created_at": "2025-11-08 12:00:00"
+    },
+    {
+        "username": "WeeklyPro4",
+        "score": 13500,
+        "created_at": "2025-11-07 13:00:00"
+    },
+    {
+        "username": "WeeklyPro5",
+        "score": 13000,
+        "created_at": "2025-11-06 14:00:00"
+    },
+    {
+        "username": "WeeklyPro6",
+        "score": 12500,
+        "created_at": "2025-11-05 15:00:00"
+    },
+    {
+        "username": "WeeklyPro7",
+        "score": 12000,
+        "created_at": "2025-11-04 16:00:00"
+    },
+    {
+        "username": "WeeklyPro8",
+        "score": 11500,
+        "created_at": "2025-11-03 17:00:00"
+    },
+    {
+        "username": "WeeklyPro9",
+        "score": 11000,
+        "created_at": "2025-11-02 18:00:00"
+    },
+    {
+        "username": "WeeklyPro10",
+        "score": 10500,
+        "created_at": "2025-11-01 19:00:00"
+    },
+    {
+        "username": "WeeklyPro11",
+        "score": 10000,
+        "created_at": "2025-10-31 20:00:00"
+    },
+    {
+        "username": "WeeklyPro12",
+        "score": 9500,
+        "created_at": "2025-10-30 21:00:00"
+    },
+    {
+        "username": "WeeklyPro13",
+        "score": 9000,
+        "created_at": "2025-10-29 22:00:00"
+    },
+    {
+        "username": "WeeklyPro14",
+        "score": 8500,
+        "created_at": "2025-10-28 23:00:00"
+    },
+    {
+        "username": "WeeklyPro15",
+        "score": 8000,
+        "created_at": "2025-10-27 00:00:00"
+    },
+    {
+        "username": "WeeklyPro16",
+        "score": 7500,
+        "created_at": "2025-10-26 01:00:00"
+    },
+    {
+        "username": "WeeklyPro17",
+        "score": 7000,
+        "created_at": "2025-10-25 02:00:00"
+    },
+    {
+        "username": "WeeklyPro18",
+        "score": 6500,
+        "created_at": "2025-10-24 03:00:00"
+    },
+    {
+        "username": "WeeklyPro19",
+        "score": 6000,
+        "created_at": "2025-10-23 04:00:00"
+    },
+    {
+        "username": "WeeklyPro20",
+        "score": 5500,
+        "created_at": "2025-10-22 05:00:00"
+    }
+]

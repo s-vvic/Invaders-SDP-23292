@@ -1,0 +1,102 @@
+[
+    {
+        "username": "YearlyChamp1",
+        "score": 150000,
+        "created_at": "2025-10-01 10:00:00"
+    },
+    {
+        "username": "YearlyChamp2",
+        "score": 145000,
+        "created_at": "2025-09-15 11:00:00"
+    },
+    {
+        "username": "YearlyChamp3",
+        "score": 140000,
+        "created_at": "2025-08-20 12:00:00"
+    },
+    {
+        "username": "YearlyChamp4",
+        "score": 135000,
+        "created_at": "2025-07-05 13:00:00"
+    },
+    {
+        "username": "YearlyChamp5",
+        "score": 130000,
+        "created_at": "2025-06-10 14:00:00"
+    },
+    {
+        "username": "YearlyChamp6",
+        "score": 125000,
+        "created_at": "2025-05-25 15:00:00"
+    },
+    {
+        "username": "YearlyChamp7",
+        "score": 120000,
+        "created_at": "2025-04-30 16:00:00"
+    },
+    {
+        "username": "YearlyChamp8",
+        "score": 115000,
+        "created_at": "2025-03-15 17:00:00"
+    },
+    {
+        "username": "YearlyChamp9",
+        "score": 110000,
+        "created_at": "2025-02-01 18:00:00"
+    },
+    {
+        "username": "YearlyChamp10",
+        "score": 105000,
+        "created_at": "2025-01-10 19:00:00"
+    },
+    {
+        "username": "YearlyChamp11",
+        "score": 100000,
+        "created_at": "2024-12-25 20:00:00"
+    },
+    {
+        "username": "YearlyChamp12",
+        "score": 95000,
+        "created_at": "2024-11-30 21:00:00"
+    },
+    {
+        "username": "YearlyChamp13",
+        "score": 90000,
+        "created_at": "2024-10-15 22:00:00"
+    },
+    {
+        "username": "YearlyChamp14",
+        "score": 85000,
+        "created_at": "2024-09-01 23:00:00"
+    },
+    {
+        "username": "YearlyChamp15",
+        "score": 80000,
+        "created_at": "2024-08-10 00:00:00"
+    },
+    {
+        "username": "YearlyChamp16",
+        "score": 75000,
+        "created_at": "2024-07-20 01:00:00"
+    },
+    {
+        "username": "YearlyChamp17",
+        "score": 70000,
+        "created_at": "2024-06-05 02:00:00"
+    },
+    {
+        "username": "YearlyChamp18",
+        "score": 65000,
+        "created_at": "2024-05-10 03:00:00"
+    },
+    {
+        "username": "YearlyChamp19",
+        "score": 60000,
+        "created_at": "2024-04-25 04:00:00"
+    },
+    {
+        "username": "YearlyChamp20",
+        "score": 55000,
+        "created_at": "2024-03-01 05:00:00"
+    }
+]
