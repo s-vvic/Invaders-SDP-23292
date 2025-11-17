@@ -1,7 +1,6 @@
 package screen;
 
 import java.awt.Color;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import engine.DrawManager;
 

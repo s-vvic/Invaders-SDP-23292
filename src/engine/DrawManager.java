@@ -3,17 +3,11 @@ package engine;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
-import java.awt.geom.Ellipse2D;
-import java.awt.Paint;
-import java.awt.RadialGradientPaint;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.AlphaComposite;
-import java.awt.Composite;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.awt.RenderingHints;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,17 +17,12 @@ import java.util.logging.Logger;
 import entity.Entity;
 import entity.FinalBoss;
 import entity.Ship;
-import engine.Nebula;
-import engine.Achievement;
 import screen.CreditScreen;
 import screen.EasterEggScreen;
 import screen.Screen;
-import engine.Score;
 import screen.TitleScreen;
 import screen.TitleScreen.Star;
 import screen.TitleScreen.ShootingStar;
-import engine.NebulaSettings;
-import engine.AuthManager;
 
 /**
  * Manages screen drawing.
@@ -112,7 +101,7 @@ public final class DrawManager {
 	public static enum SpriteType {
 		Ship, ShipDestroyed, Bullet, EnemyBullet, EnemyShipA1, EnemyShipA2,
 		EnemyShipB1, EnemyShipB2, EnemyShipC1, EnemyShipC2, EnemyShipSpecial,
-		FinalBoss1, FinalBoss2,FinalBossBullet,FinalBossDeath,OmegaBoss1, OmegaBoss2,OmegaBossDeath, Explosion, SoundOn, SoundOff, Item_MultiShot,
+		FinalBoss1, FinalBoss2,FinalBossBullet,FinalBossDeath,OmegaBoss1, OmegaBoss2,OmegaBossDeath, Chaser, Explosion, SoundOn, SoundOff, Item_MultiShot,
 		Item_Atkspeed, Item_Penetrate, Item_Explode, Item_Slow, Item_Stop,
 		Item_Push, Item_Shield, Item_Heal
 	}
@@ -154,6 +143,7 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.OmegaBoss1, new boolean[32][14]);
 			spriteMap.put(SpriteType.OmegaBoss2, new boolean[32][14]);
 			spriteMap.put(SpriteType.OmegaBossDeath, new boolean[16][16]);
+			spriteMap.put(SpriteType.Chaser, new boolean[10][10]);
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
 

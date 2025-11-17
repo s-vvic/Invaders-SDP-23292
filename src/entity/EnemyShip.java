@@ -160,6 +160,7 @@ public class EnemyShip extends Entity {
 	/**
 	 * Destroys the ship, causing an explosion.
 	 */
+	
 	public final void destroy() {
         if (!this.isDestroyed) {
             this.isDestroyed = true;

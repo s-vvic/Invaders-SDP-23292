@@ -8,10 +8,8 @@ import java.util.Random;
 import java.util.Iterator;
 import engine.Cooldown;
 import engine.Core;
-import engine.DrawManager;
 import engine.DrawManager.SpriteType;
 import engine.CelestialBody;
-import entity.Entity;
 import engine.StarSpeedManager;
 import engine.StarOriginManager;
 import engine.CelestialManager;
@@ -29,8 +27,6 @@ public class CreditScreen extends Screen {
     private static final int NUM_STARS = 800;
     public static final float MAX_STAR_Z = 500.0f;
     public static final float MIN_STAR_Z = -5.0f;
-    private static int STAR_ORIGIN_X;
-    private static int STAR_ORIGIN_Y;
     private static final int ENEMY_SPAWN_COOLDOWN = 2000;
     private static final double ENEMY_SPAWN_CHANCE = 0.05;
     private static final int SHOOTING_STAR_COOLDOWN = 3000;
@@ -90,9 +86,6 @@ public class CreditScreen extends Screen {
         this.shootingStarCooldown.reset();
 
         this.random = new Random();
-        STAR_ORIGIN_X = width / 2;
-        STAR_ORIGIN_Y = height / 2;
-
         this.stars = new ArrayList<TitleScreen.Star>();
         List<Color> starColors = java.util.Arrays.asList(
                 Color.WHITE,
