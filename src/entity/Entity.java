@@ -131,4 +131,24 @@ public class Entity {
 	public final int getHeight() {
 		return this.height;
 	}
+
+	/**
+	 * Setter for the width of the image associated to the entity.
+	 *
+	 * @param width
+	 *            New width of the entity.
+	 */
+	public final int setWidth(final int width) {
+		return this.width = width;
+	}
+
+	/**
+	 * Setter for the height of the image associated to the entity.
+	 *
+	 * @param height
+	 *            New height of the entity.
+	 */
+	public final int setHeight(final int height) {
+		return this.height = height;
+	}
 }
