@@ -29,46 +29,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const USE_MOCK_API = false; // Set to false to use real API
 
     // --- Mock API ---
-    function mockLogin(username, password) {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if (username === "test" && password === "1234") {
-                    resolve({
-                        token: "fake-jwt-token-for-testing",
-                        username: "test"
-                    });
-                }
-                else reject({ error: "Invalid username or password" });
-            }, 300);
-        });
-    }
-
-    function mockRegister(username, password) {
-        console.log(`[Mock API] Register attempt for: ${username}`);
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if (username === "test") {
-                    reject({ error: "Username 'test' is already taken." });
-                } else {
-                    resolve({ message: "Account created successfully!" });
-                }
-            }, 500);
-        });
-    }
-
-    function mockGetDashboardData(token) {
-        return fetch('./mock_data/dashboard.json').then(res => res.json());
-    }
-
-    function mockGetLeaderboard() {
-        return fetch('./mock_data/leaderboard.json').then(res => res.json());
-    }
+    // ... (Mock API 함수들은 수정 없음) ...
 
     // --- App Logic & View Management ---
     async function loadDashboard() {
         try {
             const username = localStorage.getItem('invaders_username');
             const userId = localStorage.getItem('invaders_userId');
+            const token = localStorage.getItem('invaders_token'); // --- 추가 ---
+
+            // --- 추가 ---
+            if (!token) { // 토큰이 없으면 로그인 화면으로
+                logout();
+                return;
+            }
 
             if (username) {
                 welcomeMessage.textContent = `Welcome, ${username}!`;
@@ -77,7 +51,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Fetch user's specific data (including max_score)
-            const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+            // --- 수정 ---
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}` // 토큰 헤더 추가
+                }
+            });
+            // --- 수정 끝 ---
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -90,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
+            if (error.status === 403 || error.status === 401) logout(); // 토큰 만료 시 로그아웃
             welcomeMessage.textContent = 'Welcome!'; // Fallback
             highScoreEl.textContent = 'Error';
         }
@@ -97,9 +80,18 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadLeaderboard() {
         leaderboardListEl.innerHTML = ''; // Clear previous list
         try {
+            const token = localStorage.getItem('invaders_token'); // --- 추가 ---
+
             // 1. API 엔드포인트를 /api/users -> /api/scores 로 변경합니다.
             //    (이전에 server.js에 추가한 엔드포인트)
-            const response = await fetch(`${API_BASE_URL}/scores`); 
+            // --- 수정 ---
+            const response = await fetch(`${API_BASE_URL}/scores`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}` // 토큰 헤더 추가
+                }
+            }); 
+            // --- 수정 끝 ---
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -171,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function logout() {
         localStorage.removeItem('invaders_token');
         localStorage.removeItem('invaders_username');
+        localStorage.removeItem('invaders_userId'); // --- 추가 ---
         showLoginView();
     }
 
@@ -187,8 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const userId = localStorage.getItem('invaders_userId');
         const username = localStorage.getItem('invaders_username');
+        const token = localStorage.getItem('invaders_token'); // --- 추가 ---
 
-        if (!userId) {
+        if (!userId || !token) { // --- 수정 ---
             alert('로그인된 사용자 정보가 없습니다. 먼저 로그인해주세요.');
             return;
         }
@@ -197,13 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const randomScore = Math.floor(Math.random() * (10000 - 100 + 1)) + 100;
 
         try {
+            // --- 수정 ---
             const response = await fetch(`${API_BASE_URL}/users/${userId}/score`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // 토큰 헤더 추가
                 },
                 body: JSON.stringify({ score: randomScore }),
             });
+            // --- 수정 끝 ---
 
             const data = await response.json();
 
@@ -234,6 +231,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.error);
             }
 
+            // --- 수정 ---
+            // (이미 잘 구현되어 있었습니다. data.user.id 저장 추가)
             localStorage.setItem('invaders_token', data.token);
             localStorage.setItem('invaders_username', data.user.username);
             localStorage.setItem('invaders_userId', data.user.id);
@@ -258,10 +257,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const data = USE_MOCK_API ? await mockRegister(username, password) : await (await fetch(`${API_BASE_URL}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) })).json();
+            
+            // --- 수정 --- (백엔드 오류 메시지 표시)
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
             alert(data.message); // Show success message
             showLoginView(); // Go to login page after successful registration
         } catch (error) {
-            registerError.textContent = error.error || 'Registration failed!';
+            registerError.textContent = error.message || 'Registration failed!'; // --- 수정 ---
         }
     });
 

@@ -1,15 +1,14 @@
-// prettier-ignore
 const express = require("express");
 const path = require("path");
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
-const jwt = require('jsonwebtoken'); // --- 추가 ---
+const jwt = require('jsonwebtoken');
 
 const app = express();
 
 // --- 추가 ---
 // JWT 비밀 키 (실제 운영에서는 .env 파일로 숨겨야 합니다)
-const JWT_SECRET = 'your-very-strong-secret-key-12345!'; 
+const JWT_SECRET = 'your-very-strong-secret-key-12345!';
 
 let db;
 
@@ -68,41 +67,41 @@ app.get('/', function(req,res) {
 /**
  * @swagger
  * tags:
- * name: Users
- * description: User management and login
+ *   name: Users
+ *   description: User management and login
  */
 
 /**
  * @swagger
  * /api/login:
- * post:
- * summary: Authenticate a user and return a token
- * tags: [Users]
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * username:
- * type: string
- * password:
- * type: string
- * responses:
- * 200:
- * description: Login successful
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * token:
- * type: string
- * 401:
- * description: Invalid username or password
- * 500:
- * description: Server database error
+ *   post:
+ *     summary: Authenticate a user and return a token
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       401:
+ *         description: Invalid username or password
+ *       500:
+ *         description: Server database error
  */
 app.post('/api/login', async function(req, res) {
     try {
@@ -116,6 +115,7 @@ app.post('/api/login', async function(req, res) {
         );
 
         if (user) {
+            // 로그인 성공
             // --- 수정 ---
             // 로그인 성공 시 JWT 생성
             const payload = {
@@ -134,7 +134,6 @@ app.post('/api/login', async function(req, res) {
                 user: { id: user.id, username: user.username } 
             });
             // --- 수정 끝 ---
-
         } else {
             // 로그인 실패
             console.log('Login failed for:', username);
@@ -174,31 +173,30 @@ function authenticateToken(req, res, next) {
 }
 // ===============================================
 
-// prettier-ignore
 /**
  * @swagger
  * /api/register:
- * post:
- * summary: Register a new user
- * tags: [Users]
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * username:
- * type: string
- * password:
- * type: string
- * responses:
- * 201:
- * description: User registered successfully
- * 400:
- * description: Username already taken or bad request
- * 500:
- * description: Server database error
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Username already taken or bad request
+ *       500:
+ *         description: Server database error
  */
 app.post('/api/register', async (req, res) => {
     try {
@@ -237,29 +235,28 @@ app.post('/api/register', async (req, res) => {
 /**
  * @swagger
  * /api/users:
- * get:
- * summary: Retrieve a list of all users
- * tags: [Users]
- * responses:
- * 200:
- * description: A list of users
- * content:
- * application/json:
- * schema:
- * type: array
- * items:
- * type: object
- * properties:
- * id:
- * type: integer
- * username:
- * type: string
- * max_score:
- * type: integer
- * 500:
- * description: Server database error
+ *   get:
+ *     summary: Retrieve a list of all users
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: A list of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   username:
+ *                     type: string
+ *                   max_score:
+ *                     type: integer
+ *       500:
+ *         description: Server database error
  */
-// --- 수정 --- (authenticateToken 미들웨어 추가)
 app.get('/api/users', authenticateToken, async function(req, res) {
     try {
         const users = await db.all('SELECT id, username, max_score FROM users');
@@ -273,38 +270,37 @@ app.get('/api/users', authenticateToken, async function(req, res) {
 /**
  * @swagger
  * /api/users/{id}:
- * get:
- * summary: Retrieve a single user by ID
- * tags: [Users]
- * parameters:
- * - in: path
- * name: id
- * schema:
- * type: integer
- * required: true
- * description: The user ID
- * responses:
- * 200:
- * description: A single user object
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * id:
- * type: integer
- * username:
- * type: string
- * max_score:
- * type: integer
- * 400:
- * description: Invalid user ID
- * 404:
- * description: User not found
- * 500:
- * description: Server database error
+ *   get:
+ *     summary: Retrieve a single user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: A single user object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 max_score:
+ *                   type: integer
+ *       400:
+ *         description: Invalid user ID
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
  */
-// --- 수정 --- (authenticateToken 미들웨어 추가)
 app.get('/api/users/:id', authenticateToken, async function(req, res) {
     try {
         const userId = parseInt(req.params.id, 10); // Convert ID to integer
@@ -329,33 +325,31 @@ app.get('/api/users/:id', authenticateToken, async function(req, res) {
     }
 });
 
-// prettier-ignore
 /**
  * @swagger
  * /api/scores:
- * get:
- * summary: Retrieve a list of all scores
- * tags: [Scores]
- * responses:
- * 200:
- * description: A list of scores with usernames, ordered by score descending
- * content:
- * application/json:
- * schema:
- * type: array
- * items:
- * type: object
- * properties:
- * username:
- * type: string
- * score:
- * type: integer
- * created_at:
- * type: string
- * 500:
- * description: Server database error
+ *   get:
+ *     summary: Retrieve a list of all scores
+ *     tags: [Scores]
+ *     responses:
+ *       200:
+ *         description: A list of scores with usernames, ordered by score descending
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   username:
+ *                     type: string
+ *                   score:
+ *                     type: integer
+ *                   created_at:
+ *                     type: string
+ *       500:
+ *         description: Server database error
  */
-// --- 수정 --- (authenticateToken 미들웨어 추가 및 테이블명 수정)
 app.get('/api/scores', authenticateToken, async function(req, res) {
     try {
         // score 테이블과 users 테이블을 JOIN 하여
@@ -373,41 +367,39 @@ app.get('/api/scores', authenticateToken, async function(req, res) {
         res.status(500).json({ error: 'Server database error' });
     }
 });
-
 /**
  * @swagger
  * /api/users/{id}/score:
- * put:
- * summary: Update a user\'s high score
- * tags: [Users]
- * parameters:
- * - in: path
- * name: id
- * schema:
- * type: integer
- * required: true
- * description: The user ID
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * score:
- * type: integer
- * description: The new score to check against the high score
- * responses:
- * 200:
- * description: Score checked or updated successfully
- * 400:
- * description: Invalid user ID or score
- * 404:
- * description: User not found
- * 500:
- * description: Server database error
+ *   put:
+ *     summary: Update a user\'s high score
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               score:
+ *                 type: integer
+ *                 description: The new score to check against the high score
+ *     responses:
+ *       200:
+ *         description: Score checked or updated successfully
+ *       400:
+ *         description: Invalid user ID or score
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
  */
-// --- 수정 --- (authenticateToken 미들웨어 추가 및 버그 수정)
 app.put('/api/users/:id/score', authenticateToken, async (req, res) => {
     try {
         // --- 수정 ---
