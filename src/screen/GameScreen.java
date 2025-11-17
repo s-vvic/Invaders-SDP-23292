@@ -13,6 +13,7 @@ import engine.AchievementManager;
 import engine.ItemHUDManager;
 import entity.*;
 import engine.level.Level;
+import engine.level.LevelEnemyFormation;
 
 
 /**
@@ -49,7 +50,7 @@ public class GameScreen extends Screen {
 	/** Current difficulty level number. */
 	private int level;
 	/** Formation of enemy ships. */
-	private EnemyShipFormation enemyShipFormation;
+	private List<EnemyShipFormation> enemyFormations;
 	/** Formation of special enemy ships. */
 	private EnemyShipSpecialFormation enemyShipSpecialFormation;
 	/** Player's ship. */
@@ -154,9 +155,42 @@ public class GameScreen extends Screen {
 		super.initialize();
 		/** Initialize the bullet Boss fired */
 		this.bossBullets = new HashSet<>();
-        enemyShipFormation = new EnemyShipFormation(this.currentLevel);
-		enemyShipFormation.attach(this);
-        this.enemyShipFormation.applyEnemyColorByLevel(this.currentLevel);
+        this.enemyFormations = new ArrayList<>();
+
+		String formationType = "A"; // 1. 기본값을 "A"로 먼저 설정합니다.
+		LevelEnemyFormation formationInfo = this.currentLevel.getEnemyFormation();
+
+		if (formationInfo != null) { 
+			String typeFromFile = formationInfo.getFormationType();
+
+			if (typeFromFile != null) {
+				formationType = typeFromFile;
+			}
+		}
+		switch (formationType) {
+			case "B":
+				this.logger.info("Spawning Formation Type B (2 groups)");
+				EnemyShipFormation formation1 = new EnemyShipFormation(this.currentLevel, 0, 0,EnemyShipFormation.Direction.DOWN_RIGHT);
+				formation1.attach(this);
+				formation1.applyEnemyColorByLevel(this.currentLevel);
+				this.enemyFormations.add(formation1);
+
+
+				EnemyShipFormation formation2 = new EnemyShipFormation(this.currentLevel, (2*this.width/3), 0,EnemyShipFormation.Direction.DOWN_LEFT);
+				formation2.attach(this);
+				formation2.applyEnemyColorByLevel(this.currentLevel);
+				this.enemyFormations.add(formation2);
+				break;
+
+			case "A":
+			default:
+				this.logger.info("Spawning Formation Type A (1 group)");
+				EnemyShipFormation formation = new EnemyShipFormation(this.currentLevel, 0, 0,EnemyShipFormation.Direction.DOWN_RIGHT);
+				formation.attach(this);
+				formation.applyEnemyColorByLevel(this.currentLevel);
+				this.enemyFormations.add(formation);
+				break;
+		}
 
 
 		this.ship = new Ship(this.width / 2, ITEMS_SEPARATION_LINE_HEIGHT - 75, Color.green);
@@ -254,7 +288,10 @@ public class GameScreen extends Screen {
 			drawManager.drawEntity(finalBoss, finalBoss.getPositionX(), finalBoss.getPositionY());
 		}
 
-		enemyShipFormation.draw();
+		for (EnemyShipFormation formation : this.enemyFormations) {
+			formation.draw();
+		}
+		chaserFormation.draw();
 
 		if(this.omegaBoss != null) {
 			this.omegaBoss.draw(drawManager);
@@ -460,7 +497,7 @@ public class GameScreen extends Screen {
 									currentChaser.takeDamage(1); 
 									 if (currentChaser.isDestroyed()) {
 										int pts = currentChaser.getPointValue();
- 										addPointsFor(bullet, pts);
+ 										addPoints(pts);
 										this.coin += (pts / 10);
 										this.shipsDestroyed++;
  									}
@@ -491,35 +528,35 @@ public class GameScreen extends Screen {
 				
 					    	private boolean checkCollisionWithNormalEnemies(Bullet bullet, Set<Bullet> recyclable) {
 				
-					    		for (EnemyShip enemyShip : this.enemyShipFormation) {
+					    		for (EnemyShipFormation formation : this.enemyFormations) {
+									for (EnemyShip enemyShip : formation) {
+					    				if (!enemyShip.isDestroyed() && checkCollision(bullet, enemyShip)) {		
+					    					int pts = enemyShip.getPointValue();
 				
-					    			if (!enemyShip.isDestroyed() && checkCollision(bullet, enemyShip)) {
+					    					addPoints(pts);
 				
-					    				int pts = enemyShip.getPointValue();
+					    					this.coin += (pts / 10);
 				
-					    								addPoints(pts);
-				
-					    								this.coin += (pts / 10);
-				
-					    								this.shipsDestroyed++;
-				
-					    				
-				
-					    								handleItemDrop(enemyShip);
-				
-					    								this.enemyShipFormation.destroy(enemyShip);
-				
-					    								AchievementManager.getInstance().onEnemyDefeated();
+					    					this.shipsDestroyed++;
 				
 					    				
 				
-					    								if (!bullet.penetration()) {
+					    					handleItemDrop(enemyShip);
 				
-					    									recyclable.add(bullet);
+					    					formation.destroy(enemyShip);
 				
-					    									return true; // Bullet was consumed
+					    					AchievementManager.getInstance().onEnemyDefeated();
 				
-					    								}
+					    				
+				
+					    					if (!bullet.penetration()) {
+				
+					    						recyclable.add(bullet);
+				
+					    					return true; // Bullet was consumed
+				
+					    					}
+										}
 				
 					    			}
 				
@@ -686,20 +723,22 @@ public class GameScreen extends Screen {
 					     * Player loses a life immediately upon collision with any enemy.
 				
 					     */    private void manageShipEnemyCollisions() {
-        // ===== P1 collision check =====
+        // =====  collision check =====
         if (!this.levelFinished && this.lives > 0 && !this.ship.isDestroyed()
                 && !this.ship.isInvincible()&& !GameState.isInvincible()) {
             // Check collision with normal enemy ships
-            for (EnemyShip enemyShip : this.enemyShipFormation) {
-                if (!enemyShip.isDestroyed() && checkCollision(this.ship, enemyShip)) {
-                    this.enemyShipFormation.destroy(enemyShip);
-                    this.ship.destroy();
-                    this.lives--;
+			for (EnemyShipFormation formation : this.enemyFormations) { 
+				for (EnemyShip enemyShip : formation) {
+                	if (!enemyShip.isDestroyed() && checkCollision(this.ship, enemyShip)) {
+                   		formation.destroy(enemyShip);
+                    	this.ship.destroy();
+                 	this.lives--;
                     showHealthPopup("-1 Life (Collision!)");
                     this.logger.info("Ship collided with enemy! " + this.lives
                             + " lives remaining.");
                     return;
-                }
+               		}
+				}
             }
 
             // Check collision with special enemy formation (red/blue ships)
@@ -720,9 +759,9 @@ public class GameScreen extends Screen {
 				 if (!currentChaser.isDestroyed()&& checkCollision(this.ship, currentChaser)) { 
 					 	currentChaser.destroy(); 
 						this.ship.destroy();
-						this.livesP1--;
+						this.lives--;
 						showHealthPopup("-1 Life (Collision!)");
-						this.logger.info("Ship collided with Chaser! " + this.livesP1 + " lives remaining.");
+						this.logger.info("Ship collided with Chaser! " + this.lives + " lives remaining.");
 				 	return; 
 				}
 }
@@ -778,15 +817,15 @@ public class GameScreen extends Screen {
 							DropItem.applyTimeFreezeItem(3000);
 							break;
 						case Push:
-							DropItem.PushbackItem(this.enemyShipFormation,20);
+							for (EnemyShipFormation formation : this.enemyFormations) { DropItem.PushbackItem(formation, 20); }
 							break;
 						case Explode:
-							int destroyedEnemy = this.enemyShipFormation.destroyAll();
+							int destroyedEnemy = 0; for (EnemyShipFormation formation : this.enemyFormations) { destroyedEnemy += formation.destroyAll(); }
                             int pts = destroyedEnemy * 5;
                             addPoints(pts);
                             break;
 						case Slow:
-							enemyShipFormation.activateSlowdown();
+							for (EnemyShipFormation formation : this.enemyFormations) { formation.activateSlowdown(); }
 							this.logger.info("Enemy formation slowed down!");
 							break;
 						default:
@@ -956,17 +995,32 @@ public class GameScreen extends Screen {
 		switch (this.currentPhase) {
 			case wave:
 				if (!DropItem.isTimeFreezeActive()) {
-					this.enemyShipFormation.update();
-					this.enemyShipFormation.shoot(this.bullets);				
+				for (EnemyShipFormation formation : this.enemyFormations) {
+						 formation.update();
+						formation.shoot(this.bullets);
+					}
 				}
-				if (this.enemyShipFormation.isEmpty()) {
-					this.currentPhase = StagePhase.boss_wave;
+
+
+
+				boolean allEmpty = true;
+				for (EnemyShipFormation formation : this.enemyFormations) {
+				if (!formation.isEmpty()) {
+					allEmpty = false;
+				break;
+ 				}
+			}
+
+
+				if (allEmpty) {
+ 					this.currentPhase = StagePhase.boss_wave;
 				}
 				break;
+
 			case boss_wave:
 				if (this.finalBoss == null && this.omegaBoss == null){
 					bossReveal();
-					this.enemyShipFormation.clear();
+					for (EnemyShipFormation formation : this.enemyFormations) { formation.clear(); }
 				}
 				if(this.finalBoss != null){
 					finalbossManage();
