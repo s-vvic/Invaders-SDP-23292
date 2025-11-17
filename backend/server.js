@@ -38,8 +38,7 @@ async function startServer() {
     // [테스트용 사용자 추가 (없을 경우에만)]
     await db.run(
         'INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)',
-        'test',
-        '1234'
+        ['test', '1234']
     );
     return db; // Return the database connection
 }
@@ -304,11 +303,11 @@ app.get('/api/users/:id', async function(req, res) {
  */
 app.get('/api/scores', async function(req, res) {
     try {
-        // score 테이블과 users 테이블을 JOIN 하여
+        // scores 테이블과 users 테이블을 JOIN 하여
         // 유저이름, 점수, 생성일자를 점수 내림차순으로 100개 가져옵니다.
         const scores = await db.all(`
             SELECT u.username, s.score, s.created_at 
-            FROM score s
+            FROM scores s
             JOIN users u ON s.user_id = u.id
             ORDER BY s.score DESC
             LIMIT 100 
