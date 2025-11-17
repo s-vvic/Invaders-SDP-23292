@@ -7,8 +7,6 @@ import engine.GameState;
 import entity.ShopItem;
 import engine.AuthManager;
 import engine.ApiClient;
-import engine.AuthManager;
-import engine.ApiClient;
 
 /**
  * Implements the shop screen where players can purchase item upgrades.

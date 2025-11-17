@@ -3,11 +3,8 @@ package screen;
 import java.awt.Color;
 import java.util.List;
 import java.util.ArrayList;
-import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
-
 import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
@@ -17,12 +14,7 @@ import engine.ItemHUDManager;
 import engine.AuthManager;
 import engine.ApiClient;
 import entity.*;
-import java.awt.event.KeyEvent;
-import java.util.HashSet;
-import java.util.Set;
-
 import engine.level.Level;
-import engine.level.LevelManager;
 
 
 /**
@@ -66,17 +58,14 @@ public class GameScreen extends Screen {
 	private Ship ship;
 	/** Second Player's ship. */
 	private Ship shipP2;
-	/** Bonus enemy ship that appears sometimes. */
-	private EnemyShip enemyShipSpecial;
-	/** Minimum time between bonus ship appearances. */
-	private Cooldown enemyShipSpecialCooldown;
 	/** team drawing may implement */
 	private FinalBoss finalBoss;
-	/** Time until bonus ship explosion disappears. */
-	private Cooldown enemyShipSpecialExplosionCooldown;
 	/** Time until Boss explosion disappears. */
 	private Cooldown bossExplosionCooldown;
 	/** Time from finishing the level to screen change. */
+
+	private EnemyShipChaserFormation chaserFormation;
+
 	private Cooldown screenFinishedCooldown;
 	/** OmegaBoss */
 	private MidBoss omegaBoss;
@@ -140,8 +129,6 @@ public class GameScreen extends Screen {
 
 	private boolean isTwoPlayer;
 
-	    private GameState gameState;
-
 	    /**
 	     * Constructor, establishes the properties of the screen.
 	     *
@@ -173,8 +160,7 @@ public class GameScreen extends Screen {
                 this.coin = gameState.getCoin();
 		        this.livesP1 = gameState.getLivesRemaining();
 				this.livesP2 = gameState.getLivesRemainingP2();
-		        this.gameState = gameState;
-				this.isTwoPlayer = isTwoPlayer;
+		        this.isTwoPlayer = isTwoPlayer;
 				if (this.bonusLife) {
 					this.livesP1++;
 					if (this.isTwoPlayer) {
@@ -216,6 +202,9 @@ public class GameScreen extends Screen {
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
         this.dropItems = new HashSet<DropItem>();
+
+		this.chaserFormation = new EnemyShipChaserFormation(this.currentLevel, this.width, this.ship);
+		this.chaserFormation.attach(this);
 
 		// Special input delay / countdown.
 		this.gameStartTime = System.currentTimeMillis();
@@ -290,6 +279,8 @@ public class GameScreen extends Screen {
 		if (this.shipP2 != null && this.livesP2 > 0) {
 			drawManager.drawEntity(this.shipP2, this.shipP2.getPositionX(), this.shipP2.getPositionY());
 		}
+
+		this.chaserFormation.draw();
 
 		// special enemy draw
 		enemyShipSpecialFormation.draw();
@@ -520,6 +511,24 @@ public class GameScreen extends Screen {
 								}
 								recyclable.add(bullet);
 							}
+							for (Chaser currentChaser : this.chaserFormation) {
+								 if (!currentChaser.isDestroyed() && checkCollision(bullet, currentChaser)) {
+
+									currentChaser.takeDamage(1); 
+									 if (currentChaser.isDestroyed()) {
+										int pts = currentChaser.getPointValue();
+ 										addPointsFor(bullet, pts);
+										this.coin += (pts / 10);
+										this.shipsDestroyed++;
+ 									}
+									if (!bullet.penetration()) {
+										recyclable.add(bullet);
+										break; 
+									}
+								}
+							}
+
+							
 						}				
 					    	/**
 				
@@ -776,6 +785,17 @@ public class GameScreen extends Screen {
                 }
             }
 
+			for (Chaser currentChaser : this.chaserFormation) {
+				 if (!currentChaser.isDestroyed()&& checkCollision(this.ship, currentChaser)) { 
+					 	currentChaser.destroy(); 
+						this.ship.destroy();
+						this.livesP1--;
+						showHealthPopup("-1 Life (Collision!)");
+						this.logger.info("Ship collided with Chaser! " + this.livesP1 + " lives remaining.");
+				 	return; 
+				}
+}
+
             // Check collision with omega boss (mid boss - yellow/pink ship)
             if (this.omegaBoss != null && !this.omegaBoss.isDestroyed()
                     && checkCollision(this.ship, this.omegaBoss)) {
@@ -1027,7 +1047,7 @@ public class GameScreen extends Screen {
 		this.logger.info("Spawning boss: " + bossName);
 		switch (bossName) {
 			case "finalBoss":
-				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height);
+				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship);
 				this.logger.info("Final Boss has spawned!");
 				break;
 			case "omegaBoss":
@@ -1108,7 +1128,7 @@ public class GameScreen extends Screen {
 			case wave:
 				if (!DropItem.isTimeFreezeActive()) {
 					this.enemyShipFormation.update();
-					this.enemyShipFormation.shoot(this.bullets);
+					this.enemyShipFormation.shoot(this.bullets);				
 				}
 				if (this.enemyShipFormation.isEmpty()) {
 					this.currentPhase = StagePhase.boss_wave;
@@ -1127,7 +1147,7 @@ public class GameScreen extends Screen {
 					if (this.omegaBoss.isDestroyed()) {
 						if ("omegaAndFinal".equals(this.currentlevel.getBossId())) {
 							this.omegaBoss = null;
-							this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height);
+							this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height, this.ship);
 							this.logger.info("Final Boss has spawned!");
 						} else {
 							this.levelFinished = true;
@@ -1149,6 +1169,7 @@ public class GameScreen extends Screen {
 		}
 		// special enemy update
 		this.enemyShipSpecialFormation.update();
+		this.chaserFormation.update(this.ship);
 	}
 	/**
 	 * Handles player input for both player 1 and player 2.

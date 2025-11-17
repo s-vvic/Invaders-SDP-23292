@@ -3,7 +3,6 @@ package screen;
 import java.awt.event.KeyEvent;
 import engine.Cooldown;
 import engine.Core;
-import engine.DrawManager;
 import engine.ApiClient;
 import screen.drawers.RegisterDrawer;
 

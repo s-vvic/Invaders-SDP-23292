@@ -2,7 +2,6 @@ package entity;
 
 import java.awt.*;
 import java.util.*;
-import java.util.List;
 import java.util.logging.Logger;
 
 import screen.Screen;
@@ -20,11 +19,6 @@ import engine.GameSettings;
  */
 public class EnemyShipSpecialFormation implements Iterable<EnemyShip> {
 
-    /**
-     * Lateral speed of the formation.
-     */
-    private static final int X_RED_SPEED = 2;
-    private static final int X_BLUE_SPEED = 6;
     /**
      * Proportion of differences between shooting times.
      */
@@ -65,15 +59,6 @@ public class EnemyShipSpecialFormation implements Iterable<EnemyShip> {
      * Width of one ship.
      */
     private int shipWidth;
-    /**
-     * Height of one ship.
-     */
-    private int shipHeight;
-    /**
-     * List of ships that are able to shoot.
-     */
-    private List<EnemyShip> shooters;
-
     // Cooldown Field
     private Cooldown enemyShipSpecialCooldown;
     private Cooldown enemyShipSpecialExplosionCooldown;
@@ -103,7 +88,7 @@ public class EnemyShipSpecialFormation implements Iterable<EnemyShip> {
 
         /** special enemy information: width & height **/
         this.shipWidth = this.enemyShipSpecialRed.getWidth();
-        this.shipHeight = this.enemyShipSpecialRed.getHeight();
+        this.enemyShipSpecialRed.getHeight();
 
         /** special enemy cooldown **/
         this.enemyShipSpecialCooldown = cooldown;
