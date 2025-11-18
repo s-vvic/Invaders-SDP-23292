@@ -2,8 +2,15 @@ const request = require('supertest');
 const { app, startServer } = require('../server');
 
 let db;
+let testUser;
+
 beforeAll(async () => {
     db = await startServer();
+    testUser = await db.get("SELECT * FROM users WHERE username = 'test'");
+});
+
+afterAll(async () => {
+    await db.close();
 });
 
 describe('User API Endpoints', () => {
@@ -21,10 +28,10 @@ describe('User API Endpoints', () => {
     });
 
     test('GET /api/users/:id - should fetch a single user successfully', async () => {
-        const response = await request(app).get('/api/users/1');
+        const response = await request(app).get(`/api/users/${testUser.id}`);
         expect(response.statusCode).toBe(200);
         expect(response.headers['content-type']).toMatch(/json/);
-        expect(response.body.id).toBe(1);
+        expect(response.body.id).toBe(testUser.id);
         expect(response.body.username).toBe('test');
         expect(response.body).not.toHaveProperty('password');
     });
@@ -47,7 +54,7 @@ describe('PUT /api/users/:id/score', () => {
 
     // Before each test in this block, log in and get a fresh token
     beforeEach(async () => {
-        await db.run('UPDATE users SET max_score = 0 WHERE id = 1');
+        await db.run(`UPDATE users SET max_score = 0 WHERE id = ?`, [testUser.id]);
         const loginResponse = await request(app)
             .post('/api/login')
             .send({ username: 'test', password: '1234' });
@@ -57,7 +64,7 @@ describe('PUT /api/users/:id/score', () => {
     test('should update max_score if new score is higher', async () => {
         const newScore = 100;
         const response = await request(app)
-            .put('/api/users/1/score')
+            .put(`/api/users/${testUser.id}/score`)
             .set('Authorization', `Bearer ${token}`)
             .send({ score: newScore });
 
@@ -66,17 +73,17 @@ describe('PUT /api/users/:id/score', () => {
         expect(response.body.new_max_score).toBe(newScore);
 
         // Verify the score was actually updated in the DB
-        const userResponse = await request(app).get('/api/users/1');
+        const userResponse = await request(app).get(`/api/users/${testUser.id}`);
         expect(userResponse.body.max_score).toBe(newScore);
     });
 
     test('should not update max_score if new score is lower or equal', async () => {
         // First, set a high score
-        await db.run('UPDATE users SET max_score = 150 WHERE id = 1');
+        await db.run(`UPDATE users SET max_score = 150 WHERE id = ?`, [testUser.id]);
 
         const newScore = 100;
         const response = await request(app)
-            .put('/api/users/1/score')
+            .put(`/api/users/${testUser.id}/score`)
             .set('Authorization', `Bearer ${token}`)
             .send({ score: newScore });
 
@@ -85,7 +92,7 @@ describe('PUT /api/users/:id/score', () => {
         expect(response.body.new_max_score).toBe(150);
 
         // Verify the score was not changed
-        const userResponse = await request(app).get('/api/users/1');
+        const userResponse = await request(app).get(`/api/users/${testUser.id}`);
         expect(userResponse.body.max_score).toBe(150);
     });
 
@@ -100,7 +107,7 @@ describe('PUT /api/users/:id/score', () => {
 
     test('should return 400 for an invalid score', async () => {
         const response = await request(app)
-            .put('/api/users/1/score')
+            .put(`/api/users/${testUser.id}/score`)
             .set('Authorization', `Bearer ${token}`)
             .send({ score: 'a-string-not-a-number' });
 
@@ -109,9 +116,9 @@ describe('PUT /api/users/:id/score', () => {
 });
 
 describe('Authentication Middleware', () => {
-    const protectedUrl = '/api/users/1/score';
 
     test('should return 401 if no token is provided', async () => {
+        const protectedUrl = `/api/users/${testUser.id}/score`;
         const response = await request(app)
             .put(protectedUrl)
             .send({ score: 50 });
@@ -121,6 +128,7 @@ describe('Authentication Middleware', () => {
     });
 
     test('should return 401 if token is invalid', async () => {
+        const protectedUrl = `/api/users/${testUser.id}/score`;
         const response = await request(app)
             .put(protectedUrl)
             .set('Authorization', 'Bearer FAKE_INVALID_TOKEN')
@@ -131,6 +139,7 @@ describe('Authentication Middleware', () => {
     });
 
     test('should return 200 if token is valid', async () => {
+        const protectedUrl = `/api/users/${testUser.id}/score`;
         // 1. Log in to get a valid token
         const loginResponse = await request(app)
             .post('/api/login')

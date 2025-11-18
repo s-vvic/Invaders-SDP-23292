@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
+const bcrypt = require('bcrypt');
 
 const app = express();
 
@@ -36,9 +37,16 @@ async function startServer() {
     `);
     
     // [테스트용 사용자 추가 (없을 경우에만)]
+    // 기존 'test' 사용자가 평문 비밀번호로 저장되어 있을 수 있으므로 삭제 후 다시 생성
+    await db.run('DELETE FROM users WHERE username = ?', ['test']);
+    
+    const saltRounds = 10;
+    const testUserPassword = '1234';
+    const hashedTestPassword = await bcrypt.hash(testUserPassword, saltRounds);
+
     await db.run(
-        'INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)',
-        ['test', '1234']
+        'INSERT INTO users (username, password) VALUES (?, ?)',
+        ['test', hashedTestPassword]
     );
     return db; // Return the database connection
 }
@@ -101,19 +109,26 @@ app.post('/api/login', async function(req, res) {
     try {
         const { username, password } = req.body;
 
-        // DB에서 사용자 조회 (SQL은 동일!)
-        // db.get() : 1개의 결과만 가져옴
+        // DB에서 사용자 조회
         const user = await db.get(
-            'SELECT * FROM users WHERE username = ? AND password = ?',
-            [username, password]
+            'SELECT * FROM users WHERE username = ?',
+            [username]
         );
 
         if (user) {
-            // 로그인 성공
-            console.log('Login successful:', user.username);
-            res.json({ token: 'your-generated-token-xyz123', user: { id: user.id, username: user.username } });
+            // 사용자가 존재하면 비밀번호 비교
+            const match = await bcrypt.compare(password, user.password);
+            if (match) {
+                // 로그인 성공
+                console.log('Login successful:', user.username);
+                res.json({ token: 'your-generated-token-xyz123', user: { id: user.id, username: user.username } });
+            } else {
+                // 비밀번호 불일치
+                console.log('Login failed for:', username);
+                res.status(401).json({ error: 'Invalid username or password' });
+            }
         } else {
-            // 로그인 실패
+            // 사용자가 존재하지 않음
             console.log('Login failed for:', username);
             res.status(401).json({ error: 'Invalid username or password' });
         }
@@ -166,11 +181,12 @@ app.post('/api/register', async (req, res) => {
         }
 
         // 2. 새 유저 추가
-        // (참고: 실제 서비스에서는 비밀번호를 해싱(bcrypt)해야 하지만,
-        //  현재 프로젝트 구조에 맞춰 평문으로 저장합니다.)
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
         await db.run(
             'INSERT INTO users (username, password) VALUES (?, ?)',
-            [username, password]
+            [username, hashedPassword]
         );
         
         console.log(`New user registered: ${username}`);
