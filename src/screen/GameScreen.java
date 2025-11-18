@@ -44,6 +44,8 @@ public class GameScreen extends Screen {
 
 	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 600;
 
+	private static final int TAKE_LASER_DAMAGE_TIME = 3000;
+
 
     /** Current level data (direct from Level system). */
     private Level currentLevel;
@@ -59,6 +61,8 @@ public class GameScreen extends Screen {
 	private FinalBoss finalBoss;
 	/** Time until Boss explosion disappears. */
 	private Cooldown bossExplosionCooldown;
+	/** Time until the player can take damage again. */
+	private Cooldown takeLaserDamageCooldown;
 	/** Time from finishing the level to screen change. */
 
 	private EnemyShipChaserFormation chaserFormation;
@@ -97,20 +101,22 @@ public class GameScreen extends Screen {
 
     /** bossBullets carry bullets which Boss fires */
 	private Set<BossBullet> bossBullets;
+	/** bossLasers carry lasers which Boss fires */
+	private Set<BossLaser> bossLasers;
 	/** Is the bullet on the screen erased */
-  private boolean is_cleared = false;
-  /** Timer to track elapsed time. */
-  private GameTimer gameTimer;
-  /** Elapsed time since the game started. */
-  private long elapsedTime;
-  // Achievement popup
-  private String achievementText;
-  private Cooldown achievementPopupCooldown;
-  private enum StagePhase{wave, boss_wave};
-  private StagePhase currentPhase;
-  /** Health change popup. */
-  private String healthPopupText;
-  private Cooldown healthPopupCooldown;
+    private boolean is_cleared = false;
+    /** Timer to track elapsed time. */
+    private GameTimer gameTimer;
+    /** Elapsed time since the game started. */
+    private long elapsedTime;
+    // Achievement popup
+    private String achievementText;
+    private Cooldown achievementPopupCooldown;
+    private enum StagePhase{wave, boss_wave};
+    private StagePhase currentPhase;
+    /** Health change popup. */
+    private String healthPopupText;
+    private Cooldown healthPopupCooldown;
 
 	    /**
 	     * Constructor, establishes the properties of the screen.
@@ -156,6 +162,7 @@ public class GameScreen extends Screen {
 		/** Initialize the bullet Boss fired */
 		this.bossBullets = new HashSet<>();
         this.enemyFormations = new ArrayList<>();
+		this.bossLasers = new HashSet<>();
 
 		String formationType = "A"; // 1. 기본값을 "A"로 먼저 설정합니다.
 		LevelEnemyFormation formationInfo = this.currentLevel.getEnemyFormation();
@@ -202,6 +209,8 @@ public class GameScreen extends Screen {
 		enemyShipSpecialFormation.attach(this);
 		this.bossExplosionCooldown = Core
 				.getCooldown(BOSS_EXPLOSION);
+		this.takeLaserDamageCooldown = Core
+				.getCooldown(TAKE_LASER_DAMAGE_TIME);
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
         this.dropItems = new HashSet<DropItem>();
@@ -285,6 +294,11 @@ public class GameScreen extends Screen {
 			for (BossBullet bossBullet : bossBullets) {
 				drawManager.drawEntity(bossBullet, bossBullet.getPositionX(), bossBullet.getPositionY());
 			}
+
+			for (BossLaser bossLaser : bossLasers) {
+				drawManager.drawEntity(bossLaser, bossLaser.getPositionX(), bossLaser.getPositionY());
+			}
+
 			drawManager.drawEntity(finalBoss, finalBoss.getPositionX(), finalBoss.getPositionY());
 		}
 
@@ -938,18 +952,24 @@ public class GameScreen extends Screen {
 		}
 	}
 
-
+	/** Manage Final Boss's shooting */
 	public void finalbossManage(){
 		if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
 			this.finalBoss.update();
 			/** called the boss shoot logic */
-			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() / 4) {
+			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * 3 / 4) {
 				bossBullets.addAll(this.finalBoss.shoot1());
+				bossBullets.addAll(this.finalBoss.shoot2());
+			} else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp()/2) {
+				bossBullets.addAll(this.finalBoss.shoot2());
+				bossLasers.addAll(this.finalBoss.laserShoot());
+			} else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp()/4) {
 				bossBullets.addAll(this.finalBoss.shoot2());
 			} else {
 				/** Is the bullet on the screen erased */
 				if (!is_cleared) {
 					bossBullets.clear();
+					bossLasers.clear();
 					is_cleared = true;
 					logger.info("boss is angry");
 				} else {
@@ -960,26 +980,50 @@ public class GameScreen extends Screen {
 			/** bullets to erase */
 			Set<BossBullet> bulletsToRemove = new HashSet<>();
 
-			for (BossBullet b : bossBullets) {
-				b.update();
+			for (BossBullet bossBullet : bossBullets) {
+				bossBullet.update();
 				/** If the bullet goes off the screen */
-				if (b.isOffScreen(width, height)) {
+				if (bossBullet.isOffScreen(width, height)) {
 					/** bulletsToRemove carry bullet */
-					bulletsToRemove.add(b);
+					bulletsToRemove.add(bossBullet);
 				}
 				/** If the bullet collides with ship */
-				else if (this.lives > 0 && this.checkCollision(b, this.ship)&& !GameState.isInvincible()) {
+				else if (this.lives > 0 && this.checkCollision(bossBullet, this.ship)&& !GameState.isInvincible()) {
 					if (!this.ship.isDestroyed()) {
 						this.ship.destroy();
 						this.lives--;
 						this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
 					}
-					bulletsToRemove.add(b);
+					bulletsToRemove.add(bossBullet);
+				}
+			}
+
+			/** lasers to erase */
+			Set<BossLaser> lasersToRemove = new HashSet<>();
+
+			for (BossLaser bossLaser : bossLasers) {
+				bossLaser.update();
+				/** If the laser goes off the screen */
+				if (bossLaser.isRemoved()) {
+					/** lasersToRemove carry laser */
+					lasersToRemove.add(bossLaser);
+				}
+				/** If the laser collides with ship */
+				else if (this.lives > 0 && this.checkCollision(bossLaser, this.ship)&& !GameState.isInvincible()
+				&& takeLaserDamageCooldown.checkFinished()) {
+
+					takeLaserDamageCooldown.reset();
+
+					if (!this.ship.isDestroyed()) {
+						this.ship.destroy();
+						this.lives--;
+						this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
+					}
 				}
 			}
 			/** all bullets are removed */
 			bossBullets.removeAll(bulletsToRemove);
-
+			bossLasers.removeAll(lasersToRemove);
 		}
 		if (this.finalBoss != null && this.finalBoss.isDestroyed()) {
 			this.levelFinished = true;
