@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const path = require("path");
 const sqlite3 = require('sqlite3');
@@ -8,6 +9,7 @@ const hpp = require('hpp');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(helmet());
@@ -137,9 +139,16 @@ app.post('/api/login', async function(req, res) {
             // 사용자가 존재하면 비밀번호 비교
             const match = await bcrypt.compare(password, user.password);
             if (match) {
-                // 로그인 성공
+                // 로그인 성공 -> JWT 생성
+                const payload = { id: user.id, username: user.username };
+                const token = jwt.sign(
+                    payload,
+                    process.env.JWT_SECRET,
+                    { expiresIn: '1h' } // 1시간 유효
+                );
+
                 console.log('Login successful:', user.username);
-                res.json({ token: 'your-generated-token-xyz123', user: { id: user.id, username: user.username } });
+                res.json({ token: token, user: { id: user.id, username: user.username } });
             } else {
                 // 비밀번호 불일치
                 console.log('Login failed for:', username);
@@ -396,11 +405,13 @@ const authMiddleware = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    // In a real app, you'd verify a real JWT. Here, we'll just check our hardcoded token.
-    if (token === 'your-generated-token-xyz123') {
-        next(); // Token is valid, proceed to the route handler
-    } else {
-        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Add the payload to the request object
+        next();
+    } catch (error) {
+        // This will catch errors like expired token, invalid signature etc.
+        return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
     }
 };
 
