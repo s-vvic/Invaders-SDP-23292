@@ -3,8 +3,10 @@ const path = require("path");
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const bcrypt = require('bcrypt');
+const helmet = require('helmet');
 
 const app = express();
+app.use(helmet());
 
 let db;
 
