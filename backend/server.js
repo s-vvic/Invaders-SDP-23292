@@ -4,9 +4,11 @@ const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const bcrypt = require('bcrypt');
 const helmet = require('helmet');
+const hpp = require('hpp');
 
 const app = express();
 app.use(helmet());
+app.use(hpp());
 
 let db;
 
