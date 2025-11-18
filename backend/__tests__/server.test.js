@@ -1,4 +1,5 @@
 const request = require('supertest');
+const bcrypt = require('bcrypt');
 const { app, startServer } = require('../server');
 
 let db;
@@ -96,13 +97,13 @@ describe('PUT /api/users/:id/score', () => {
         expect(userResponse.body.max_score).toBe(150);
     });
 
-    test('should return 404 for a non-existent user', async () => {
+    test('should return 403 for a non-existent user', async () => {
         const response = await request(app)
             .put('/api/users/9999/score')
             .set('Authorization', `Bearer ${token}`)
             .send({ score: 100 });
 
-        expect(response.statusCode).toBe(404);
+        expect(response.statusCode).toBe(403);
     });
 
     test('should return 400 for an invalid score', async () => {
@@ -112,6 +113,33 @@ describe('PUT /api/users/:id/score', () => {
             .send({ score: 'a-string-not-a-number' });
 
         expect(response.statusCode).toBe(400);
+    });
+
+    test('should return 403 if a user tries to update another user\'s score', async () => {
+        // 1. Create another user for this test
+        const otherUserPassword = 'password123';
+        const hashedOtherUserPassword = await bcrypt.hash(otherUserPassword, 10);
+        const result = await db.run('INSERT INTO users (username, password) VALUES (?, ?)', ['otherUser', hashedOtherUserPassword]);
+        const otherUserId = result.lastID;
+
+        // 2. Log in as the primary testUser to get a valid token
+        const loginResponse = await request(app)
+            .post('/api/login')
+            .send({ username: 'test', password: '1234' });
+        const token = loginResponse.body.token;
+
+        // 3. Use testUser's token to try to update otherUser's score
+        const response = await request(app)
+            .put(`/api/users/${otherUserId}/score`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ score: 999 });
+
+        // 4. Assert that the request is forbidden
+        expect(response.statusCode).toBe(403);
+        expect(response.body.error).toBe('Forbidden: You can only update your own score.');
+
+        // 5. Clean up the created user
+        await db.run('DELETE FROM users WHERE id = ?', [otherUserId]);
     });
 });
 
@@ -127,15 +155,15 @@ describe('Authentication Middleware', () => {
         expect(response.body.error).toBe('Unauthorized: No token provided');
     });
 
-    test('should return 401 if token is invalid', async () => {
+    test('should return 403 if token is invalid', async () => {
         const protectedUrl = `/api/users/${testUser.id}/score`;
         const response = await request(app)
             .put(protectedUrl)
             .set('Authorization', 'Bearer FAKE_INVALID_TOKEN')
             .send({ score: 50 });
 
-        expect(response.statusCode).toBe(401);
-        expect(response.body.error).toBe('Unauthorized: Invalid token');
+        expect(response.statusCode).toBe(403);
+        expect(response.body.error).toBe('Forbidden: Invalid or expired token');
     });
 
     test('should return 200 if token is valid', async () => {

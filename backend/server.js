@@ -417,14 +417,21 @@ const authMiddleware = (req, res, next) => {
 
 app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
     try {
-        const userId = parseInt(req.params.id, 10);
+        const userIdFromParams = parseInt(req.params.id, 10);
+        const userIdFromToken = req.user.id;
+
+        // Authorization check: Ensure the user is updating their own score
+        if (userIdFromParams !== userIdFromToken) {
+            return res.status(403).json({ error: 'Forbidden: You can only update your own score.' });
+        }
+
         const { score } = req.body;
 
-        if (isNaN(userId) || typeof score !== 'number') {
+        if (isNaN(userIdFromParams) || typeof score !== 'number') {
             return res.status(400).json({ error: 'Invalid user ID or score' });
         }
 
-        const user = await db.get('SELECT max_score FROM users WHERE id = ?', [userId]);
+        const user = await db.get('SELECT max_score FROM users WHERE id = ?', [userIdFromParams]);
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -434,7 +441,7 @@ app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
         let newMaxScore = user.max_score;
 
         if (score > user.max_score) {
-            await db.run('UPDATE users SET max_score = ? WHERE id = ?', [score, userId]);
+            await db.run('UPDATE users SET max_score = ? WHERE id = ?', [score, userIdFromParams]);
             responseMessage = 'High score updated successfully';
             newMaxScore = score;
         } else {
@@ -444,10 +451,10 @@ app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
         // scores 테이블에 현재 점수 기록
         await db.run(
             'INSERT INTO scores (user_id, score) VALUES (?, ?)',
-            [userId, score]
+            [userIdFromParams, score]
         );
         
-        console.log(`Logged score ${score} for user ${userId}`);
+        console.log(`Logged score ${score} for user ${userIdFromParams}`);
 
         res.json({ message: responseMessage, new_max_score: newMaxScore });
 
