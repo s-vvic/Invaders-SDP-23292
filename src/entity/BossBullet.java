@@ -35,6 +35,7 @@ public class BossBullet extends Entity{
         this.dy = dy;
         this.spriteType = DrawManager.SpriteType.FinalBossBullet; // boss's bullet image = enemyBullet
     }
+    
     /**
      * move a bullet
      */
@@ -42,6 +43,7 @@ public class BossBullet extends Entity{
         this.positionX += this.dx;
         this.positionY += this.dy;
     }
+
     /**
      * does the bullet go off the screen
      */
@@ -49,10 +51,4 @@ public class BossBullet extends Entity{
         return positionX < 0 || positionX > screenWidth ||
                 positionY < 0 || positionY > screenHeight;
     }
-
-
-
-
-
-
 }

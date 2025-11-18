@@ -16,7 +16,18 @@ public class FinalBoss extends Entity implements BossEntity{
     private int maxHp;
     private final int pointValue;
     private boolean isDestroyed;
-
+    /** Distance between normal state position and Power-up state position*/
+    private final static int OFFSET = 30;
+    /** Normal width */
+    private final static int NORMAL_WIDTH = 100;
+    /** Normal height */
+    private final static int NORMAL_HEIGHT = 80;
+    /** power-up width */
+    private final static int POWERUP_WIDTH = 160;
+    /** power-up height */
+    private final static int POWERUP_HEIGHT = 140;
+    /** The State of Dash Power Up */
+    private boolean isPowerUp = false;
     /** The Ship of player */
     private Ship player;
     /** The Fixed Position X of player ship when start dash pattern*/
@@ -39,28 +50,47 @@ public class FinalBoss extends Entity implements BossEntity{
     private int shakeOffX = 0;
     /** Degree of shaking Y axis */
     private int shakeOffY = 0;
-
+    /** Animation cool down */
     private Cooldown animationCooldown;
+    /** PowerUp animation cool down */
+    private Cooldown animationPowerUpCooldown;
     /** Shoot1's cool down */
     private Cooldown shootCooldown1;
     /** Shoot2's cool down */
     private Cooldown shootCooldown2;
     /** Shoot3's cool down */
     private Cooldown shootCooldown3;
-    /** charging's cool down */
+    /** Cooldown for charging of dash */
     private Cooldown chargeCooldown;
-    /** Dash's cool down */
+    /** Cooldown for charging of laser */
+    private Cooldown chargeLaserCooldown;
+    /** Cooldown for laser pattern */
+    private Cooldown laserCooldown;
+    /** Dashing's cool down */
     private Cooldown dashCooldown;
+    /** Duration of Laser cool down */
+    private Cooldown laserDuration;
 
     /** Dash Pattern State */
     private enum DashPattern {
+        NONE,
         FOLLOWING,
         CHARGING,
-        DASH,
+        DASHING,
+    }
+
+    /** Laser Pattern State */
+    private enum LaserPattern {
+        NONE,
+        IDLE,
+        CHARGING,
+        FIRING,
     }
 
     /** Dash Pattern Current State */
     private DashPattern dashOption;
+    /** Laser Pattern Current State */
+    private LaserPattern laserOption;
 
     private int screenWidth;
     private int screenHeight;
@@ -81,15 +111,19 @@ public class FinalBoss extends Entity implements BossEntity{
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         this.player = ship;
-        this.dashOption = DashPattern.FOLLOWING;
+        this.dashOption = DashPattern.NONE;
+        this.laserOption = LaserPattern.NONE;
 
         this.animationCooldown = Core.getCooldown(500);
+        this.animationPowerUpCooldown = Core.getCooldown(250);
         this.shootCooldown1 = Core.getCooldown(5000);
         this.shootCooldown2 = Core.getCooldown(400);
         this.shootCooldown3 = Core.getCooldown(300);
         this.chargeCooldown = Core.getCooldown(2000);
         this.dashCooldown = Core.getCooldown(6000);
-
+        this.chargeLaserCooldown = Core.getCooldown(1500);
+        this.laserCooldown = Core.getCooldown(3000);
+        this.laserDuration = Core.getCooldown(1600);
     }
 
     /** for vibrant moving with final boss
@@ -98,22 +132,44 @@ public class FinalBoss extends Entity implements BossEntity{
      */
     @Override
     public void update(){
-        if(this.animationCooldown.checkFinished()){
-            this.animationCooldown.reset();
+        if (this.isPowerUp) {
+            if(this.animationPowerUpCooldown.checkFinished()){
+                this.animationPowerUpCooldown.reset();
 
-            switch (this.spriteType) {
-                case FinalBoss1:
-                    this.spriteType = DrawManager.SpriteType.FinalBoss2;
-                    break;
-                case FinalBoss2:
-                    this.spriteType = DrawManager.SpriteType.FinalBoss1;
-                    break;
-                default:
-                    break;
+                switch (this.spriteType) {
+                    case FinalBossPowerUp1:
+                        this.spriteType = DrawManager.SpriteType.FinalBossPowerUp2;
+                        break;
+                    case FinalBossPowerUp2:
+                        this.spriteType = DrawManager.SpriteType.FinalBossPowerUp3;
+                        break;
+                    case FinalBossPowerUp3:
+                        this.spriteType = DrawManager.SpriteType.FinalBossPowerUp4;
+                        break;
+                    case FinalBossPowerUp4:
+                        this.spriteType = DrawManager.SpriteType.FinalBossPowerUp1;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } else {
+            if(this.animationCooldown.checkFinished()){
+                this.animationCooldown.reset();
+
+                switch (this.spriteType) {
+                    case FinalBoss1:
+                        this.spriteType = DrawManager.SpriteType.FinalBoss2;
+                        break;
+                    case FinalBoss2:
+                        this.spriteType = DrawManager.SpriteType.FinalBoss1;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
         movePattern();
-
     }
 
     /** decrease boss' healpoint */
@@ -121,13 +177,12 @@ public class FinalBoss extends Entity implements BossEntity{
     public void takeDamage(int damage){
         this.healPoint -= damage;
         if(GameState.isDecreaseEnemyPower()){
-				SoundManager.stop("sfx/meow.wav");
-            	SoundManager.play("sfx/meow.wav");
-			}
-		else{
-				SoundManager.stop("sfx/pikachu.wav");
-                SoundManager.play("sfx/pikachu.wav");
-			}	
+            SoundManager.stop("sfx/meow.wav");
+            SoundManager.play("sfx/meow.wav");
+		} else{
+            SoundManager.stop("sfx/pikachu.wav");
+            SoundManager.play("sfx/pikachu.wav");
+		}	
         if(this.healPoint <= 0){
             this.destroy();
         }
@@ -160,23 +215,31 @@ public class FinalBoss extends Entity implements BossEntity{
             this.move(0,0);
         }
         else if (this.healPoint > this.maxHp/2){
-            this.moveZigzag(4,3);
-        } 
-        else if (this.healPoint > this.maxHp/4) {
-            switch (this.dashOption) {
-                case FOLLOWING:
-                    this.follow(10);
-                    this.chargeCooldown.reset();
-                    break;
-                case CHARGING:
-                    this.charge();
-                    break;
-                case DASH:
-                    dash();
-                    break;
+            if (this.laserOption == LaserPattern.NONE) {
+                this.laserOption = LaserPattern.IDLE;
+                this.laserCooldown.reset();
             }
+
+            this.moveZigzag(4,3);
+        }
+        else if (this.healPoint > this.maxHp/4) {
+            if (this.laserOption != LaserPattern.NONE) {
+                this.laserOption = LaserPattern.NONE;
+                this.setClear();
+            }
+            if (this.dashOption == DashPattern.NONE) {
+                this.dashOption = DashPattern.FOLLOWING;
+                this.dashCooldown.reset();
+            }
+
+            dashPattern(10);
         }
         else {
+            if (this.dashOption != DashPattern.NONE) {
+                this.dashOption = DashPattern.NONE;
+                this.setClear();
+            }
+
             this.moveZigzag(2,1);
         }
     }
@@ -184,8 +247,12 @@ public class FinalBoss extends Entity implements BossEntity{
     /** move zigzag */
     public void moveZigzag(int zigSpeed, int vertSpeed){
         this.positionX += (this.zigDirection * zigSpeed);
-        if(this.positionX <= 0 || this.positionX >= this.screenWidth-this.width){
-            this.zigDirection *= -1;
+        if(this.positionX <= 0) {
+            this.positionX = 0;
+            this.zigDirection = 1;
+        } else if (this.positionX >= this.screenWidth - this.width) {
+            this.positionX = this.screenWidth - this.width;
+            this.zigDirection = -1;
         }
 
         if(goingDown) {
@@ -198,9 +265,29 @@ public class FinalBoss extends Entity implements BossEntity{
         }
     }
 
+    /** Manage the Dash Pattern */
+    public void dashPattern(int dashSpeed) {
+        switch (this.dashOption) {
+            case FOLLOWING:
+                this.follow(dashSpeed);
+                this.chargeCooldown.reset();
+                break;
+            case CHARGING:
+                this.charge();
+                break;
+            case DASHING:
+                dash();
+                break;
+            default:
+                break;
+        }
+    }
+
     /** Fix the Position of Player Ship */
     public void follow(int dashSpeed) {
         this.dashCooldown.reset();
+        this.changeToPowerUpMode();
+
         this.fixedPositionX = this.player.getPositionX() - this.getWidth()/2 + this.player.getWidth()/2; 
         this.fixedPositionY = this.player.getPositionY() - this.getHeight()/2 + this.player.getHeight()/2;
 
@@ -208,6 +295,7 @@ public class FinalBoss extends Entity implements BossEntity{
 
         this.dashVelX = dashSpeed * Math.cos(angle);
         this.dashVelY = dashSpeed * Math.sin(angle);
+
         this.dashOption = DashPattern.CHARGING;
 
         this.subDashVelX = 0;
@@ -217,14 +305,13 @@ public class FinalBoss extends Entity implements BossEntity{
     /** Charge for a While Before Starting Dash Pattern */
     public void charge() {
         if (this.chargeCooldown.checkFinished()) {
-            this.dashOption = DashPattern.DASH;
+            this.dashOption = DashPattern.DASHING;
 
             this.move(-shakeOffX, -shakeOffY);
             this.shakeOffX = 0;
             this.shakeOffY = 0;
 
         } else {
-
             this.move(-shakeOffX, -shakeOffY);
 
             int shakeAmount = 2;
@@ -237,15 +324,22 @@ public class FinalBoss extends Entity implements BossEntity{
 
     /** Dash Pattern */
     public void dash() {
-        double distanceSq = (double)(fixedPositionX - positionX) * (fixedPositionX - positionX) + (double)(fixedPositionY - positionY) * (fixedPositionY - positionY);
+        double dx = fixedPositionX - positionX;
+        double dy = fixedPositionY - positionY;
+        double distanceSq = dx * dx + dy * dy;
         double speedSq = dashVelX * dashVelX + dashVelY * dashVelY;
         
-		if (distanceSq <= speedSq) {
-            this.positionX = this.fixedPositionX;
-            this.positionY = this.fixedPositionY;
+		if (distanceSq <= speedSq || !this.isPowerUp) {
+
+            if (this.isPowerUp) {
+                this.positionX = this.fixedPositionX;
+                this.positionY = this.fixedPositionY;
+                this.changeToPowerUpMode();
+            }
 
             if (this.dashCooldown.checkFinished()) {
                 this.dashCooldown.reset();
+
                 this.dashOption = DashPattern.FOLLOWING;
                 this.dashVelX = 0;
                 this.dashVelY = 0;
@@ -267,6 +361,27 @@ public class FinalBoss extends Entity implements BossEntity{
         }
     }
 
+    public void changeToPowerUpMode() {
+        if (this.isPowerUp) {
+            this.isPowerUp = false;
+            this.setColor(Color.RED);
+            this.setPositionX(positionX+OFFSET);
+            this.setPositionY(positionY+OFFSET);
+            this.setHeight(NORMAL_HEIGHT);
+            this.setWidth(NORMAL_WIDTH);
+            this.animationCooldown.reset();
+            this.spriteType = DrawManager.SpriteType.FinalBoss1;
+        } else {
+            this.isPowerUp = true;
+            this.setColor(Color.YELLOW);
+            this.setPositionX(positionX-OFFSET);
+            this.setPositionY(positionY-OFFSET);
+            this.setHeight(POWERUP_HEIGHT);
+            this.setWidth(POWERUP_WIDTH);
+            this.animationPowerUpCooldown.reset();
+            this.spriteType = DrawManager.SpriteType.FinalBossPowerUp1;
+        }
+    }
 
     /** first shooting pattern of final boss */
     public Set<BossBullet> shoot1(){
@@ -282,6 +397,7 @@ public class FinalBoss extends Entity implements BossEntity{
         }
         return java.util.Collections.emptySet();
     }
+
     /** second shooting pattern of final boss */
     public Set<BossBullet> shoot2() {
         if (this.shootCooldown2.checkFinished()) {
@@ -294,6 +410,7 @@ public class FinalBoss extends Entity implements BossEntity{
         }
         return java.util.Collections.emptySet();
     }
+    
     /** third shooting pattern of final boss */
     public Set<BossBullet> shoot3() {
         Set<BossBullet> bullets = new HashSet<>();
@@ -309,6 +426,52 @@ public class FinalBoss extends Entity implements BossEntity{
         return bullets;
     }
 
+    /** Laser firing pattern of final boss */
+    public Set<BossLaser> laserShoot() {
+        Set<BossLaser> lasers = new HashSet<>();
+
+        switch (this.laserOption) {
+            case IDLE:
+                if (this.laserCooldown.checkFinished()) {
+                    this.laserOption = LaserPattern.CHARGING;
+                    this.chargeLaserCooldown.reset();
+
+                    this.changeToPowerUpMode();
+                }
+                break;
+
+            case CHARGING:
+                if (this.chargeLaserCooldown.checkFinished()) {
+                    this.laserOption = LaserPattern.FIRING;
+                    this.laserDuration.reset();
+
+                    for (int i=0; i<9; i++) {
+                        BossLaser laser = new BossLaser(this.getPositionX()+OFFSET, this.getPositionY()+POWERUP_HEIGHT + NORMAL_HEIGHT*i, NORMAL_WIDTH, NORMAL_HEIGHT, this, i, this.laserDuration);
+                        lasers.add(laser);
+                    }
+                }
+                break;
+
+            case FIRING:
+                if (this.laserDuration.checkFinished()) {
+                    this.laserOption = LaserPattern.IDLE;
+                    this.laserCooldown.reset();
+
+                    this.changeToPowerUpMode();
+                }
+                break;
+
+            default:
+                break;
+            }
+        return lasers;
+    }
+
+    public void setClear() {
+        if (this.isPowerUp) {
+            this.changeToPowerUpMode();
+        }
+    }
 
     /** flag final boss' destroy */
     @Override

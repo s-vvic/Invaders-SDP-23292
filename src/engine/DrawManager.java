@@ -103,7 +103,9 @@ public final class DrawManager {
 		EnemyShipB1, EnemyShipB2, EnemyShipC1, EnemyShipC2, EnemyShipSpecial,
 		FinalBoss1, FinalBoss2,FinalBossBullet,FinalBossDeath,OmegaBoss1, OmegaBoss2,OmegaBossDeath, Chaser, Explosion, SoundOn, SoundOff, Item_MultiShot,
 		Item_Atkspeed, Item_Penetrate, Item_Explode, Item_Slow, Item_Stop,
-		Item_Push, Item_Shield, Item_Heal
+		Item_Push, Item_Shield, Item_Heal, FinalBossPowerUp1, FinalBossPowerUp2,
+		FinalBossPowerUp3, FinalBossPowerUp4, BossLaserStart1, BossLaserStart2, BossLaserStart3,
+		BossLaserMiddle1, BossLaserMiddle2, BossLaserMiddle3,
 	}
 
 	/**
@@ -144,6 +146,16 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.OmegaBoss2, new boolean[32][14]);
 			spriteMap.put(SpriteType.OmegaBossDeath, new boolean[16][16]);
 			spriteMap.put(SpriteType.Chaser, new boolean[10][10]);
+			spriteMap.put(SpriteType.FinalBossPowerUp1, new boolean[80][70]);
+			spriteMap.put(SpriteType.FinalBossPowerUp2, new boolean[80][70]);
+			spriteMap.put(SpriteType.FinalBossPowerUp3, new boolean[80][70]);
+			spriteMap.put(SpriteType.FinalBossPowerUp4, new boolean[80][70]);
+			spriteMap.put(SpriteType.BossLaserStart1, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaserStart2, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaserStart3, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaserMiddle1, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaserMiddle2, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaserMiddle3, new boolean[50][40]);
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
 
@@ -268,17 +280,9 @@ public final class DrawManager {
 	public void drawScore(final Screen screen, final int score) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		String scoreString = String.format("P1:%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 180, 38);
+		String scoreString = String.format("%04d", score);
+		backBufferGraphics.drawString(scoreString, screen.getWidth() - 120, 38);
 	}
-    //  === [ADD] Draw P2's score on the line below P1's score ===
-    public void drawScoreP2(final Screen screen, final int scoreP2) {
-        backBufferGraphics.setFont(fontRegular);
-        backBufferGraphics.setColor(Color.WHITE);
-        String text = String.format("P2:%04d", scoreP2);
-        //  Y coordinate is 15px lower than P1 score to avoid overlapping
-        backBufferGraphics.drawString(text, screen.getWidth() - 180, 60);
-    }
 
     /**
      * Draws the elapsed time on screen.
@@ -312,8 +316,7 @@ public final class DrawManager {
 	public void drawLives(final Screen screen, final int lives) {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
-		// backBufferGraphics.drawString("P1:" + Integer.toString(lives), 10, 25);
-		backBufferGraphics.drawString("P1:", 23, 38);
+		backBufferGraphics.drawString("Lives:", 23, 38);
 		Ship dummyShip = null;
 		if(GameState.isInvincible()){
 			rainbowHue += 0.01f;
@@ -328,21 +331,8 @@ public final class DrawManager {
 		}
 		
 		for (int i = 0; i < lives; i++)
-			drawEntity(dummyShip, 60 + 53 * i, 15);
+			drawEntity(dummyShip, 80 + 53 * i, 15);
 	}
-
-	public void drawLivesP2(final Screen screen, final int lives) {
-		backBufferGraphics.setFont(fontRegular);
-		backBufferGraphics.setColor(Color.WHITE);
-		// backBufferGraphics.drawString("P2:" + Integer.toString(lives), 10, 40);
-		backBufferGraphics.drawString("P2:", 23, 60);
-
-		Ship dummyShip = new Ship(0, 0,Color.pink);
-		for (int i = 0; i < lives; i++) {
-			drawEntity(dummyShip, 60 + 53 * i, 45);
-		}
-	}
-
 
 	/**
 	 * Draws the items HUD.
@@ -478,31 +468,6 @@ public final class DrawManager {
         if (option == 0) backBufferGraphics.setColor(pulseColor);
         else backBufferGraphics.setColor(Color.WHITE);
         drawCenteredRegularString(screen, exitString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 5);
-	}
-
-	/**
-	 * Draws the mode selection menu.
-	 *
-	 * @param screen
-	 *            Screen to draw on.
-	 * @param option
-	 *            Option selected.
-	 */
-	public void drawModeSelection(final Screen screen, final int option) {
-		String onePlayerString = "1 Player";
-		String twoPlayersString = "2 Players";
-
-		if (option == 10)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, onePlayerString, screen.getHeight() / 3 * 2);
-
-		if (option == 11)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, twoPlayersString, screen.getHeight() / 3 * 2 + fontRegularMetrics.getHeight() * 2);
 	}
 
 	/**
