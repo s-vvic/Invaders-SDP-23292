@@ -5,10 +5,12 @@ const { open } = require('sqlite');
 const bcrypt = require('bcrypt');
 const helmet = require('helmet');
 const hpp = require('hpp');
+const cors = require('cors');
 
 const app = express();
 app.use(helmet());
 app.use(hpp());
+app.use(cors());
 
 let db;
 
