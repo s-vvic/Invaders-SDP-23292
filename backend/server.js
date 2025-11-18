@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const hpp = require('hpp');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
 
 const app = express();
 app.use(helmet());
@@ -21,6 +22,7 @@ const limiter = rateLimit({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use(limiter);
+app.use(morgan('dev'));
 
 let db;
 
