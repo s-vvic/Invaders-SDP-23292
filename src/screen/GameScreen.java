@@ -10,6 +10,7 @@ import engine.Core;
 import engine.GameState;
 import engine.GameTimer;
 import engine.AchievementManager;
+import engine.InputManager;
 import engine.ItemHUDManager;
 import entity.*;
 import engine.level.Level;
@@ -258,6 +259,7 @@ public class GameScreen extends Screen {
         }
         cleanItems();
         manageCollisions();
+		ItemHUDManager.getInstance().update(InputManager.getMouseX(), InputManager.getMouseY());
 		cleanBullets();
 		draw();
 
@@ -628,7 +630,7 @@ public class GameScreen extends Screen {
 				
 					    				engine.level.ItemDrop selectedDrop = successfulDrops.get((int) (Math.random() * successfulDrops.size()));
 				
-					    				DropItem.ItemType droppedType = DropItem.fromString(selectedDrop.getItemId());
+					    				DropItem.ItemType droppedType = DropItem.ItemType.fromString(selectedDrop.getItemId());
 				
 					    				if (droppedType != null) {
 				
@@ -804,7 +806,9 @@ public class GameScreen extends Screen {
 					this.logger.info("Player acquired dropItem: " + dropItem.getItemType());
 
 					// Add item to HUD display
-					ItemHUDManager.getInstance().addDroppedItem(dropItem.getItemType());
+					ItemHUDManager.getInstance().addActiveItem(dropItem.getItemType());
+					ItemHUDManager.getInstance().triggerFlash(dropItem.getItemType());
+
 
 					switch (dropItem.getItemType()) {
 						case Heal:
@@ -910,6 +914,13 @@ public class GameScreen extends Screen {
 		if (this.lives < this.maxLives) {
 			this.lives++;
 		}
+	}
+
+	/**
+	 * @return The player's ship instance.
+	 */
+	public Ship getShip() {
+		return this.ship;
 	}
 
 	private void bossReveal() {
@@ -1057,11 +1068,11 @@ public class GameScreen extends Screen {
 	 */
 	private void handleInput() {
 		if (this.lives > 0 && !this.ship.isDestroyed()) {
-			boolean p1Right = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_D);
-			boolean p1Left  = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_A);
-			boolean p1Up    = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_W);
-			boolean p1Down  = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_S);
-			boolean p1Fire  = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_SPACE);
+			boolean p1Right = InputManager.getInstance().isKeyDown(java.awt.event.KeyEvent.VK_D);
+			boolean p1Left  = InputManager.getInstance().isKeyDown(java.awt.event.KeyEvent.VK_A);
+			boolean p1Up    = InputManager.getInstance().isKeyDown(java.awt.event.KeyEvent.VK_W);
+			boolean p1Down  = InputManager.getInstance().isKeyDown(java.awt.event.KeyEvent.VK_S);
+			boolean p1Fire  = InputManager.getInstance().isKeyDown(java.awt.event.KeyEvent.VK_SPACE);
 
 			boolean isRightBorder = this.ship.getPositionX()
 					+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;

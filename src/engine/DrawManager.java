@@ -237,6 +237,26 @@ public final class DrawManager {
 	}
 
 	/**
+	 * Draws a sprite from its SpriteType at a given position and color.
+	 * @param spriteType The type of the sprite to draw.
+	 * @param positionX The x-coordinate.
+	 * @param positionY The y-coordinate.
+	 * @param color The color of the sprite.
+	 */
+	public void drawSprite(final SpriteType spriteType, final int positionX, final int positionY, final Color color) {
+		boolean[][] image = spriteMap.get(spriteType);
+		if (image == null) {
+			logger.warning("Sprite type not found: " + spriteType);
+			return;
+		}
+		backBufferGraphics.setColor(color);
+		for (int i = 0; i < image.length; i++)
+			for (int j = 0; j < image[i].length; j++)
+				if (image[i][j])
+					backBufferGraphics.drawRect(positionX + i * 2, positionY + j * 2, 1, 1);
+	}
+
+	/**
 	 * Draws a scaled entity.
 	 */
 	public void drawScaledEntity(final Entity entity, final int positionX, final int positionY, float scale) {
