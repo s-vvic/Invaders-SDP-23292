@@ -10,6 +10,8 @@ import java.awt.Color;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Map;
+import java.util.HashMap;
 
 
 import engine.Cooldown;
@@ -25,6 +27,8 @@ import engine.StarSpeedManager;
 import engine.StarOriginManager;
 import engine.CelestialManager;
 import engine.AuthManager;
+import engine.MenuManager;
+import engine.SecretCommandHandler;
 
 
 /**
@@ -132,7 +136,6 @@ public class TitleScreen extends Screen {
     	private List<ShootingStar> shootingStars;
     	/** Sound button on/off object. */
 	private SoundButton soundButton;
-	private int commandState = 0;
 
     /** Current rotation angle of the starfield. */
     private float currentAngle;
@@ -145,7 +148,12 @@ public class TitleScreen extends Screen {
 	                private StarSpeedManager speedManager;
 	                /** Manages the oscillating origin of the starfield. */
 	                private StarOriginManager originManager;	/** Manages the movement of all celestial bodies. */
-	                private CelestialManager celestialManager;	/**
+	                private CelestialManager celestialManager;
+	private MenuManager menuManager;
+	private SecretCommandHandler secretCommandHandler;
+	private Map<Integer, Runnable> keyHandlers;
+
+	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
 	 * @param width
@@ -201,8 +209,91 @@ public class TitleScreen extends Screen {
 		this.speedManager = new StarSpeedManager();
 		this.originManager = new StarOriginManager(width, height);
 		this.celestialManager = new CelestialManager();
+		this.menuManager = new MenuManager(2, 2, 3, 6, 4, 7, 0);
+		this.secretCommandHandler = new SecretCommandHandler();
+		this.setupKeyHandlers();
 	}
 
+	private void setupKeyHandlers() {
+		this.keyHandlers = new HashMap<>();
+
+		// Navigation keys
+		Runnable upAction = () -> {
+			secretCommandHandler.handleKey(KeyEvent.VK_UP);
+			previousMenuItem();
+		};
+		keyHandlers.put(KeyEvent.VK_UP, upAction);
+		keyHandlers.put(KeyEvent.VK_W, upAction);
+
+		Runnable downAction = () -> {
+			secretCommandHandler.handleKey(KeyEvent.VK_DOWN);
+			nextMenuItem();
+		};
+		keyHandlers.put(KeyEvent.VK_DOWN, downAction);
+		keyHandlers.put(KeyEvent.VK_S, downAction);
+
+		Runnable leftAction = () -> {
+			secretCommandHandler.handleKey(KeyEvent.VK_LEFT);
+			if (this.returnCode == 5) {
+				this.returnCode = 4;
+				this.soundButton.setColor(Color.WHITE);
+			}
+		};
+		keyHandlers.put(KeyEvent.VK_LEFT, leftAction);
+		keyHandlers.put(KeyEvent.VK_A, leftAction);
+
+		Runnable rightAction = () -> {
+			secretCommandHandler.handleKey(KeyEvent.VK_RIGHT);
+			if (secretCommandHandler.isCommandComplete()) {
+				this.returnCode = 100;
+				this.isRunning = false;
+			} else if (this.isRunning) {
+				this.returnCode = 5;
+				this.soundButton.setColor(Color.GREEN);
+			}
+		};
+		keyHandlers.put(KeyEvent.VK_RIGHT, rightAction);
+		keyHandlers.put(KeyEvent.VK_D, rightAction);
+
+		// Action keys
+		keyHandlers.put(KeyEvent.VK_SPACE, () -> {
+			this.secretCommandHandler.reset();
+			if (this.returnCode == 7) { // Web Dashboard
+				try {
+					if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+						Desktop.getDesktop().browse(new URI("http://localhost:8080"));
+					}
+				} catch (IOException | URISyntaxException e) {
+					e.printStackTrace();
+				}
+			} else if (this.returnCode != 5) {
+				this.isRunning = false;
+			} else { // Sound menu
+				this.soundButton.changeSoundState();
+				if (SoundButton.getIsSoundOn()) {
+					SoundManager.uncutAllSound();
+				} else {
+					SoundManager.cutAllSound();
+				}
+				if (this.soundButton.isTeamCreditScreenPossible()) {
+					this.returnCode = 8;
+					this.isRunning = false;
+				}
+			}
+		});
+
+		// Shortcut keys
+		keyHandlers.put(KeyEvent.VK_L, () -> {
+			this.returnCode = 9; // LoginScreen
+			this.isRunning = false;
+		});
+
+		keyHandlers.put(KeyEvent.VK_O, () -> {
+			if (AuthManager.getInstance().isLoggedIn()) {
+				AuthManager.getInstance().logout();
+			}
+		});
+	}
 
 
 	/**
@@ -316,111 +407,14 @@ public class TitleScreen extends Screen {
         }
 
 		draw();
-        if (this.selectionCooldown.checkFinished()
-                && this.inputDelay.checkFinished()) {
-            
-            
-                                    if (inputManager.isKeyDown(KeyEvent.VK_L)) {
-                                        this.returnCode = 9; // New return code for LoginScreen
-                                        this.isRunning = false;
-                                        this.selectionCooldown.reset();
-                                    } else if (inputManager.isKeyDown(KeyEvent.VK_O) && AuthManager.getInstance().isLoggedIn()) {
-                                        AuthManager.getInstance().logout();
-                                        this.selectionCooldown.reset();
-                                    }
-                        
-                        			if (inputManager.isKeyDown(KeyEvent.VK_UP)
-                        					|| inputManager.isKeyDown(KeyEvent.VK_W)) {                if (this.commandState == 0 || this.commandState == 1) {
-                    this.commandState++;
-                } else {
-                    
-                    this.commandState = 0;
-                }
-                previousMenuItem();
-                this.selectionCooldown.reset();
-            }
-            
-            else if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
-                    || inputManager.isKeyDown(KeyEvent.VK_S)) {
-               
-                if (this.commandState == 2 || this.commandState == 3) {
-                    this.commandState++;
-                } else {
-                    this.commandState = 0;
-                }
-                nextMenuItem();
-                this.selectionCooldown.reset();
-            }
-          
-            else if (inputManager.isKeyDown(KeyEvent.VK_LEFT)
-                    || inputManager.isKeyDown(KeyEvent.VK_A)) {
-              
-                if (this.commandState == 4 || this.commandState == 6) {
-                    this.commandState++;
-                } else {
-                    this.commandState = 0;
-                }
-                if (this.returnCode == 5) { 
-                    this.returnCode = 4;
-                    this.soundButton.setColor(Color.WHITE);
-                }
-                this.selectionCooldown.reset();
-            }
-    
-            else if (inputManager.isKeyDown(KeyEvent.VK_RIGHT)
-                    || inputManager.isKeyDown(KeyEvent.VK_D)) {
-               
-                if (this.commandState == 5) {
-                    this.commandState++;
-                } 
-              
-                else if (this.commandState == 7) {
-                    this.returnCode = 100;
-                    this.isRunning = false;
-                } else {
-                    this.commandState = 0;
-                }
-
-                if (this.isRunning) { 
-                    this.returnCode = 5; 
-                    this.soundButton.setColor(Color.GREEN);
-                    this.selectionCooldown.reset();
-                }
-            }
-           
-            else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-               
-                this.commandState = 0;
-                
-                if (this.returnCode == 7) { // Web Dashboard
-                    try {
-                        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                            Desktop.getDesktop().browse(new URI("http://localhost:8080"));
-                        }
-                    } catch (IOException | URISyntaxException e) {
-                        e.printStackTrace();
-                    }
-                    this.selectionCooldown.reset();
-                } else if (this.returnCode != 5) {
-					this.isRunning = false;
-				} else {
-					this.soundButton.changeSoundState();
-
-					if (SoundButton.getIsSoundOn()) {
-						SoundManager.uncutAllSound();
-					} else {
-						SoundManager.cutAllSound();
-					}
-
-					if (this.soundButton.isTeamCreditScreenPossible()) {
-						this.returnCode = 8;
-						this.isRunning = false;
-					} else {
-						this.selectionCooldown.reset();
-					}
+		if (this.selectionCooldown.checkFinished() && this.inputDelay.checkFinished()) {
+			for (Map.Entry<Integer, Runnable> entry : this.keyHandlers.entrySet()) {
+				if (inputManager.isKeyDown(entry.getKey())) {
+					entry.getValue().run();
+					this.selectionCooldown.reset();
+					break; 
 				}
-            }
-
+			}
 		}
 	}
 
@@ -429,21 +423,12 @@ public class TitleScreen extends Screen {
 	 */
 	private void nextMenuItem() {
 		SoundManager.play("sfx/menu_select.wav");
-		if (this.returnCode == 2)
-			this.returnCode = 3;
-		else if (this.returnCode == 3)
-			this.returnCode = 6;
-		else if (this.returnCode == 6)
-			this.returnCode = 4;
-		else if (this.returnCode == 4)
-			this.returnCode = 7; // Shop -> Web Dashboard
-		else if (this.returnCode == 7)
-			this.returnCode = 0; // Web Dashboard -> Exit
-		else if (this.returnCode == 0)
-			this.returnCode = 2;
-		else if (this.returnCode == 5) {
-			this.returnCode = 0;
+		if (this.returnCode == 5) { // If sound button is focused
+			this.menuManager.setCurrentSelection(0); // Move to Exit
+		} else {
+			this.menuManager.next();
 		}
+		this.returnCode = this.menuManager.getCurrentSelection();
 		this.targetAngle += 90;
 	}
 
@@ -452,21 +437,12 @@ public class TitleScreen extends Screen {
 	 */
 	private void previousMenuItem() {
 		SoundManager.play("sfx/menu_select.wav");
-		if (this.returnCode == 2)
-			this.returnCode = 0;
-		else if (this.returnCode == 0)
-			this.returnCode = 7; // Exit -> Web Dashboard
-		else if (this.returnCode == 7)
-			this.returnCode = 4; // Web Dashboard -> Shop
-		else if (this.returnCode == 4)
-			this.returnCode = 6;
-		else if (this.returnCode == 6)
-			this.returnCode = 3;
-		else if (this.returnCode == 3)
-			this.returnCode = 2;
-		else if (this.returnCode == 5) {
-			this.returnCode = 6;
+		if (this.returnCode == 5) { // If sound button is focused
+			this.menuManager.setCurrentSelection(6); // Move to Story
+		} else {
+			this.menuManager.previous();
 		}
+		this.returnCode = this.menuManager.getCurrentSelection();
 		this.targetAngle -= 90;
 	}
 

@@ -12,8 +12,10 @@
     --dark-background: #121212;
     --light-background: #1e1e1e;
     --text-color: #e0e0e0;
+    --text-secondary: #999;
     --border-color: #555;
     --input-bg: #333;
+    --error-color: #ff4444;
 }
 
 body {
