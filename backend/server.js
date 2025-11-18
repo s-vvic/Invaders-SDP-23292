@@ -469,6 +469,22 @@ const specs = require('./config/swagger.js');
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
+// ==================================
+// 전역 오류 처리 미들웨어 (가장 마지막에 위치해야 함)
+// ==================================
+app.use((err, req, res, next) => {
+    // 1. 서버 콘솔에 상세한 오류를 로깅합니다 (개발자 확인용).
+    console.error(err.stack);
+
+    // 2. 이미 응답이 전송된 경우, Express의 기본 오류 처리기에 위임합니다.
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    // 3. 사용자에게는 일관된 일반 오류 메시지를 보냅니다.
+    res.status(500).json({ error: 'Internal Server Error' });
+});
+
 if (require.main === module) {
     startServer().then(() => {
         app.listen(8080, () => {
