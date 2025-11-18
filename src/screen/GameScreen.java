@@ -236,12 +236,11 @@ public class GameScreen extends Screen {
      */
     public final void initialize() {
         super.initialize();
-        /** Initialize the bullet Boss fired */
         this.bossBullets = new HashSet<>();
         this.enemyFormations = new ArrayList<>();
         this.bossLasers = new HashSet<>();
 
-        String formationType = "A"; // 1. 기본값을 "A"로 먼저 설정합니다.
+        String formationType = "A";
         LevelEnemyFormation formationInfo = this.currentLevel.getEnemyFormation();
 
         if (formationInfo != null) {
@@ -279,7 +278,6 @@ public class GameScreen extends Screen {
 
         this.ship = new Ship(this.width / 2, ITEMS_SEPARATION_LINE_HEIGHT - 75, Color.green);
 
-        // special enemy initial
         enemyShipSpecialFormation = new EnemyShipSpecialFormation(this.currentLevel,
                 Core.getVariableCooldown(BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE),
                 Core.getCooldown(BONUS_SHIP_EXPLOSION));
@@ -295,7 +293,6 @@ public class GameScreen extends Screen {
         this.chaserFormation = new EnemyShipChaserFormation(this.currentLevel, this.width, this.ship);
         this.chaserFormation.attach(this);
 
-        // Special input delay / countdown.
         this.gameStartTime = System.currentTimeMillis();
         this.inputDelay = Core.getCooldown(INPUT_DELAY);
         this.inputDelay.reset();
@@ -329,47 +326,34 @@ public class GameScreen extends Screen {
     protected final void update() {
         super.update();
 
-        // ========== 1) 항상 첫 번째로 ESC 입력 처리 ==========
         handleInput();
 
-        // ========== 2) 일시정지 상태면 게임 로직 중단 + Pause UI 출력 ==========
         if (isPaused) {
             drawPausePopup();
             return;
         }
 
-        // ========== 3) 평상시 게임 업데이트 ==========
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
 
-            // 타이머 시작
             if (!this.gameTimer.isRunning()) {
                 this.gameTimer.start();
             }
 
-            // 플레이어 이동 + 공격 입력 처리
-            // (ESC / Q는 handleInput()에서 이미 처리됨)
-            // 다른 입력 처리 필요 없음
-
-            // 게임 전체 로직 (적, 보스, 총알 등)
             updateGameLogic();
         }
 
-        // ========== 4) 경과 시간 업데이트 ==========
         if (this.gameTimer.isRunning()) {
             this.elapsedTime = this.gameTimer.getElapsedTime();
             AchievementManager.getInstance().onTimeElapsedSeconds((int) (this.elapsedTime / 1000));
         }
 
-        // ========== 5) 총알 / 아이템 / 충돌 처리 ==========
         cleanItems();
         manageCollisions();
-        ItemHUDManager.getInstance().update(inputManager.getMouseX(), inputManager.getMouseY());
+        ItemHUDManager.getInstance().update(InputManager.getMouseX(), InputManager.getMouseY());
         cleanBullets();
 
-        // ========== 6) 화면 그리기 ==========
         draw();
 
-        // ========== 7) 스테이지 종료 / 게임 오버 체크 ==========
         checkGameStatus();
     }
 
@@ -385,11 +369,8 @@ public class GameScreen extends Screen {
                     this.ship.getPositionY());
         }
 
-        // special enemy draw
         enemyShipSpecialFormation.draw();
 
-        /** draw final boss at the field */
-        /** draw final boss bullets */
         if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
             for (BossBullet bossBullet : bossBullets) {
                 drawManager.drawEntity(bossBullet, bossBullet.getPositionX(), bossBullet.getPositionY());
@@ -418,7 +399,6 @@ public class GameScreen extends Screen {
         for (DropItem dropItem : this.dropItems)
             drawManager.drawEntity(dropItem, dropItem.getPositionX(), dropItem.getPositionY());
 
-        // Interface.
         drawManager.drawScore(this, this.score);
         drawManager.drawCoin(this, this.coin);
         drawManager.drawLives(this, this.lives);
@@ -431,17 +411,15 @@ public class GameScreen extends Screen {
         if (this.achievementText != null && !this.achievementPopupCooldown.checkFinished()) {
             drawManager.drawAchievementPopup(this, this.achievementText);
         } else {
-            this.achievementText = null; // clear once expired
+            this.achievementText = null;
         }
 
-        // Health notification popup
         if (this.healthPopupText != null && !this.healthPopupCooldown.checkFinished()) {
             drawManager.drawHealthPopup(this, this.healthPopupText);
         } else {
             this.healthPopupText = null;
         }
 
-        // Countdown to game start.
         if (!this.inputDelay.checkFinished()) {
             int countdown = (int) ((INPUT_DELAY
                     - (System.currentTimeMillis()
@@ -549,7 +527,6 @@ public class GameScreen extends Screen {
      * @param recyclable A set to add the bullet to if it is consumed.
      */
     private void checkCollisionWithSpecialEnemiesAndBosses(Bullet bullet, Set<Bullet> recyclable) {
-        // special enemy bullet event
         for (EnemyShip enemyShipSpecial : this.enemyShipSpecialFormation) {
             if (enemyShipSpecial != null && !enemyShipSpecial.isDestroyed()
                     && checkCollision(bullet, enemyShipSpecial)) {
@@ -577,7 +554,6 @@ public class GameScreen extends Screen {
             recyclable.add(bullet);
         }
 
-        /** when final boss collide with bullet */
         if (this.finalBoss != null && !this.finalBoss.isDestroyed() && checkCollision(bullet, this.finalBoss)) {
             this.finalBoss.takeDamage(1);
             if (this.finalBoss.getHealPoint() <= 0) {
@@ -629,12 +605,12 @@ public class GameScreen extends Screen {
                     AchievementManager.getInstance().onEnemyDefeated();
                     if (!bullet.penetration()) {
                         recyclable.add(bullet);
-                        return true; // Bullet was consumed
+                        return true;
                     }
                 }
             }
         }
-        return false; // Bullet was not consumed
+        return false;
     }
 
     /**
@@ -707,12 +683,11 @@ public class GameScreen extends Screen {
             boolean isGameOver = this.lives == 0;
             boolean isFinalLevelCleared = !isGameOver && this.level == new LevelManager().getNumberOfLevels();
 
-            if (isGameOver) { // Game Over condition
-                draw(); // Draw the final frame before capturing.
+            if (isGameOver) {
+                draw();
                 Core.lastScreenCapture = drawManager.getBackBuffer();
                 this.returnCode = 99;
-            } else { // Level cleared condition
-                // Unlock level-specific achievements
+            } else {
                 if (this.level == 1) {
                     AchievementManager.getInstance().unlockAchievement("Beginner");
                 } else if (this.level == 3) {
@@ -731,11 +706,9 @@ public class GameScreen extends Screen {
                 }
             }
 
-            // Submit score to backend if logged in
             AuthManager authManager = AuthManager.getInstance();
             if (authManager.isLoggedIn()) {
                 if (isGameOver || isFinalLevelCleared) {
-                    // Unlock "Conqueror" achievement if the final level is cleared
                     if (isFinalLevelCleared) {
                         AchievementManager.getInstance().unlockAchievement("Conqueror");
                     }
@@ -743,7 +716,7 @@ public class GameScreen extends Screen {
                     try {
                         ApiClient.getInstance().saveScore(this.score);
                         this.logger.info("Score " + this.score + " submitted to backend for user " + authManager.getUserId());
-                    } catch (Exception e) { // saveScore is async, but catching potential sync exceptions
+                    } catch (Exception e) {
                         this.logger.severe("Error submitting score to backend: " + e.getMessage());
                     }
                 } else {
@@ -762,10 +735,8 @@ public class GameScreen extends Screen {
      * Player loses a life immediately upon collision with any enemy.
      */
     private void manageShipEnemyCollisions() {
-        // =====  collision check =====
         if (!this.levelFinished && this.lives > 0 && !this.ship.isDestroyed()
                 && !this.ship.isInvincible() && !GameState.isInvincible()) {
-            // Check collision with normal enemy ships
             for (EnemyShipFormation formation : this.enemyFormations) {
                 for (EnemyShip enemyShip : formation) {
                     if (!enemyShip.isDestroyed() && checkCollision(this.ship, enemyShip)) {
@@ -780,7 +751,6 @@ public class GameScreen extends Screen {
                 }
             }
 
-            // Check collision with special enemy formation (red/blue ships)
             for (EnemyShip enemyShipSpecial : this.enemyShipSpecialFormation) {
                 if (enemyShipSpecial != null && !enemyShipSpecial.isDestroyed()
                         && checkCollision(this.ship, enemyShipSpecial)) {
@@ -805,7 +775,6 @@ public class GameScreen extends Screen {
                 }
             }
 
-            // Check collision with omega boss (mid boss - yellow/pink ship)
             if (this.omegaBoss != null && !this.omegaBoss.isDestroyed()
                     && checkCollision(this.ship, this.omegaBoss)) {
                 this.ship.destroy();
@@ -816,7 +785,6 @@ public class GameScreen extends Screen {
                 return;
             }
 
-            // Check collision with final boss
             if (this.finalBoss != null && !this.finalBoss.isDestroyed()
                     && checkCollision(this.ship, this.finalBoss)) {
                 this.ship.destroy();
@@ -839,7 +807,6 @@ public class GameScreen extends Screen {
             for (DropItem dropItem : this.dropItems) {
                 if (this.lives > 0 && !this.ship.isDestroyed() && checkCollision(this.ship, dropItem)) {
                     this.logger.info("Player acquired dropItem: " + dropItem.getItemType());
-                    // Add item to HUD display
                     ItemHUDManager.getInstance().addActiveItem(dropItem.getItemType());
                     ItemHUDManager.getInstance().triggerFlash(dropItem.getItemType());
                     switch (dropItem.getItemType()) {
@@ -847,7 +814,7 @@ public class GameScreen extends Screen {
                             gainLife();
                             break;
                         case Shield:
-                            ship.activateInvincibility(5000); // 5 seconds of invincibility
+                            ship.activateInvincibility(5000);
                             break;
                         case Stop:
                             DropItem.applyTimeFreezeItem(3000);
@@ -872,7 +839,6 @@ public class GameScreen extends Screen {
                             this.logger.info("Enemy formation slowed down!");
                             break;
                         default:
-                            // For other dropItem types. Free to add!
                             break;
                     }
                     acquiredDropItems.add(dropItem);
@@ -892,15 +858,12 @@ public class GameScreen extends Screen {
      * @return Result of the collision test.
      */
     private boolean checkCollision(final Entity a, final Entity b) {
-        // Calculate center point of the entities in both axis.
         int centerAX = a.getPositionX() + a.getWidth() / 2;
         int centerAY = a.getPositionY() + a.getHeight() / 2;
         int centerBX = b.getPositionX() + b.getWidth() / 2;
         int centerBY = b.getPositionY() + b.getHeight() / 2;
-        // Calculate maximum distance without collision.
         int maxDistanceX = a.getWidth() / 2 + b.getWidth() / 2;
         int maxDistanceY = a.getHeight() / 2 + b.getHeight() / 2;
-        // Calculates distance.
         int distanceX = Math.abs(centerAX - centerBX);
         int distanceY = Math.abs(centerAY - centerBY);
 
@@ -914,7 +877,7 @@ public class GameScreen extends Screen {
      */
     public void showAchievement(String message) {
         this.achievementText = message;
-        this.achievementPopupCooldown = Core.getCooldown(2500); // Show for 2.5 seconds
+        this.achievementPopupCooldown = Core.getCooldown(2500);
         this.achievementPopupCooldown.reset();
     }
 
@@ -995,7 +958,6 @@ public class GameScreen extends Screen {
     public void finalbossManage() {
         if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
             this.finalBoss.update();
-            /** called the boss shoot logic */
             if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_2_HP_THRESHOLD) {
                 if (this.finalBoss.getDifficulty() == 1) {
                     bossBullets.addAll(this.finalBoss.shoot1());
@@ -1004,7 +966,6 @@ public class GameScreen extends Screen {
                     bossBullets.addAll(this.finalBoss.shoot3());
                 }
             } else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_3_HP_THRESHOLD) {
-                /**  clear bullets if shoot3() was called */
                 if (this.finalBoss.getDifficulty() != 1 && !is_cleared) {
                     bossBullets.clear();
                     is_cleared = true;
@@ -1013,24 +974,20 @@ public class GameScreen extends Screen {
                     bossBullets.addAll(this.finalBoss.shoot2());
                     bossLasers.addAll(this.finalBoss.laserShoot());
                 }
-            } else { // dash pattern
+            } else {
                 if (this.finalBoss.getDifficulty() != 1) {
                     bossBullets.addAll(this.finalBoss.shoot4());
                 }
                 bossBullets.addAll(this.finalBoss.shoot2());
             }
 
-            /** bullets to erase */
             Set<BossBullet> bulletsToRemove = new HashSet<>();
 
             for (BossBullet bossBullet : bossBullets) {
                 bossBullet.update();
-                /** If the bullet goes off the screen */
                 if (bossBullet.isOffScreen(width, height)) {
-                    /** bulletsToRemove carry bullet */
                     bulletsToRemove.add(bossBullet);
                 }
-                /** If the bullet collides with ship */
                 else if (this.lives > 0 && this.checkCollision(bossBullet, this.ship) && !GameState.isInvincible()) {
                     if (!this.ship.isDestroyed()) {
                         this.ship.destroy();
@@ -1041,17 +998,13 @@ public class GameScreen extends Screen {
                 }
             }
 
-            /** lasers to erase */
             Set<BossLaser> lasersToRemove = new HashSet<>();
 
             for (BossLaser bossLaser : bossLasers) {
                 bossLaser.update();
-                /** If the laser goes off the screen */
                 if (bossLaser.isRemoved()) {
-                    /** lasersToRemove carry laser */
                     lasersToRemove.add(bossLaser);
                 }
-                /** If the laser collides with ship */
                 else if (this.lives > 0 && this.checkCollision(bossLaser, this.ship) && !GameState.isInvincible()
                         && takeLaserDamageCooldown.checkFinished()) {
 
@@ -1064,7 +1017,6 @@ public class GameScreen extends Screen {
                     }
                 }
             }
-            /** all bullets are removed */
             bossBullets.removeAll(bulletsToRemove);
             bossLasers.removeAll(lasersToRemove);
         }
@@ -1133,7 +1085,6 @@ public class GameScreen extends Screen {
                 break;
         }
         this.ship.update();
-        // special enemy update
         this.enemyShipSpecialFormation.update();
         this.chaserFormation.update(this.ship);
     }
@@ -1144,7 +1095,6 @@ public class GameScreen extends Screen {
      */
     private void handleInput() {
 
-        // ===== ESC 입력으로 일시정지 토글 =====
         boolean escPressed = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_ESCAPE);
 
         if (escPressed && !escPressedLastFrame) {
@@ -1153,26 +1103,23 @@ public class GameScreen extends Screen {
 
         escPressedLastFrame = escPressed;
 
-        // ===== 일시정지 상태면 추가 입력 막기 =====
         if (isPaused) {
 
-            // Q 눌러서 메인메뉴로 나가기
             boolean qPressed = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_Q);
             if (qPressed) {
-                this.returnCode = 1;     // TitleScreen(메뉴)로 이동
+                this.returnCode = 1;
                 this.isRunning = false;
             }
 
             return;
         }
 
-        // ===== 여기부터 원래 플레이어 입력 =====
         if (this.lives > 0 && !this.ship.isDestroyed()) {
 
             boolean p1Right = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_D);
             boolean p1Left = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_A);
             boolean p1Up = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_W);
-            boolean p1Down = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_S);
+            boolean p1Down  = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_S);
             boolean p1Fire = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_SPACE);
 
             boolean isRightBorder = this.ship.getPositionX()
