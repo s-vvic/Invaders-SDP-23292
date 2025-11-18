@@ -321,14 +321,11 @@ public class TitleScreen extends Screen {
             
             
                                     if (inputManager.isKeyDown(KeyEvent.VK_L)) {
-                                        this.returnCode = 9; // New return code for LoginScreen
+                                        this.returnCode = 9; // Direct return code for LoginScreen (no fade)
                                         this.isRunning = false;
                                         this.selectionCooldown.reset();
                                     } else if (inputManager.isKeyDown(KeyEvent.VK_O) && AuthManager.getInstance().isLoggedIn()) {
-                                        AuthManager.getInstance().logout();
-                                        this.selectionCooldown.reset();
-                                    }
-                        
+                        }
                         			if (inputManager.isKeyDown(KeyEvent.VK_UP)
                         					|| inputManager.isKeyDown(KeyEvent.VK_W)) {                if (this.commandState == 0 || this.commandState == 1) {
                     this.commandState++;
@@ -375,7 +372,7 @@ public class TitleScreen extends Screen {
                 } 
               
                 else if (this.commandState == 7) {
-                    this.returnCode = 100;
+                    this.returnCode = 200;
                     this.isRunning = false;
                 } else {
                     this.commandState = 0;
@@ -401,7 +398,12 @@ public class TitleScreen extends Screen {
                         e.printStackTrace();
                     }
                     this.selectionCooldown.reset();
+                } else if (this.returnCode == 0) { // Exit button
+                    this.isRunning = false;
                 } else if (this.returnCode != 5) {
+                    // Apply fade-out transition for all other menu items except sound.
+                    Core.lastScreenCapture = Core.getDrawManager().getBackBuffer();
+                    this.returnCode += 100;
 					this.isRunning = false;
 				} else {
 					this.soundButton.changeSoundState();

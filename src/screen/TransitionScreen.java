@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.awt.image.RescaleOp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -13,7 +15,13 @@ import engine.Core;
 
 public class TransitionScreen extends Screen {
 
-    private static final int TRANSITION_DURATION = 2500;
+    public enum TransitionType {
+        STARFIELD,
+        FADE_OUT
+    }
+
+    private static final int STARFIELD_DURATION = 2500;
+    private static final int FADE_OUT_DURATION = 1000;
     private static final int NUM_STARS = 1600;
     private static final float INITIAL_SPEED = 1.0f;
     private static final float MAX_SPEED = 80.0f;
@@ -31,6 +39,8 @@ public class TransitionScreen extends Screen {
     private int nextScreenCode;
     private List<Star> stars;
     private Random random;
+    private TransitionType type;
+    private BufferedImage sourceImage;
 
     private static class Star {
         float x;
@@ -54,14 +64,42 @@ public class TransitionScreen extends Screen {
         }
     }
 
-    public TransitionScreen(final int width, final int height, final int fps, final int nextScreenCode) {
+    /**
+     * Constructor for STARFIELD transition.
+     */
+    public TransitionScreen(final int width, final int height, final int fps, final int nextScreenCode, final TransitionType type) {
+        this(width, height, fps, nextScreenCode, type, null);
+    }
+
+    /**
+     * Constructor for FADE_OUT transition.
+     */
+    public TransitionScreen(final int width, final int height, final int fps, final int nextScreenCode, final TransitionType type, final BufferedImage sourceImage) {
         super(width, height, fps);
         this.nextScreenCode = nextScreenCode;
-        this.transitionCooldown = Core.getCooldown(TRANSITION_DURATION);
-        this.random = new Random();
-        this.stars = new ArrayList<>();
-        for (int i = 0; i < NUM_STARS; i++) {
-            this.stars.add(new Star(this.random, this.width, this.height));
+        this.type = type;
+        this.sourceImage = sourceImage;
+
+        int duration;
+        switch (this.type) {
+            case STARFIELD:
+                duration = STARFIELD_DURATION;
+                break;
+            case FADE_OUT:
+                duration = FADE_OUT_DURATION;
+                break;
+            default:
+                duration = 0;
+                break;
+        }
+        this.transitionCooldown = Core.getCooldown(duration);
+
+        if (this.type == TransitionType.STARFIELD) {
+            this.random = new Random();
+            this.stars = new ArrayList<>();
+            for (int i = 0; i < NUM_STARS; i++) {
+                this.stars.add(new Star(this.random, this.width, this.height));
+            }
         }
     }
 
@@ -95,15 +133,22 @@ public class TransitionScreen extends Screen {
     protected void update() {
         super.update();
 
-        float progress = 1.0f - (transitionCooldown.getRemainingMilliseconds() / (float) TRANSITION_DURATION);
-        float easedProgress = progress * progress * progress;
-        float currentSpeed = INITIAL_SPEED + easedProgress * MAX_SPEED;
+        switch (this.type) {
+            case STARFIELD:
+                float progress = 1.0f - (transitionCooldown.getRemainingMilliseconds() / (float) STARFIELD_DURATION);
+                float easedProgress = progress * progress * progress;
+                float currentSpeed = INITIAL_SPEED + easedProgress * MAX_SPEED;
 
-        for (Star star : this.stars) {
-            star.z -= currentSpeed;
-            if (star.z <= 0) {
-                star.randomize(this.random, this.width, this.height, false);
-            }
+                for (Star star : this.stars) {
+                    star.z -= currentSpeed;
+                    if (star.z <= 0) {
+                        star.randomize(this.random, this.width, this.height, false);
+                    }
+                }
+                break;
+            case FADE_OUT:
+                // Logic is mainly in draw()
+                break;
         }
 
         draw();
@@ -117,37 +162,71 @@ public class TransitionScreen extends Screen {
     private void draw() {
         drawManager.initDrawing(this);
         Graphics2D g2d = (Graphics2D) drawManager.getBackBufferGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        float lastStrokeWidth = -1.0f;
+        switch (this.type) {
+            case STARFIELD:
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                float lastStrokeWidth = -1.0f;
 
-        for (Star star : this.stars) {
-            if (star.z > 0) {
-                float k = this.width / star.z;
-                float px = star.x * k + (this.width / 2f);
-                float py = star.y * k + (this.height / 2f);
+                for (Star star : this.stars) {
+                    if (star.z > 0) {
+                        float k = this.width / star.z;
+                        float px = star.x * k + (this.width / 2f);
+                        float py = star.y * k + (this.height / 2f);
 
-                if (px >= 0 && px < this.width && py >= 0 && py < this.height) {
-                    float brightness = 1 - star.z / this.width;
-                    int alpha = (int) (Math.max(0, Math.min(1, brightness)) * 255);
-                    g2d.setColor(new Color(star.starColor.getRed(), star.starColor.getGreen(), star.starColor.getBlue(), alpha));
+                        if (px >= 0 && px < this.width && py >= 0 && py < this.height) {
+                            float brightness = 1 - star.z / this.width;
+                            int alpha = (int) (Math.max(0, Math.min(1, brightness)) * 255);
+                            g2d.setColor(new Color(star.starColor.getRed(), star.starColor.getGreen(), star.starColor.getBlue(), alpha));
 
-                    if (star.px_prev != -1) {
-                        float newStrokeWidth = (1 - star.z / this.width) * 4;
-                        if (newStrokeWidth != lastStrokeWidth) {
-                            g2d.setStroke(new BasicStroke(newStrokeWidth));
-                            lastStrokeWidth = newStrokeWidth;
+                            if (star.px_prev != -1) {
+                                float newStrokeWidth = (1 - star.z / this.width) * 4;
+                                if (newStrokeWidth != lastStrokeWidth) {
+                                    g2d.setStroke(new BasicStroke(newStrokeWidth));
+                                    lastStrokeWidth = newStrokeWidth;
+                                }
+                                g2d.drawLine((int) star.px_prev, (int) star.py_prev, (int) px, (int) py);
+                            }
+                            
+                            star.px_prev = px;
+                            star.py_prev = py;
+                        } else {
+                            star.px_prev = -1;
+                            star.py_prev = -1;
                         }
-                        g2d.drawLine((int) star.px_prev, (int) star.py_prev, (int) px, (int) py);
                     }
-                    
-                    star.px_prev = px;
-                    star.py_prev = py;
-                } else {
-                    star.px_prev = -1;
-                    star.py_prev = -1;
                 }
-            }
+                break;
+            case FADE_OUT:
+                long remaining = this.transitionCooldown.getRemainingMilliseconds();
+                float progress = 1.0f - (float) remaining / FADE_OUT_DURATION;
+
+                // Apply ease-in-out cubic easing function for a smoother effect
+                float easedProgress = progress < 0.5f 
+                                    ? 4.0f * progress * progress * progress 
+                                    : 1.0f - (float) Math.pow(-2.0f * progress + 2.0f, 3.0f) / 2.0f;
+
+                if (sourceImage != null) {
+                    // Create a RescaleOp to darken the image
+                    float scaleFactor = 1.0f - easedProgress; // Goes from 1.0 (full brightness) to 0.0 (black)
+                    if (scaleFactor < 0.0f) scaleFactor = 0.0f;
+                    if (scaleFactor > 1.0f) scaleFactor = 1.0f;
+
+                    RescaleOp op = new RescaleOp(scaleFactor, 0, null);
+                    BufferedImage darkenedImage = op.filter(sourceImage, null);
+                    g2d.drawImage(darkenedImage, 0, 0, this.width, this.height, null);
+                } else {
+                    // Fallback to simple black fade if no source image
+                    float alpha = easedProgress;
+                    if (alpha > 1.0f) {
+                        alpha = 1.0f;
+                    } else if (alpha < 0.0f) {
+                        alpha = 0.0f;
+                    }
+                    g2d.setColor(new Color(0, 0, 0, alpha));
+                    g2d.fillRect(0, 0, this.width, this.height);
+                }
+                break;
         }
 
         drawManager.completeDrawing(this);
