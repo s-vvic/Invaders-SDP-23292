@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const express = require("express");
 const path = require("path");
 const sqlite3 = require('sqlite3');
@@ -29,16 +30,20 @@ app.use(morgan('dev'));
 let db;
 
 async function startServer() {
-    // DB를 열고, 'invaders.db' 파일에 모든 것을 저장합니다.
-    // 파일이 없으면 자동으로 생성됩니다.
+    // .data 디렉토리가 없으면 생성
+    const dbDir = path.join(__dirname, '.data');
+    if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+        console.log(`Created database directory: ${dbDir}`);
+    }
+
+    // DB를 열고, '.data/invaders.db' 파일에 모든 것을 저장합니다.
     db = await open({
-        filename: './invaders.db', // DB 파일 이름
+        filename: path.join(dbDir, 'invaders.db'),
         driver: sqlite3.Database
     });
 
-    // --- 4. SQL 스키마(테이블) 생성 ---
-    // database_setup.sql 대신, 서버가 시작될 때마다
-    // "테이블이 없으면(IF NOT EXISTS)" 만들도록 코드를 실행합니다.
+    // --- SQL 스키마(테이블) 생성 ---
     await db.exec(`
         CREATE TABLE IF NOT EXISTS users(
             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -56,18 +61,8 @@ async function startServer() {
         );
     `);
     
-    // [테스트용 사용자 추가 (없을 경우에만)]
-    // 기존 'test' 사용자가 평문 비밀번호로 저장되어 있을 수 있으므로 삭제 후 다시 생성
-    await db.run('DELETE FROM users WHERE username = ?', ['test']);
+    // 배포를 위해 테스트 사용자 자동 생성 로직 제거
     
-    const saltRounds = 10;
-    const testUserPassword = '1234';
-    const hashedTestPassword = await bcrypt.hash(testUserPassword, saltRounds);
-
-    await db.run(
-        'INSERT INTO users (username, password) VALUES (?, ?)',
-        ['test', hashedTestPassword]
-    );
     return db; // Return the database connection
 }
 app.use(express.json());
@@ -487,10 +482,10 @@ app.use((err, req, res, next) => {
 
 if (require.main === module) {
     startServer().then(() => {
-        app.listen(8080, () => {
-            console.log('Server listening on port 8080');
-        });
-    });
+                    const PORT = process.env.PORT || 8080;
+                    app.listen(PORT, () => {
+                        console.log(`Server listening on port ${PORT}`);
+                    });    });
 }
 
 module.exports = { app, startServer, db };

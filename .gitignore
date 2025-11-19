@@ -181,7 +181,7 @@ production
 achievements.dat
 /backend/target/
 node_modules/
-invaders.db
+
 
 #############
 ## Unignore

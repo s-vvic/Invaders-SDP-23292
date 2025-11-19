@@ -127,12 +127,30 @@ public class ApiClient {
      * @param password The password for the new account.
      * @throws IOException if the username is already taken.
      */
-    public void register(String username, String password) throws IOException {
-        Core.getLogger().info("[Mock API] Attempting to register user: " + username);
-        if ("test".equals(username)) {
-            throw new IOException("Username 'test' is already taken.");
+    public void register(String username, String password) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"username\": \"" + username.replace("\"", "\\\"") + "\", " +
+                             "\"password\": \"" + password.replace("\"", "\\\"") + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/api/register"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Attempting to register user: " + username);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 201) {
+            Core.getLogger().severe("Registration failed with status code: " + response.statusCode() + ", Body: " + response.body());
+            String errorMessage = parseJsonField(response.body(), "error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                throw new IOException(errorMessage);
+            }
+            throw new IOException("Registration failed with status: " + response.statusCode());
         }
-        Core.getLogger().info("[Mock API] Registration successful for user: " + username);
+
+        Core.getLogger().info("Registration successful for user: " + username);
     }
 
     /**
