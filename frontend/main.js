@@ -61,6 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- 수정 끝 ---
             
             if (!response.ok) {
+                // 401 (토큰 만료/무효)을 감지하면 즉시 로그아웃
+                if (response.status === 401) {
+                    console.log('Token expired or invalid. Logging out.');
+                    alert('세션이 만료되었습니다. 다시 로그인해주세요.'); // 사용자에게 알림
+                    logout();
+                    return; // 함수 실행 중단
+                }
+                // 다른 HTTP 오류
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const userData = await response.json();
@@ -72,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
-            if (error.status === 403 || error.status === 401) logout(); // 토큰 만료 시 로그아웃
             welcomeMessage.textContent = 'Welcome!'; // Fallback
             highScoreEl.textContent = 'Error';
         }
@@ -94,6 +101,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- 수정 끝 ---
             
             if (!response.ok) {
+                // 401 (토큰 만료/무효)을 감지
+                if (response.status === 401) {
+                    console.log('Token expired or invalid. Logging out.');
+                    alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+                    logout();
+                    return; // 함수 실행 중단
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
@@ -202,11 +216,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             // --- 수정 끝 ---
 
-            const data = await response.json();
+if (!response.ok) {
+    // 401 (토큰 만료/무효)을 감지
+    if (response.status === 401) {
+        console.log('Token expired or invalid. Logging out.');
+        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+        logout();
+        return; // 리스너 실행 중단
+    }
+    // 다른 오류 (오류 메시지를 받기 위해 json() 시도)
+    const errorData = await response.json(); 
+    throw new Error(errorData.error || '점수 업데이트 실패');
+}
 
-            if (!response.ok) {
-                throw new Error(data.error || '점수 업데이트 실패');
-            }
+const data = await response.json();
 
             alert(`${username}님, 게임 종료! 점수: ${randomScore}. ${data.message}`);
 
