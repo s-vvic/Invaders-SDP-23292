@@ -953,24 +953,22 @@ public class GameScreen extends Screen {
 			case "finalBoss1":
 				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship, 1);
 				this.logger.info("Final Boss has spawned!");
-				this.is_cleared = false;
 				break;
 			case "finalBoss2":
 				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship, 2);
 				this.logger.info("Final Boss has spawned!");
-				this.is_cleared = false;
 				break;
 			case "omegaBoss":
 			case "omegaAndFinal":
 				this.omegaBoss = new OmegaBoss(Color.ORANGE, ITEMS_SEPARATION_LINE_HEIGHT);
 				omegaBoss.attach(this);
 				this.logger.info("Omega Boss has spawned!");
-				this.is_cleared = false;
 				break;
 			default:
 				this.logger.warning("Unknown bossId: " + bossName);
 				break;
 		}
+		this.is_cleared = false;
 	}
 
 	/** Manage Final Boss's shooting */
@@ -978,16 +976,16 @@ public class GameScreen extends Screen {
 		if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
 			this.finalBoss.update();
 			/** called the boss shoot logic */
-			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * 0.7) {
+			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_2_HP_THRESHOLD) {
 				if (this.finalBoss.getDifficulty() == 1) {
 					bossBullets.addAll(this.finalBoss.shoot1());
 					bossBullets.addAll(this.finalBoss.shoot2());
 				} else {
 					bossBullets.addAll(this.finalBoss.shoot3());
 				}
-			} else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * 0.3) {
-				/** Is the bullet on the screen erased */
-				if (this.finalBoss.getDifficulty() != 2 && !is_cleared) {
+			} else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_3_HP_THRESHOLD) {
+				/**  clear bullets if shoot3() was called */
+				if (this.finalBoss.getDifficulty() != 1 && !is_cleared) {
 					bossBullets.clear();
 					is_cleared = true;
 				} else {

@@ -26,6 +26,10 @@ public class FinalBoss extends Entity implements BossEntity{
     private final static int POWERUP_WIDTH = 160;
     /** power-up height */
     private final static int POWERUP_HEIGHT = 140;
+    /** Constant about phase 2 HP threshold */
+	public static final double PHASE_2_HP_THRESHOLD = 0.7;
+	/** Constant about phase 3 HP threshold */
+	public static final double PHASE_3_HP_THRESHOLD = 0.3;
     /** Horizontal speed for zigzag moving */
     private int zigzagSpeed;
     /** Speed for dash pattern */
@@ -36,8 +40,6 @@ public class FinalBoss extends Entity implements BossEntity{
     private int dashChargeCooldowntime;
     /** Cool time for shoot1 pattern */
     private int shoot1Cooldowntime;
-    /** Cool time for laser charging */
-    private int chargeLaserCooldowntime;
     /** Cool time for laser pattern */
     private int laserCooldowntime;
     /** Cool time for laser duration */
@@ -130,7 +132,6 @@ public class FinalBoss extends Entity implements BossEntity{
                     this.dashSpeed = 8;
                     this.dashCooldownTime = 3000;
                     this.dashChargeCooldowntime = 1200;
-                    this.chargeLaserCooldowntime = 1500;
                     this.shoot1Cooldowntime = 2000;
                     this.laserCooldowntime = 3000;
                     this.laserDurationtime = 1600;
@@ -141,7 +142,6 @@ public class FinalBoss extends Entity implements BossEntity{
                     this.dashSpeed = 10;
                     this.dashCooldownTime = 3000;
                     this.dashChargeCooldowntime = 1000;
-                    this.chargeLaserCooldowntime = 1500;
                     this.shoot1Cooldowntime = 1400;
                     this.laserCooldowntime = 3000;
                     this.laserDurationtime = 1600;
@@ -152,7 +152,6 @@ public class FinalBoss extends Entity implements BossEntity{
                     this.dashSpeed = 14;
                     this.dashCooldownTime = 2000;
                     this.dashChargeCooldowntime = 500;
-                    this.chargeLaserCooldowntime = 2000;
                     this.shoot1Cooldowntime = 900;
                     this.laserCooldowntime = 3000;
                     this.laserDurationtime = 1600;
@@ -177,9 +176,9 @@ public class FinalBoss extends Entity implements BossEntity{
         this.shootCooldown2 = Core.getCooldown(400);
         this.shootCooldown3 = Core.getCooldown(300);
         this.shootCooldown4 = Core.getCooldown(5000);
+        this.chargeLaserCooldown = Core.getCooldown(1500);
         this.dashChargeCooldown = Core.getCooldown(this.dashChargeCooldowntime);
         this.dashCooldown = Core.getCooldown(this.dashCooldownTime);
-        this.chargeLaserCooldown = Core.getCooldown(this.chargeLaserCooldowntime);
         this.laserCooldown = Core.getCooldown(this.laserCooldowntime);
         this.laserDuration = Core.getCooldown(this.laserDurationtime);
     }
@@ -273,13 +272,13 @@ public class FinalBoss extends Entity implements BossEntity{
     
     /** movement pattern of final boss */
     public void movePattern(){
-        if(this.healPoint > this.maxHp*0.7) {
+        if(this.healPoint > this.maxHp*PHASE_2_HP_THRESHOLD) {
             if (this.difficulty == 1) {
                 this.move(0,0);
             } else {
                 this.moveZigzag(2,1);
             }
-        } else if (this.healPoint > this.maxHp*0.3) {
+        } else if (this.healPoint > this.maxHp*PHASE_3_HP_THRESHOLD) {
             this.activateLaserPattern();
 
             this.moveZigzag(this.zigzagSpeed, 3);
