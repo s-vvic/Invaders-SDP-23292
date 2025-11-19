@@ -3,11 +3,8 @@ package screen;
 import java.awt.Color;
 import java.util.List;
 import java.util.ArrayList;
-import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
-
 import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
@@ -17,12 +14,7 @@ import engine.ItemHUDManager;
 import engine.AuthManager;
 import engine.ApiClient;
 import entity.*;
-import java.awt.event.KeyEvent;
-import java.util.HashSet;
-import java.util.Set;
-
 import engine.level.Level;
-import engine.level.LevelManager;
 
 
 /**
@@ -66,14 +58,8 @@ public class GameScreen extends Screen {
 	private Ship ship;
 	/** Second Player's ship. */
 	private Ship shipP2;
-	/** Bonus enemy ship that appears sometimes. */
-	private EnemyShip enemyShipSpecial;
-	/** Minimum time between bonus ship appearances. */
-	private Cooldown enemyShipSpecialCooldown;
 	/** team drawing may implement */
 	private FinalBoss finalBoss;
-	/** Time until bonus ship explosion disappears. */
-	private Cooldown enemyShipSpecialExplosionCooldown;
 	/** Time until Boss explosion disappears. */
 	private Cooldown bossExplosionCooldown;
 	/** Time from finishing the level to screen change. */
@@ -140,8 +126,6 @@ public class GameScreen extends Screen {
 
 	private boolean isTwoPlayer;
 
-	    private GameState gameState;
-
 	    /**
 	     * Constructor, establishes the properties of the screen.
 	     *
@@ -173,8 +157,7 @@ public class GameScreen extends Screen {
                 this.coin = gameState.getCoin();
 		        this.livesP1 = gameState.getLivesRemaining();
 				this.livesP2 = gameState.getLivesRemainingP2();
-		        this.gameState = gameState;
-				this.isTwoPlayer = isTwoPlayer;
+		        this.isTwoPlayer = isTwoPlayer;
 				if (this.bonusLife) {
 					this.livesP1++;
 					if (this.isTwoPlayer) {

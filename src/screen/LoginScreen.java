@@ -5,9 +5,6 @@ import engine.Cooldown;
 import engine.Core;
 import engine.AuthManager;
 import engine.ApiClient;
-import engine.AuthManager;
-import engine.ApiClient;
-import engine.DrawManager;
 
 /**
  * Implements the login screen.

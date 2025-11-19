@@ -6,11 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.Collections;
 import java.awt.Color;
 
 import screen.Screen;
-import screen.GameScreen;
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager;
@@ -44,8 +42,6 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	/** Margin on the sides of the screen. */
 	private static final int SIDE_MARGIN = 20;
 
-	/** Distance to go down each pass. */
-	private static final int DESCENT_DISTANCE = 20;
 	/** Minimum speed allowed. */
 	private static final int MINIMUM_SPEED = 10;
 
@@ -55,10 +51,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private Logger logger;
 	/** Screen to draw ships on. */
 	private Screen screen;
-    /** Level reference to read enemyTypes/counts. */
-    private Level levelObj;
-
-	/** List of enemy ships forming the formation. */
+    /** List of enemy ships forming the formation. */
 	private List<List<EnemyShip>> enemyShips;
 	/** Minimum time between shots. */
 	private Cooldown shootingCooldown;
@@ -76,8 +69,6 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private int movementSpeed;
 	/** Current direction the formation is moving on. */
 	private Direction currentDirection;
-	/** Direction the formation was moving previously. */
-	private Direction previousDirection;
 	/** Interval between movements, in frames. */
 	private int movementInterval;
 	/** Total width of the formation. */
@@ -201,9 +192,6 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         this.positionX = INIT_POS_X;
         this.positionY = INIT_POS_Y;
         this.shooters = new ArrayList<EnemyShip>();
-        this.levelObj = level;
-        SpriteType spriteType;
-
         this.logger.info("Initializing " + nShipsWide + "x" + nShipsHigh
                 + " ship formation in (" + positionX + "," + positionY + ")");
 
@@ -281,8 +269,6 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 		cleanUp();
 
-		int movementX = 0;
-		int movementY = 0;
 		updateMovementSpeed(); // Call the new method
 
 		movementInterval++;

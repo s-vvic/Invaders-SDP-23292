@@ -16,7 +16,6 @@ import java.util.HashMap;
 
 import engine.Cooldown;
 import engine.Core;
-import engine.DrawManager;
 import engine.DrawManager.SpriteType;
 import engine.CelestialBody;
 import entity.Entity;
@@ -27,7 +26,6 @@ import audio.SoundManager;
 import engine.StarSpeedManager;
 import engine.StarOriginManager;
 import engine.CelestialManager;
-import engine.NebulaSettings;
 import engine.AuthManager;
 import engine.MenuManager;
 import engine.SecretCommandHandler;
@@ -112,16 +110,8 @@ public class TitleScreen extends Screen {
 	public static final float MAX_STAR_Z = 500.0f;
 	/** Minimum Z-depth for stars (when they reset). */
 	public static final float MIN_STAR_Z = -5.0f;
-	/** X-coordinate of the starfield origin (center of screen). */
-	private static int STAR_ORIGIN_X;
-	/** Minimum scale factor for stars, even when far away, to ensure they are always visible and spread out. */
-	private static final float MIN_SPREAD_SCALE = 0.1f;
-	/** Multiplier to convert star speed to trail length. */
-	private static final float TRAIL_SPEED_MULTIPLIER = 2.0f;
 	/** Maximum trail length to prevent excessively long trails for very fast stars. */
 	public static final int MAX_TRAIL_LENGTH = 10;
-	/** Y-coordinate of the starfield origin (center of screen). */
-	private static int STAR_ORIGIN_Y;
 	/** Milliseconds between enemy spawns. */
 	private static final int ENEMY_SPAWN_COOLDOWN = 2000;
 	/** Probability of an enemy spawning. */
@@ -144,14 +134,10 @@ public class TitleScreen extends Screen {
 	private List<Entity> backgroundEnemies;
 	/** List of shooting stars. */
     	private List<ShootingStar> shootingStars;
-    	/** List of nebulas for the background. */
-    	private List<Nebula> nebulas;
-	/** Sound button on/off object. */
+    	/** Sound button on/off object. */
 	private SoundButton soundButton;
 
-    private boolean musicStarted = false;
-
-	/** Current rotation angle of the starfield. */
+    /** Current rotation angle of the starfield. */
     private float currentAngle;
     /** Target rotation angle of the starfield. */
     private float targetAngle;
@@ -191,10 +177,6 @@ public class TitleScreen extends Screen {
 		this.shootingStarCooldown.reset();
 
 		this.random = new Random();
-		// Initialize starfield origin
-		STAR_ORIGIN_X = width / 2;
-		STAR_ORIGIN_Y = height / 2;
-
 		this.stars = new ArrayList<Star>();
 		List<Color> starColors = java.util.Arrays.asList(
 			Color.WHITE,
@@ -219,20 +201,7 @@ public class TitleScreen extends Screen {
 		this.backgroundEnemies = new ArrayList<Entity>();
 		this.shootingStars = new ArrayList<ShootingStar>();
 
-		this.nebulas = new ArrayList<Nebula>();
-		/*
-		this.nebulas = new ArrayList<Nebula>();
-		// Create some nebulas using settings from NebulaSettings class
-		for (int i = 0; i < NebulaSettings.NUM_NEBULAS; i++) {
-			float x = random.nextFloat() * this.getWidth();
-			float y = random.nextFloat() * this.getHeight();
-			float z = MAX_STAR_Z + random.nextFloat() * MAX_STAR_Z; // Place them behind the stars
-			float size = NebulaSettings.MIN_NEBULA_SIZE + random.nextFloat() * (NebulaSettings.MAX_NEBULA_SIZE - NebulaSettings.MIN_NEBULA_SIZE);
-			Color color = NebulaSettings.NEBULA_COLORS[random.nextInt(NebulaSettings.NEBULA_COLORS.length)];
-			float speed = NebulaSettings.MIN_NEBULA_SPEED + random.nextFloat() * (NebulaSettings.MAX_NEBULA_SPEED - NebulaSettings.MIN_NEBULA_SPEED);
-			this.nebulas.add(new Nebula(x, y, z, size, color, speed));
-		}
-		*/
+		new ArrayList<Nebula>();
 
 		// Initialize rotation angles
 		this.currentAngle = 0;
