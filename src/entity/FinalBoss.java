@@ -26,8 +26,26 @@ public class FinalBoss extends Entity implements BossEntity{
     private final static int POWERUP_WIDTH = 160;
     /** power-up height */
     private final static int POWERUP_HEIGHT = 140;
+    /** Horizontal speed for zigzag moving */
+    private int zigzagSpeed;
+    /** Speed for dash pattern */
+    private int dashSpeed;
+    /** Cool time for dash pattern */
+    private int dashCooldownTime;
+    /** Cool time for dash charging */
+    private int dashChargeCooldowntime;
+    /** Cool time for shoot1 pattern */
+    private int shoot1Cooldowntime;
+    /** Cool time for laser charging */
+    private int chargeLaserCooldowntime;
+    /** Cool time for laser pattern */
+    private int laserCooldowntime;
+    /** Cool time for laser duration */
+    private int laserDurationtime;
     /** The State of Dash Power Up */
     private boolean isPowerUp = false;
+    /** The difficulty level of boss */
+    private int difficulty;
     /** The Ship of player */
     private Ship player;
     /** The Fixed Position X of player ship when start dash pattern*/
@@ -60,8 +78,10 @@ public class FinalBoss extends Entity implements BossEntity{
     private Cooldown shootCooldown2;
     /** Shoot3's cool down */
     private Cooldown shootCooldown3;
+    /** Shoot4's cool down */
+    private Cooldown shootCooldown4;
     /** Cooldown for charging of dash */
-    private Cooldown chargeCooldown;
+    private Cooldown dashChargeCooldown;
     /** Cooldown for charging of laser */
     private Cooldown chargeLaserCooldown;
     /** Cooldown for laser pattern */
@@ -96,13 +116,50 @@ public class FinalBoss extends Entity implements BossEntity{
     private int screenHeight;
     /** basic attribute of final boss */
 
-    public FinalBoss(int positionX, int positionY, int screenWidth, int screenHeight, Ship ship){
+    public FinalBoss(int positionX, int positionY, int screenWidth, int screenHeight, Ship ship, int difficulty){
 
         super(positionX,positionY,100,80, Color.RED);
+        this.difficulty = difficulty;
         if (GameState.isDecreaseEnemyPower()) {
             this.healPoint = 1;
         } else {
-            this.healPoint = 80;
+            switch(this.difficulty) {
+                case 1: // easy
+                    this.healPoint = 60;
+                    this.zigzagSpeed = 3;
+                    this.dashSpeed = 8;
+                    this.dashCooldownTime = 3000;
+                    this.dashChargeCooldowntime = 1200;
+                    this.chargeLaserCooldowntime = 1500;
+                    this.shoot1Cooldowntime = 2000;
+                    this.laserCooldowntime = 3000;
+                    this.laserDurationtime = 1600;
+                    break;
+                case 2: // normal
+                    this.healPoint = 90;
+                    this.zigzagSpeed = 4;
+                    this.dashSpeed = 10;
+                    this.dashCooldownTime = 3000;
+                    this.dashChargeCooldowntime = 1000;
+                    this.chargeLaserCooldowntime = 1500;
+                    this.shoot1Cooldowntime = 1400;
+                    this.laserCooldowntime = 3000;
+                    this.laserDurationtime = 1600;
+                    break;
+                case 3: // hard
+                    this.healPoint = 120;
+                    this.zigzagSpeed = 5;
+                    this.dashSpeed = 14;
+                    this.dashCooldownTime = 2000;
+                    this.dashChargeCooldowntime = 500;
+                    this.chargeLaserCooldowntime = 2000;
+                    this.shoot1Cooldowntime = 900;
+                    this.laserCooldowntime = 3000;
+                    this.laserDurationtime = 1600;
+                    break;
+                default:
+                    break;
+            }
         }
         this.maxHp = healPoint;
         this.pointValue = 1000;
@@ -116,14 +173,15 @@ public class FinalBoss extends Entity implements BossEntity{
 
         this.animationCooldown = Core.getCooldown(500);
         this.animationPowerUpCooldown = Core.getCooldown(250);
-        this.shootCooldown1 = Core.getCooldown(5000);
+        this.shootCooldown1 = Core.getCooldown(this.shoot1Cooldowntime);
         this.shootCooldown2 = Core.getCooldown(400);
         this.shootCooldown3 = Core.getCooldown(300);
-        this.chargeCooldown = Core.getCooldown(2000);
-        this.dashCooldown = Core.getCooldown(6000);
-        this.chargeLaserCooldown = Core.getCooldown(1500);
-        this.laserCooldown = Core.getCooldown(3000);
-        this.laserDuration = Core.getCooldown(1600);
+        this.shootCooldown4 = Core.getCooldown(5000);
+        this.dashChargeCooldown = Core.getCooldown(this.dashChargeCooldowntime);
+        this.dashCooldown = Core.getCooldown(this.dashCooldownTime);
+        this.chargeLaserCooldown = Core.getCooldown(this.chargeLaserCooldowntime);
+        this.laserCooldown = Core.getCooldown(this.laserCooldowntime);
+        this.laserDuration = Core.getCooldown(this.laserDurationtime);
     }
 
     /** for vibrant moving with final boss
@@ -132,6 +190,11 @@ public class FinalBoss extends Entity implements BossEntity{
      */
     @Override
     public void update(){
+        runAnimation();
+        movePattern();
+    }
+
+    public void runAnimation() {
         if (this.isPowerUp) {
             if(this.animationPowerUpCooldown.checkFinished()){
                 this.animationPowerUpCooldown.reset();
@@ -169,7 +232,6 @@ public class FinalBoss extends Entity implements BossEntity{
                 }
             }
         }
-        movePattern();
     }
 
     /** decrease boss' healpoint */
@@ -211,36 +273,54 @@ public class FinalBoss extends Entity implements BossEntity{
     
     /** movement pattern of final boss */
     public void movePattern(){
-        if(this.healPoint > this.maxHp*3/4){
-            this.move(0,0);
-        }
-        else if (this.healPoint > this.maxHp/2){
-            if (this.laserOption == LaserPattern.NONE) {
-                this.laserOption = LaserPattern.IDLE;
-                this.laserCooldown.reset();
+        if(this.healPoint > this.maxHp*0.7) {
+            if (this.difficulty == 1) {
+                this.move(0,0);
+            } else {
+                this.moveZigzag(2,1);
             }
+        } else if (this.healPoint > this.maxHp*0.3) {
+            this.activateLaserPattern();
 
-            this.moveZigzag(4,3);
-        }
-        else if (this.healPoint > this.maxHp/4) {
-            if (this.laserOption != LaserPattern.NONE) {
-                this.laserOption = LaserPattern.NONE;
-                this.setClear();
-            }
-            if (this.dashOption == DashPattern.NONE) {
-                this.dashOption = DashPattern.FOLLOWING;
-                this.dashCooldown.reset();
-            }
-
-            dashPattern(10);
+            this.moveZigzag(this.zigzagSpeed, 3);
         }
         else {
-            if (this.dashOption != DashPattern.NONE) {
+            this.deactivateLaserPattern();
+            this.activateDashPattern();
+
+            dashPattern(this.dashSpeed);
+        }
+    }
+
+    /** preprocess before laser Pattern */
+    public void activateLaserPattern() {
+        if (this.laserOption == LaserPattern.NONE) {
+                this.laserOption = LaserPattern.IDLE;
+                this.laserCooldown.reset();
+        }
+    }
+
+    /** Set after finishing the laser pattern */
+    public void deactivateLaserPattern() {
+        if (this.laserOption != LaserPattern.NONE && this.laserDuration.checkFinished()) {
+                this.laserOption = LaserPattern.NONE;
+                this.setClear();
+        }
+    }
+
+    /** preprocess before dash Pattern */
+    public void activateDashPattern() {
+        if (this.dashOption == DashPattern.NONE && this.laserOption == LaserPattern.NONE) {
+                this.dashOption = DashPattern.FOLLOWING;
+                this.dashCooldown.reset();
+        }
+    }
+
+    /** Set after finishing the dash pattern */
+    public void deactivateDashPattern() {
+        if (this.dashOption != DashPattern.NONE) {
                 this.dashOption = DashPattern.NONE;
                 this.setClear();
-            }
-
-            this.moveZigzag(2,1);
         }
     }
 
@@ -270,7 +350,7 @@ public class FinalBoss extends Entity implements BossEntity{
         switch (this.dashOption) {
             case FOLLOWING:
                 this.follow(dashSpeed);
-                this.chargeCooldown.reset();
+                this.dashChargeCooldown.reset();
                 break;
             case CHARGING:
                 this.charge();
@@ -304,7 +384,7 @@ public class FinalBoss extends Entity implements BossEntity{
 
     /** Charge for a While Before Starting Dash Pattern */
     public void charge() {
-        if (this.chargeCooldown.checkFinished()) {
+        if (this.dashChargeCooldown.checkFinished()) {
             this.dashOption = DashPattern.DASHING;
 
             this.move(-shakeOffX, -shakeOffY);
@@ -385,7 +465,7 @@ public class FinalBoss extends Entity implements BossEntity{
 
     /** first shooting pattern of final boss */
     public Set<BossBullet> shoot1(){
-        if(this.shootCooldown1.checkFinished()){
+        if(this.shootCooldown1.checkFinished() && (this.laserOption == LaserPattern.IDLE || this.laserOption == LaserPattern.NONE)) {
             this.shootCooldown1.reset();
             Set<BossBullet> bullets = new HashSet<>();
             int arr[] = {0,1,-1,2,-2};
@@ -424,6 +504,33 @@ public class FinalBoss extends Entity implements BossEntity{
          // }
         }
         return bullets;
+    }
+
+    public Set<BossBullet> shoot4(){
+        if(this.shootCooldown4.checkFinished() && this.laserDuration.checkFinished()){
+            this.shootCooldown4.reset();
+            Set<BossBullet> bullets = new HashSet<>();
+            int bulletCount = 12;
+            int speed;
+            if (this.difficulty == 3) {
+                speed = 7;
+            } else {
+                speed = 5;
+            }
+
+            for (int i=0; i<bulletCount; i++) {
+                double angle = 2* Math.PI * i / bulletCount;
+
+                double velX = Math.cos(angle) * speed;
+                double velY = Math.sin(angle) * speed;
+
+                BossBullet bullet = new BossBullet(this.getPositionX() + this.getWidth() / 2 - 3, this.getPositionY() + this.getHeight() / 2,
+                                    (int)velX, (int)velY, 6, 10, Color.BLUE);
+                bullets.add(bullet);
+            }
+            return bullets;
+        }
+        return java.util.Collections.emptySet();
     }
 
     /** Laser firing pattern of final boss */
@@ -471,6 +578,10 @@ public class FinalBoss extends Entity implements BossEntity{
         if (this.isPowerUp) {
             this.changeToPowerUpMode();
         }
+    }
+
+    public int getDifficulty() {
+        return this.difficulty;
     }
 
     /** flag final boss' destroy */

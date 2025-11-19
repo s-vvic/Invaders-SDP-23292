@@ -45,45 +45,26 @@ public class BossLaser extends Entity {
         this.duration = duration;
         this.animationCooldown = Core.getCooldown(300);
 
-        if (this.laserIndex == 0) {
-            this.spriteType = DrawManager.SpriteType.BossLaserStart1;
-        } else {
-            this.spriteType = DrawManager.SpriteType.BossLaserMiddle1;
-        }
+
+        this.spriteType = DrawManager.SpriteType.BossLaser1;
     }
 
     public final void update() {
         if (this.animationCooldown.checkFinished()) {
             this.animationCooldown.reset();
 
-            if (this.laserIndex == 0) {
-                switch (this.spriteType) {
-                    case BossLaserStart1:
-                        this.spriteType = DrawManager.SpriteType.BossLaserStart2;
-                        break;
-                    case BossLaserStart2:
-                        this.spriteType = DrawManager.SpriteType.BossLaserStart3;
-                        break;
-                    case BossLaserStart3:
-                        this.spriteType = DrawManager.SpriteType.BossLaserStart1;
-                        break;
-                    default:
-                        break;
-                }
-            } else {
-                switch (this.spriteType) {
-                    case BossLaserMiddle1:
-                        this.spriteType = DrawManager.SpriteType.BossLaserMiddle2;
-                        break;
-                    case BossLaserMiddle2:
-                        this.spriteType = DrawManager.SpriteType.BossLaserMiddle3;
-                        break;
-                    case BossLaserMiddle3:
-                        this.spriteType = DrawManager.SpriteType.BossLaserMiddle1;
-                        break;
-                    default:
-                        break;
-                }
+            switch (this.spriteType) {
+                case BossLaser1:
+                    this.spriteType = DrawManager.SpriteType.BossLaser2;
+                    break;
+                case BossLaser2:
+                    this.spriteType = DrawManager.SpriteType.BossLaser3;
+                    break;
+                case BossLaser3:
+                    this.spriteType = DrawManager.SpriteType.BossLaser1;
+                    break;
+                default:
+                    break;
             }
         }
         this.setPositionX(this.shooter.getPositionX() + X_OFFSET);
