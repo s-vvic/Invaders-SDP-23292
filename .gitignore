@@ -175,6 +175,13 @@ out/
 *.log
 log*/
 log*
+.env
+.env.*
+*.db
+/invaders.db
+/backend/invaders.db
+/backend/.data/
+backend/.data/
 *.ttf
 .checkstyle
 production

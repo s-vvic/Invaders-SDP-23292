@@ -12,10 +12,48 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const jwt = require('jsonwebtoken');
 
+const REQUIRED_ENV_VARS = ['JWT_SECRET'];
+const missingEnv = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
+
+if (missingEnv.length > 0) {
+    throw new Error(
+        `Missing required environment variables: ${missingEnv.join(', ')}`
+    );
+}
+
 const app = express();
 app.use(helmet());
 app.use(hpp());
-app.use(cors());
+
+const isTestEnv = process.env.NODE_ENV === 'test';
+
+const defaultOrigins = [
+    'http://localhost:3000',
+    'http://localhost:4173',
+    'http://localhost:5173',
+];
+
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const allowedOrigins = configuredOrigins.length ? configuredOrigins : defaultOrigins;
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (isTestEnv || !origin) {
+            return callback(null, true);
+        }
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'));
+    },
+    optionsSuccessStatus: 200,
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -25,6 +63,14 @@ const limiter = rateLimit({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use(limiter);
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many attempts, please try again later.' },
+});
+
 app.use(morgan('dev'));
 
 let db;
@@ -65,7 +111,8 @@ async function startServer() {
     
     return db; // Return the database connection
 }
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
 app.use((req, res, next) => {
     if (req.url.endsWith('.ttf')) {
@@ -120,9 +167,33 @@ app.get('/', function(req,res) {
  *       500:
  *         description: Server database error
  */
-app.post('/api/login', async function(req, res) {
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,24}$/;
+const isValidPassword = (password = '') =>
+    typeof password === 'string' &&
+    password.length >= 8 &&
+    password.length <= 64;
+
+const validateCredentials = ({ username, password }) => {
+    if (!USERNAME_REGEX.test(username || '')) {
+        return 'Username must be 3-24 characters (letters, numbers, underscore).';
+    }
+
+    if (!isValidPassword(password)) {
+        return 'Password must be 8-64 characters long.';
+    }
+
+    return null;
+};
+
+app.post('/api/login', authLimiter, async function(req, res) {
     try {
         const { username, password } = req.body;
+
+        const validationError = validateCredentials({ username, password });
+
+        if (validationError) {
+            return res.status(400).json({ error: validationError });
+        }
 
         // DB에서 사용자 조회
         const user = await db.get(
@@ -186,12 +257,14 @@ app.post('/api/login', async function(req, res) {
  *       500:
  *         description: Server database error
  */
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required' });
+        const validationError = validateCredentials({ username, password });
+
+        if (validationError) {
+            return res.status(400).json({ error: validationError });
         }
 
         // 1. 유저 이름 중복 확인
@@ -474,6 +547,10 @@ app.use((err, req, res, next) => {
     // 2. 이미 응답이 전송된 경우, Express의 기본 오류 처리기에 위임합니다.
     if (res.headersSent) {
         return next(err);
+    }
+
+    if (err.message === 'Not allowed by CORS') {
+        return res.status(403).json({ error: 'Origin not allowed' });
     }
 
     // 3. 사용자에게는 일관된 일반 오류 메시지를 보냅니다.

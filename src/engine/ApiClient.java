@@ -13,6 +13,9 @@ import java.util.List;
  */
 public class ApiClient {
 
+    /** The base URL for the backend API. */
+    private static final String API_BASE_URL = "http://localhost:8080/api";
+
     /** Helper record to hold structured login response data. */
     public record LoginResponse(String token, int userId, String username) {}
 
@@ -49,7 +52,7 @@ public class ApiClient {
         String jsonPayload = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/api/login"))
+                .uri(URI.create(API_BASE_URL + "/login"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
@@ -91,7 +94,7 @@ public class ApiClient {
             String jsonPayload = "{\"score\": " + score + "}";
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/users/" + userId + "/score"))
+                    .uri(URI.create(API_BASE_URL + "/users/" + userId + "/score"))
                     .header("Content-Type", "application/json")
                     .PUT(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
@@ -133,7 +136,7 @@ public class ApiClient {
                              "\"password\": \"" + password.replace("\"", "\\\"") + "\"}";
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/api/register"))
+                .uri(URI.create(API_BASE_URL + "/register"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
@@ -163,7 +166,7 @@ public class ApiClient {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/api/scores"))
+                .uri(URI.create(API_BASE_URL + "/scores"))
                 .GET()
                 .build();
 

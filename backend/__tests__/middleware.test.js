@@ -1,3 +1,5 @@
+process.env.ALLOWED_ORIGINS = 'https://example.com';
+
 const request = require('supertest');
 const { app, startServer, db: serverDb } = require('../server');
 const rateLimit = require('express-rate-limit');
@@ -24,12 +26,12 @@ describe('Security Middleware Tests', () => {
     });
 
     describe('CORS', () => {
-        test('should set Access-Control-Allow-Origin header to *', async () => {
+        test('should echo back the allowed origin', async () => {
             const response = await request(app)
                 .get('/api/users')
                 .set('Origin', 'https://example.com');
             
-            expect(response.headers['access-control-allow-origin']).toBe('*');
+            expect(response.headers['access-control-allow-origin']).toBe('https://example.com');
         });
     });
 

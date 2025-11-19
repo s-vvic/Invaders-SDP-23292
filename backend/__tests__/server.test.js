@@ -1,13 +1,37 @@
+process.env.ALLOWED_ORIGINS = 'https://example.com';
+
 const request = require('supertest');
 const bcrypt = require('bcrypt');
 const { app, startServer } = require('../server');
+
+const TEST_USERNAME = 'test';
+const TEST_PASSWORD = 'Password123!';
 
 let db;
 let testUser;
 
 beforeAll(async () => {
     db = await startServer();
-    testUser = await db.get("SELECT * FROM users WHERE username = 'test'");
+
+    let existingUser = await db.get('SELECT * FROM users WHERE username = ?', [TEST_USERNAME]);
+
+    if (!existingUser) {
+        const hashedPassword = await bcrypt.hash(TEST_PASSWORD, 10);
+        await db.run(
+            'INSERT INTO users (username, password) VALUES (?, ?)',
+            [TEST_USERNAME, hashedPassword]
+        );
+        existingUser = await db.get('SELECT * FROM users WHERE username = ?', [TEST_USERNAME]);
+    } else {
+        const passwordMatches = await bcrypt.compare(TEST_PASSWORD, existingUser.password);
+        if (!passwordMatches) {
+            const hashedPassword = await bcrypt.hash(TEST_PASSWORD, 10);
+            await db.run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, existingUser.id]);
+            existingUser = await db.get('SELECT * FROM users WHERE id = ?', [existingUser.id]);
+        }
+    }
+
+    testUser = existingUser;
 });
 
 afterAll(async () => {
@@ -33,7 +57,7 @@ describe('User API Endpoints', () => {
         expect(response.statusCode).toBe(200);
         expect(response.headers['content-type']).toMatch(/json/);
         expect(response.body.id).toBe(testUser.id);
-        expect(response.body.username).toBe('test');
+        expect(response.body.username).toBe(TEST_USERNAME);
         expect(response.body).not.toHaveProperty('password');
     });
 
@@ -58,7 +82,7 @@ describe('PUT /api/users/:id/score', () => {
         await db.run(`UPDATE users SET max_score = 0 WHERE id = ?`, [testUser.id]);
         const loginResponse = await request(app)
             .post('/api/login')
-            .send({ username: 'test', password: '1234' });
+            .send({ username: TEST_USERNAME, password: TEST_PASSWORD });
         token = loginResponse.body.token;
     });
 
@@ -125,7 +149,7 @@ describe('PUT /api/users/:id/score', () => {
         // 2. Log in as the primary testUser to get a valid token
         const loginResponse = await request(app)
             .post('/api/login')
-            .send({ username: 'test', password: '1234' });
+            .send({ username: TEST_USERNAME, password: TEST_PASSWORD });
         const token = loginResponse.body.token;
 
         // 3. Use testUser's token to try to update otherUser's score
@@ -171,7 +195,7 @@ describe('Authentication Middleware', () => {
         // 1. Log in to get a valid token
         const loginResponse = await request(app)
             .post('/api/login')
-            .send({ username: 'test', password: '1234' });
+            .send({ username: TEST_USERNAME, password: TEST_PASSWORD });
         
         const token = loginResponse.body.token;
         expect(token).toBeDefined();
