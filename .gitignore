@@ -188,3 +188,4 @@ invaders.db
 #############
 !src/screen/LoginScreen.java
 !src/screen/LoginDrawer.java
+!src/frontent/login.css
