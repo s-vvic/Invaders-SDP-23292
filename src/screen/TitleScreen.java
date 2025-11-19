@@ -412,7 +412,7 @@ public class TitleScreen extends Screen {
 				if (inputManager.isKeyDown(entry.getKey())) {
 					entry.getValue().run();
 					this.selectionCooldown.reset();
-					break; 
+					break;
 				}
 			}
 		}
