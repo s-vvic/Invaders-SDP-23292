@@ -819,6 +819,10 @@ const authMiddleware = (req, res, next) => {
  *         description: Achievement unlocked successfully
  *       400:
  *         description: Invalid user ID or achievement name
+       401:
+         description: Unauthorized: No token provided
+       403:
+         description: Forbidden: Invalid or expired token / You can only update your own achievements.
  *       404:
  *         description: User or achievement not found
  *       500:
@@ -1044,15 +1048,19 @@ app.get('/api/scores/yearly', async function(req, res) {
  *               score:
  *                 type: integer
  *                 description: The new score to check against the high score
- *     responses:
- *       200:
- *         description: Score checked or updated successfully
- *       400:
- *         description: Invalid user ID or score
- *       404:
- *         description: User not found
- *       500:
- *         description: Server database error
+     responses:
+       200:
+         description: Score checked or updated successfully
+       400:
+         description: Invalid user ID or score
+       401:
+         description: Unauthorized: No token provided
+       403:
+         description: Forbidden: Invalid or expired token / You can only update your own score.
+       404:
+         description: User not found
+       500:
+         description: Server database error
  */
 app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
     try {
