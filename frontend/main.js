@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return row;
     }
 
-    function renderLeaderboardTable(tbodyElement, scores, errorMessage) {
+    function renderLeaderboardTable(tbodyElement, scores, errorMessage, originalScores = null) {
         tbodyElement.innerHTML = '';
         
         if (scores.length === 0) {
@@ -373,8 +373,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // If originalScores is provided, use it to find actual ranks; otherwise use index
+        const scoresToUse = originalScores || scores;
+
         scores.forEach((record, index) => {
-            const row = createLeaderboardRow(record, index + 1);
+            // Find the actual rank in the original scores array
+            let actualRank = index + 1;
+            if (originalScores && originalScores.length > 0) {
+                const originalIndex = originalScores.findIndex(
+                    orig => orig.username === record.username && 
+                            orig.score === record.score &&
+                            orig.created_at === record.created_at
+                );
+                if (originalIndex !== -1) {
+                    actualRank = originalIndex + 1;
+                }
+            }
+
+            const row = createLeaderboardRow(record, actualRank);
             // Add fade-in animation with stagger
             row.style.opacity = '0';
             row.style.transform = 'translateY(10px)';
@@ -419,10 +435,10 @@ document.addEventListener('DOMContentLoaded', () => {
             leaderboardSearchClear.classList.add('hidden');
         }
         
-        // Render filtered results
+        // Render filtered results with original scores to maintain correct ranks
         const tbodyElement = getActiveLeaderboardTbody();
         if (tbodyElement) {
-            renderLeaderboardTable(tbodyElement, filteredScores);
+            renderLeaderboardTable(tbodyElement, filteredScores, null, originalScores);
         }
     }
 
@@ -617,7 +633,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchTerm = leaderboardSearchInput.value;
             const filteredScores = filterLeaderboard(scores, searchTerm);
             
-            renderLeaderboardTable(tbodyElement, filteredScores);
+            // Pass original scores to maintain correct ranks
+            renderLeaderboardTable(tbodyElement, filteredScores, null, scores);
             hideLoading();
         } catch (error) {
             console.error(`Error loading leaderboard (${endpoint}):`, error);
