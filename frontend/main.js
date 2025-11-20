@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- API Configuration ---
     const API_BASE_URL = 'http://localhost:8080/api';
-    const USE_MOCK_API = true; // Set to false to use real API
+    const USE_MOCK_API = false; // Set to false to use real API
 
     // --- Loading & Error Handling Utilities ---
     let loadingOverlay = null;
@@ -262,7 +262,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Utility Functions ---
     function formatDate(dateString) {
         if (!dateString) return '날짜 없음';
-        return new Date(dateString).toLocaleString('ko-KR');
+        
+        // SQLite에서 반환되는 날짜 형식 처리 (YYYY-MM-DD HH:MM:SS)
+        // 서버에서 한국 시간대로 저장했으므로, 이를 한국 시간대로 간주
+        let date;
+        if (dateString.includes('T')) {
+            // ISO 형식 (YYYY-MM-DDTHH:MM:SS 또는 YYYY-MM-DDTHH:MM:SSZ)
+            date = new Date(dateString);
+        } else {
+            // SQLite 형식 (YYYY-MM-DD HH:MM:SS) - 한국 시간대로 간주
+            // 시간대 정보가 없으므로, 한국 시간대(UTC+9)로 명시적으로 설정
+            const dateTimeStr = dateString.replace(' ', 'T');
+            // 한국 시간대를 UTC+9로 명시
+            date = new Date(dateTimeStr + '+09:00');
+        }
+        
+        // 한국 시간대 형식으로 표시
+        return date.toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
     }
 
     function getRankEmoji(rank) {
@@ -363,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return row;
     }
 
-    function renderLeaderboardTable(tbodyElement, scores, errorMessage) {
+    function renderLeaderboardTable(tbodyElement, scores, errorMessage, originalScores = null) {
         tbodyElement.innerHTML = '';
         
         if (scores.length === 0) {
@@ -373,8 +396,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // If originalScores is provided, use it to find actual ranks; otherwise use index
+        const scoresToUse = originalScores || scores;
+
         scores.forEach((record, index) => {
-            const row = createLeaderboardRow(record, index + 1);
+            // Find the actual rank in the original scores array
+            let actualRank = index + 1;
+            if (originalScores && originalScores.length > 0) {
+                const originalIndex = originalScores.findIndex(
+                    orig => orig.username === record.username && 
+                            orig.score === record.score &&
+                            orig.created_at === record.created_at
+                );
+                if (originalIndex !== -1) {
+                    actualRank = originalIndex + 1;
+                }
+            }
+
+            const row = createLeaderboardRow(record, actualRank);
             // Add fade-in animation with stagger
             row.style.opacity = '0';
             row.style.transform = 'translateY(10px)';
@@ -419,10 +458,10 @@ document.addEventListener('DOMContentLoaded', () => {
             leaderboardSearchClear.classList.add('hidden');
         }
         
-        // Render filtered results
+        // Render filtered results with original scores to maintain correct ranks
         const tbodyElement = getActiveLeaderboardTbody();
         if (tbodyElement) {
-            renderLeaderboardTable(tbodyElement, filteredScores);
+            renderLeaderboardTable(tbodyElement, filteredScores, null, originalScores);
         }
     }
 
@@ -496,10 +535,12 @@ document.addEventListener('DOMContentLoaded', () => {
             animateValue(highScoreEl, userData.max_score || 0, { duration: 1000 });
             // goldEl.textContent = data.gold; // We don't have gold in our user data yet
             // upgradesListEl // Not implemented yet
-            // achievementsListEl // Not implemented yet
 
             // Load user statistics
             await loadUserStats(userId);
+            
+            // Load user achievements
+            await loadUserAchievements(userId);
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
@@ -513,14 +554,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             let stats;
             
-            if (USE_MOCK_API) {
-                stats = await mockGetUserStats();
-            } else {
-                // Use real API (when implemented)
-                // const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/stats`);
-                // stats = await response.json();
-                stats = await mockGetUserStats(); // Fallback to mock for now
+            // Always use real API for user stats (not mock)
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/stats`);
+            if (!response.ok) {
+                throw { status: response.status, error: `HTTP error! status: ${response.status}` };
             }
+            stats = await response.json();
 
             // Update statistics with animation
             animateValue(totalGamesEl, stats.totalGames || 0, { duration: 800 });
@@ -542,6 +581,99 @@ document.addEventListener('DOMContentLoaded', () => {
             userRankEl.textContent = '-';
             recentGamesListEl.innerHTML = '<tr><td colspan="2" class="error-message-cell">통계를 불러오는 데 실패했습니다.</td></tr>';
         }
+    }
+
+    async function loadUserAchievements(userId) {
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/achievements`);
+            if (!response.ok) {
+                throw { status: response.status, error: `HTTP error! status: ${response.status}` };
+            }
+            const achievements = await response.json();
+            
+            // 새로 해제된 업적 확인 및 토스트 표시
+            checkNewAchievements(userId, achievements);
+            
+            renderAchievements(achievements);
+        } catch (error) {
+            console.error('Failed to load user achievements:', error);
+            achievementsListEl.innerHTML = '<li class="error-message">업적을 불러오는 데 실패했습니다.</li>';
+        }
+    }
+
+    function checkNewAchievements(userId, currentAchievements) {
+        // localStorage에서 마지막으로 확인한 업적 목록 가져오기
+        const lastCheckedKey = `last_checked_achievements_${userId}`;
+        const lastChecked = JSON.parse(localStorage.getItem(lastCheckedKey) || '[]');
+        
+        // 현재 해제된 업적 목록
+        const unlockedAchievements = currentAchievements
+            .filter(ach => ach.unlocked)
+            .map(ach => ach.name);
+        
+        // 새로 해제된 업적 찾기
+        const newAchievements = unlockedAchievements.filter(
+            name => !lastChecked.includes(name)
+        );
+        
+        // 새 업적이 있으면 토스트 표시
+        if (newAchievements.length > 0) {
+            newAchievements.forEach((achievementName, index) => {
+                const achievement = currentAchievements.find(ach => ach.name === achievementName);
+                setTimeout(() => {
+                    showToast(
+                        'success',
+                        '업적 해제! 🎉',
+                        `${achievementName}: ${achievement ? achievement.description : ''}`,
+                        5000
+                    );
+                }, index * 500); // 각 업적을 0.5초 간격으로 표시
+            });
+            
+            // localStorage 업데이트
+            localStorage.setItem(lastCheckedKey, JSON.stringify(unlockedAchievements));
+        }
+    }
+
+    function renderAchievements(achievements) {
+        achievementsListEl.innerHTML = '';
+        
+        if (achievements.length === 0) {
+            achievementsListEl.innerHTML = '<li class="empty-message">업적이 없습니다.</li>';
+            return;
+        }
+
+        achievements.forEach((achievement, index) => {
+            const li = document.createElement('li');
+            li.className = achievement.unlocked ? 'achievement-unlocked' : 'achievement-locked';
+            
+            const icon = achievement.unlocked ? '✓' : '○';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'achievement-name';
+            nameSpan.textContent = `${icon} ${achievement.name}`;
+            
+            const descSpan = document.createElement('span');
+            descSpan.className = 'achievement-description';
+            descSpan.textContent = achievement.description;
+            
+            li.appendChild(nameSpan);
+            li.appendChild(document.createTextNode(' - '));
+            li.appendChild(descSpan);
+            
+            // Add fade-in animation
+            li.style.opacity = '0';
+            li.style.transform = 'translateX(-10px)';
+            li.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            li.style.transitionDelay = `${index * 0.05}s`;
+            
+            achievementsListEl.appendChild(li);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                li.style.opacity = '1';
+                li.style.transform = 'translateX(0)';
+            });
+        });
     }
 
     function renderRecentGames(games) {
@@ -586,7 +718,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let scores;
             
-            if (USE_MOCK_API) {
+            // 모든 리더보드는 실제 API를 사용
+            const useRealAPI = !USE_MOCK_API || endpoint === '/scores' || endpoint === '/scores/weekly' || endpoint === '/scores/yearly';
+            
+            if (useRealAPI) {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`);
+                
+                if (!response.ok) {
+                    throw { status: response.status, error: `HTTP error! status: ${response.status}` };
+                }
+                
+                scores = await response.json();
+            } else {
                 if (endpoint === '/scores') {
                     // Overall leaderboard needs date conversion
                     const mockData = await mockDataFn();
@@ -598,14 +741,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     scores = await mockDataFn();
                 }
-            } else {
-                const response = await fetch(`${API_BASE_URL}${endpoint}`);
-                
-                if (!response.ok) {
-                    throw { status: response.status, error: `HTTP error! status: ${response.status}` };
-                }
-                
-                scores = await response.json();
             }
 
             // Store original scores for filtering
@@ -617,7 +752,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchTerm = leaderboardSearchInput.value;
             const filteredScores = filterLeaderboard(scores, searchTerm);
             
-            renderLeaderboardTable(tbodyElement, filteredScores);
+            // Pass original scores to maintain correct ranks
+            renderLeaderboardTable(tbodyElement, filteredScores, null, scores);
             hideLoading();
         } catch (error) {
             console.error(`Error loading leaderboard (${endpoint}):`, error);
