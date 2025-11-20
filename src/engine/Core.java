@@ -101,6 +101,18 @@ public final class Core {
 
         int returnCode = 1;
 		do {
+            {
+                final int FADE_OUT_TRANSITION_OFFSET = 100;
+                if (returnCode >= FADE_OUT_TRANSITION_OFFSET && returnCode < 200) {
+                    int nextScreenCode = returnCode - FADE_OUT_TRANSITION_OFFSET;
+                    currentScreen = new TransitionScreen(width, height, FPS, nextScreenCode,
+                            TransitionScreen.TransitionType.FADE_OUT, Core.lastScreenCapture);
+                    LOGGER.info("Starting fade out transition to screen " + nextScreenCode);
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing fade out transition screen.");
+                }
+            }
+
             gameState = new GameState(1, 0, MAX_LIVES, 0, 0, gameState.getCoin());
 			switch (returnCode) {
                 case 1:
@@ -158,7 +170,7 @@ public final class Core {
                     LOGGER.info("Closing Register screen.");
                     break;
                 case 13: // Transition to 1P
-                    currentScreen = new TransitionScreen(width, height, FPS, 10);
+                    currentScreen = new TransitionScreen(width, height, FPS, 10, TransitionScreen.TransitionType.STARFIELD);
                     LOGGER.info("Starting transition screen to 1P game.");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing transition screen.");
@@ -256,7 +268,7 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing Game Over screen.");
                     break;
-				case 100:
+                case 200: // EasterEggScreen
 					currentScreen = new EasterEggScreen(width, height, FPS);
                		LOGGER.info("Starting Easter Egg screen.");
                 	returnCode = frame.setScreen(currentScreen);

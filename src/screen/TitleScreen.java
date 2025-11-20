@@ -245,7 +245,7 @@ public class TitleScreen extends Screen {
 		Runnable rightAction = () -> {
 			secretCommandHandler.handleKey(KeyEvent.VK_RIGHT);
 			if (secretCommandHandler.isCommandComplete()) {
-				this.returnCode = 100;
+				this.returnCode = 200;
 				this.isRunning = false;
 			} else if (this.isRunning) {
 				this.returnCode = 5;
@@ -267,6 +267,8 @@ public class TitleScreen extends Screen {
 					e.printStackTrace();
 				}
 			} else if (this.returnCode != 5) {
+				Core.lastScreenCapture = drawManager.getBackBuffer();
+				this.returnCode += 100;
 				this.isRunning = false;
 			} else { // Sound menu
 				this.soundButton.changeSoundState();
@@ -412,7 +414,7 @@ public class TitleScreen extends Screen {
 				if (inputManager.isKeyDown(entry.getKey())) {
 					entry.getValue().run();
 					this.selectionCooldown.reset();
-					break; 
+					break;
 				}
 			}
 		}
