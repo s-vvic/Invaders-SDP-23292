@@ -797,6 +797,8 @@ const authMiddleware = (req, res, next) => {
  * /api/users/{id}/achievements:
  *   post:
  *     summary: Unlock an achievement for a user
+ *     security:
+ *       - bearerAuth: []
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -819,10 +821,10 @@ const authMiddleware = (req, res, next) => {
  *         description: Achievement unlocked successfully
  *       400:
  *         description: Invalid user ID or achievement name
-       401:
-         description: Unauthorized: No token provided
-       403:
-         description: Forbidden: Invalid or expired token / You can only update your own achievements.
+ *       401:
+ *         description: Unauthorized - No token provided
+ *       403:
+ *         description: Forbidden - Invalid token or trying to update another user's achievements
  *       404:
  *         description: User or achievement not found
  *       500:
@@ -1029,7 +1031,9 @@ app.get('/api/scores/yearly', async function(req, res) {
  * @swagger
  * /api/users/{id}/score:
  *   put:
- *     summary: Update a user\'s high score
+ *     summary: Update a user's high score
+ *     security:
+ *       - bearerAuth: []
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -1048,19 +1052,19 @@ app.get('/api/scores/yearly', async function(req, res) {
  *               score:
  *                 type: integer
  *                 description: The new score to check against the high score
-     responses:
-       200:
-         description: Score checked or updated successfully
-       400:
-         description: Invalid user ID or score
-       401:
-         description: Unauthorized: No token provided
-       403:
-         description: Forbidden: Invalid or expired token / You can only update your own score.
-       404:
-         description: User not found
-       500:
-         description: Server database error
+ *     responses:
+ *       200:
+ *         description: Score checked or updated successfully
+ *       400:
+ *         description: Invalid user ID or score
+ *       401:
+ *         description: Unauthorized - No token provided
+ *       403:
+ *         description: Forbidden - Invalid token or trying to update another user's score
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
  */
 app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
     try {
@@ -1118,10 +1122,12 @@ app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
     }
 });
 
-const swaggerUi = require('swagger-ui-express');
-const specs = require('./config/swagger.js');
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+// Load and use Swagger only if not in a test environment
+if (process.env.NODE_ENV !== 'test') {
+    const swaggerUi = require('swagger-ui-express');
+    const specs = require('./config/swagger.js');
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+}
 
 // ==================================
 // 전역 오류 처리 미들웨어 (가장 마지막에 위치해야 함)
