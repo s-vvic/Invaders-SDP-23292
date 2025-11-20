@@ -15,6 +15,7 @@ import engine.AuthManager;
 import engine.ApiClient;
 import entity.*;
 import engine.level.Level;
+import engine.level.LevelManager;
 import engine.level.LevelEnemyFormation;
 
 
@@ -702,17 +703,23 @@ public class GameScreen extends Screen {
 			if (this.gameTimer.isRunning()) {
 				this.gameTimer.stop();
 			}
+		}
+		if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
+			boolean isGameOver = this.lives == 0;
+			boolean isFinalLevelCleared = !isGameOver && this.level == new LevelManager().getNumberOfLevels();
 
-			if (this.lives > 0) {
+			if (isGameOver) { // Game Over condition
+				draw(); // Draw the final frame before capturing.
+				Core.lastScreenCapture = drawManager.getBackBuffer();
+				this.returnCode = 99;
+			} else { // Level cleared condition
+				// Unlock level-specific achievements
 				if (this.level == 1) {
 					AchievementManager.getInstance().unlockAchievement("Beginner");
 				} else if (this.level == 3) {
 					AchievementManager.getInstance().unlockAchievement("Intermediate");
 				}
-			}
-		}
-		if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
-			if (this.lives > 0) { // Check for win condition
+
 				if (this.currentlevel.getCompletionBonus() != null) {
 					this.coin += this.currentlevel.getCompletionBonus().getCurrency();
 					this.logger.info("Awarded " + this.currentlevel.getCompletionBonus().getCurrency() + " coins for level completion.");
@@ -723,19 +730,25 @@ public class GameScreen extends Screen {
 					AchievementManager.getInstance().unlockAchievement(achievement);
 					this.logger.info("Unlocked achievement: " + achievement);
 				}
-			} else { // Game Over condition
-				draw(); // Draw the final frame before capturing.
-				Core.lastScreenCapture = drawManager.getBackBuffer();
-				this.returnCode = 99;
 			}
+
 			// Submit score to backend if logged in
 			AuthManager authManager = AuthManager.getInstance();
 			if (authManager.isLoggedIn()) {
-				try {
-					ApiClient.getInstance().saveScore(this.score);
-					this.logger.info("Score " + this.score + " submitted to backend for user " + authManager.getUserId());
-				} catch (Exception e) { // saveScore is async, but catching potential sync exceptions
-					this.logger.severe("Error submitting score to backend: " + e.getMessage());
+				if (isGameOver || isFinalLevelCleared) {
+					// Unlock "Conqueror" achievement if the final level is cleared
+					if (isFinalLevelCleared) {
+						AchievementManager.getInstance().unlockAchievement("Conqueror");
+					}
+
+					try {
+						ApiClient.getInstance().saveScore(this.score);
+						this.logger.info("Score " + this.score + " submitted to backend for user " + authManager.getUserId());
+					} catch (Exception e) { // saveScore is async, but catching potential sync exceptions
+						this.logger.severe("Error submitting score to backend: " + e.getMessage());
+					}
+				} else {
+					this.logger.info("Level " + this.level + " cleared. Score will be saved at the end of the game.");
 				}
 			} else {
 				this.logger.info("User not logged in, score not submitted to backend.");

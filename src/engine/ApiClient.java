@@ -127,6 +127,55 @@ public class ApiClient {
     }
 
     /**
+     * Unlocks an achievement by making a POST request to the backend.
+     * @param achievementName The name of the achievement to unlock.
+     */
+    public void unlockAchievement(String achievementName) {
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isLoggedIn()) {
+            Core.getLogger().warning("Cannot unlock achievement: User is not logged in.");
+            return;
+        }
+        int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        if (token == null || token.isEmpty()) {
+            Core.getLogger().severe("Cannot unlock achievement: Auth token is missing.");
+            return;
+        }
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String jsonPayload = "{\"achievement_name\": \"" + achievementName.replace("\"", "\\\"") + "\"}";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(API_BASE_URL + "/users/" + userId + "/achievements"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            Core.getLogger().info("Unlocking achievement \"" + achievementName + "\" for user " + userId);
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenAccept(response -> {
+                        Core.getLogger().info("Unlock achievement response status code: " + response.statusCode());
+                        Core.getLogger().info("Unlock achievement response body: " + response.body());
+                        if (response.statusCode() != 200) {
+                            Core.getLogger().severe("Failed to unlock achievement. Status: " + response.statusCode() + ", Body: " + response.body());
+                        } else {
+                            Core.getLogger().info("Achievement \"" + achievementName + "\" successfully unlocked for user " + userId);
+                        }
+                    }).exceptionally(e -> {
+                        Core.getLogger().severe("Failed to unlock achievement: " + e.getMessage());
+                        return null;
+                    });
+
+        } catch (Exception e) {
+            Core.getLogger().severe("Exception while trying to unlock achievement: " + e.getMessage());
+        }
+    }
+
+    /**
      * Mock method to save a purchased upgrade.
      * @param itemId The ID of the item.
      * @param level The new level of the item.

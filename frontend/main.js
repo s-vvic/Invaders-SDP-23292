@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- API Configuration ---
     const API_BASE_URL = 'http://localhost:8080/api';
-    const USE_MOCK_API = true; // Set to false to use real API
+    const USE_MOCK_API = false; // Set to false to use real API
 
     // --- Loading & Error Handling Utilities ---
     let loadingOverlay = null;
@@ -591,10 +591,47 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const achievements = await response.json();
             
+            // 새로 해제된 업적 확인 및 토스트 표시
+            checkNewAchievements(userId, achievements);
+            
             renderAchievements(achievements);
         } catch (error) {
             console.error('Failed to load user achievements:', error);
             achievementsListEl.innerHTML = '<li class="error-message">업적을 불러오는 데 실패했습니다.</li>';
+        }
+    }
+
+    function checkNewAchievements(userId, currentAchievements) {
+        // localStorage에서 마지막으로 확인한 업적 목록 가져오기
+        const lastCheckedKey = `last_checked_achievements_${userId}`;
+        const lastChecked = JSON.parse(localStorage.getItem(lastCheckedKey) || '[]');
+        
+        // 현재 해제된 업적 목록
+        const unlockedAchievements = currentAchievements
+            .filter(ach => ach.unlocked)
+            .map(ach => ach.name);
+        
+        // 새로 해제된 업적 찾기
+        const newAchievements = unlockedAchievements.filter(
+            name => !lastChecked.includes(name)
+        );
+        
+        // 새 업적이 있으면 토스트 표시
+        if (newAchievements.length > 0) {
+            newAchievements.forEach((achievementName, index) => {
+                const achievement = currentAchievements.find(ach => ach.name === achievementName);
+                setTimeout(() => {
+                    showToast(
+                        'success',
+                        '업적 해제! 🎉',
+                        `${achievementName}: ${achievement ? achievement.description : ''}`,
+                        5000
+                    );
+                }, index * 500); // 각 업적을 0.5초 간격으로 표시
+            });
+            
+            // localStorage 업데이트
+            localStorage.setItem(lastCheckedKey, JSON.stringify(unlockedAchievements));
         }
     }
 
