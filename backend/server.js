@@ -1097,12 +1097,7 @@ app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
         }
 
         // scores 테이블에 현재 점수 기록
-        // 한국 시간대(UTC+9)로 현재 시간 저장
-        const now = new Date();
-        // UTC 시간을 한국 시간(UTC+9)으로 변환
-        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
-        const koreaTime = new Date(utcTime + (9 * 60 * 60 * 1000));
-        const dateString = koreaTime.toISOString().replace('T', ' ').substring(0, 19);
+        const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
         
         await db.run(
             'INSERT INTO scores (user_id, score, created_at) VALUES (?, ?, ?)',
