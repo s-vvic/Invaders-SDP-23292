@@ -104,8 +104,7 @@ public final class DrawManager {
 		FinalBoss1, FinalBoss2,FinalBossBullet,FinalBossDeath,OmegaBoss1, OmegaBoss2,OmegaBossDeath, Chaser, Explosion, SoundOn, SoundOff, Item_MultiShot,
 		Item_Atkspeed, Item_Penetrate, Item_Explode, Item_Slow, Item_Stop,
 		Item_Push, Item_Shield, Item_Heal, FinalBossPowerUp1, FinalBossPowerUp2,
-		FinalBossPowerUp3, FinalBossPowerUp4, BossLaserStart1, BossLaserStart2, BossLaserStart3,
-		BossLaserMiddle1, BossLaserMiddle2, BossLaserMiddle3,
+		FinalBossPowerUp3, FinalBossPowerUp4, BossLaser1, BossLaser2, BossLaser3,
 	}
 
 	/**
@@ -150,12 +149,9 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.FinalBossPowerUp2, new boolean[80][70]);
 			spriteMap.put(SpriteType.FinalBossPowerUp3, new boolean[80][70]);
 			spriteMap.put(SpriteType.FinalBossPowerUp4, new boolean[80][70]);
-			spriteMap.put(SpriteType.BossLaserStart1, new boolean[50][40]);
-			spriteMap.put(SpriteType.BossLaserStart2, new boolean[50][40]);
-			spriteMap.put(SpriteType.BossLaserStart3, new boolean[50][40]);
-			spriteMap.put(SpriteType.BossLaserMiddle1, new boolean[50][40]);
-			spriteMap.put(SpriteType.BossLaserMiddle2, new boolean[50][40]);
-			spriteMap.put(SpriteType.BossLaserMiddle3, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaser1, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaser2, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaser3, new boolean[50][40]);
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
 
