@@ -1,4 +1,3 @@
-require('dotenv').config();
 const fs = require('fs');
 const express = require("express");
 const path = require("path");
@@ -12,13 +11,31 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const jwt = require('jsonwebtoken');
 
+// .env file setup
+const envPath = path.join(__dirname, '.env');
+const envExamplePath = path.join(__dirname, '.env.example');
+
+if (!fs.existsSync(envPath)) {
+    if (fs.existsSync(envExamplePath)) {
+        fs.copyFileSync(envExamplePath, envPath);
+        console.log('NOTE: .env file not found. A new .env file has been created by copying .env.example. Please review it.');
+    } else {
+        console.warn('WARNING: .env file not found and .env.example is also missing. Cannot auto-create .env.');
+    }
+}
+
+require('dotenv').config();
+
 const REQUIRED_ENV_VARS = ['JWT_SECRET'];
 const missingEnv = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
 
 if (missingEnv.length > 0) {
-    throw new Error(
-        `Missing required environment variables: ${missingEnv.join(', ')}`
-    );
+    const errorMsg = `
+        Missing required environment variables: ${missingEnv.join(', ')}
+        Please ensure you have a .env file in the /backend directory with all the required variables.
+        You can use the .env.example file as a template.
+    `;
+    throw new Error(errorMsg);
 }
 
 const app = express();
