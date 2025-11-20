@@ -175,8 +175,8 @@ out/
 *.log
 log*/
 log*
-.env
-.env.*
+
+
 *.db
 /invaders.db
 /backend/invaders.db
