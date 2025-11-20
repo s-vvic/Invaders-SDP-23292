@@ -105,7 +105,26 @@ async function startServer() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
+
+        CREATE TABLE IF NOT EXISTS achievements(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS user_achievements(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            achievement_id INTEGER NOT NULL,
+            unlocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (achievement_id) REFERENCES achievements(id),
+            UNIQUE(user_id, achievement_id)
+        );
     `);
+    
+    // 기본 achievements 데이터 추가
+    await seedAchievements();
     
     // 테스트 데이터 추가 (개발 환경에서만)
     await seedTestData();
@@ -248,6 +267,43 @@ async function seedTestData() {
         // 에러가 발생해도 서버는 계속 실행되도록 함
     }
 }
+
+async function seedAchievements() {
+    try {
+        // 기본 achievements 목록
+        const achievements = [
+            { name: 'Beginner', description: 'Clear level 1' },
+            { name: 'Intermediate', description: 'Clear level 3' },
+            { name: 'Boss Slayer', description: 'Defeat a boss' },
+            { name: 'Mr. Greedy', description: 'Have more than 2000 coins' },
+            { name: 'First Blood', description: 'Defeat your first enemy' },
+            { name: 'Bear Grylls', description: 'Survive for 60 seconds' },
+            { name: 'Bad Sniper', description: 'Under 80% accuracy' },
+            { name: 'Conqueror', description: 'Clear the final level' }
+        ];
+
+        for (const achievement of achievements) {
+            // 이미 존재하는지 확인
+            const existing = await db.get(
+                'SELECT id FROM achievements WHERE name = ?',
+                [achievement.name]
+            );
+
+            if (!existing) {
+                await db.run(
+                    'INSERT INTO achievements (name, description) VALUES (?, ?)',
+                    [achievement.name, achievement.description]
+                );
+            }
+        }
+
+        console.log('Achievements seeded successfully');
+    } catch (error) {
+        console.error('Error seeding achievements:', error);
+        // 에러가 발생해도 서버는 계속 실행되도록 함
+    }
+}
+
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
@@ -637,6 +693,207 @@ app.get('/api/users/:id/stats', async function(req, res) {
 
 /**
  * @swagger
+ * /api/users/{id}/achievements:
+ *   get:
+ *     summary: Retrieve user's achievements
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: User achievements
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   unlocked:
+ *                     type: boolean
+ *                   unlocked_at:
+ *                     type: string
+ *       400:
+ *         description: Invalid user ID
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
+ */
+app.get('/api/users/:id/achievements', async function(req, res) {
+    try {
+        const userId = parseInt(req.params.id, 10);
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        // 사용자 존재 확인
+        const user = await db.get('SELECT id FROM users WHERE id = ?', [userId]);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // 모든 achievements와 사용자의 해제 상태 조회
+        const achievements = await db.all(`
+            SELECT 
+                a.id,
+                a.name,
+                a.description,
+                CASE WHEN ua.id IS NOT NULL THEN 1 ELSE 0 END as unlocked,
+                ua.unlocked_at
+            FROM achievements a
+            LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = ?
+            ORDER BY a.id
+        `, [userId]);
+
+        res.json(achievements.map(ach => ({
+            id: ach.id,
+            name: ach.name,
+            description: ach.description,
+            unlocked: ach.unlocked === 1,
+            unlocked_at: ach.unlocked_at || null
+        })));
+
+    } catch (error) {
+        console.error('Database error while fetching user achievements:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
+// Middleware to check for a valid token
+const authMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Add the payload to the request object
+        next();
+    } catch (error) {
+        // This will catch errors like expired token, invalid signature etc.
+        return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
+    }
+};
+
+/**
+ * @swagger
+ * /api/users/{id}/achievements:
+ *   post:
+ *     summary: Unlock an achievement for a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               achievement_name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Achievement unlocked successfully
+ *       400:
+ *         description: Invalid user ID or achievement name
+ *       404:
+ *         description: User or achievement not found
+ *       500:
+ *         description: Server database error
+ */
+app.post('/api/users/:id/achievements', authMiddleware, async function(req, res) {
+    try {
+        const userIdFromParams = parseInt(req.params.id, 10);
+        const userIdFromToken = req.user.id;
+
+        // Authorization check
+        if (userIdFromParams !== userIdFromToken) {
+            return res.status(403).json({ error: 'Forbidden: You can only update your own achievements.' });
+        }
+
+        if (isNaN(userIdFromParams)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        const { achievement_name } = req.body;
+
+        if (!achievement_name || typeof achievement_name !== 'string') {
+            return res.status(400).json({ error: 'Achievement name is required' });
+        }
+
+        // 사용자 존재 확인
+        const user = await db.get('SELECT id FROM users WHERE id = ?', [userIdFromParams]);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Achievement 존재 확인
+        const achievement = await db.get(
+            'SELECT id FROM achievements WHERE name = ?',
+            [achievement_name]
+        );
+
+        if (!achievement) {
+            return res.status(404).json({ error: 'Achievement not found' });
+        }
+
+        // 이미 해제되었는지 확인
+        const existing = await db.get(
+            'SELECT id FROM user_achievements WHERE user_id = ? AND achievement_id = ?',
+            [userIdFromParams, achievement.id]
+        );
+
+        if (existing) {
+            return res.status(200).json({ message: 'Achievement already unlocked' });
+        }
+
+        // 한국 시간대(UTC+9)로 현재 시간 저장
+        const now = new Date();
+        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+        const koreaTime = new Date(utcTime + (9 * 60 * 60 * 1000));
+        const dateString = koreaTime.toISOString().replace('T', ' ').substring(0, 19);
+
+        // Achievement 해제
+        await db.run(
+            'INSERT INTO user_achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)',
+            [userIdFromParams, achievement.id, dateString]
+        );
+
+        console.log(`Achievement "${achievement_name}" unlocked for user ${userIdFromParams}`);
+
+        res.json({ message: 'Achievement unlocked successfully' });
+
+    } catch (error) {
+        console.error('Error unlocking achievement:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
+/**
+ * @swagger
  * /api/scores:
  *   get:
  *     summary: Retrieve a list of all scores
@@ -797,26 +1054,6 @@ app.get('/api/scores/yearly', async function(req, res) {
  *       500:
  *         description: Server database error
  */
-// Middleware to check for a valid token
-const authMiddleware = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized: No token provided' });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // Add the payload to the request object
-        next();
-    } catch (error) {
-        // This will catch errors like expired token, invalid signature etc.
-        return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
-    }
-};
-
 app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
     try {
         const userIdFromParams = parseInt(req.params.id, 10);

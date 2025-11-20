@@ -535,10 +535,12 @@ document.addEventListener('DOMContentLoaded', () => {
             animateValue(highScoreEl, userData.max_score || 0, { duration: 1000 });
             // goldEl.textContent = data.gold; // We don't have gold in our user data yet
             // upgradesListEl // Not implemented yet
-            // achievementsListEl // Not implemented yet
 
             // Load user statistics
             await loadUserStats(userId);
+            
+            // Load user achievements
+            await loadUserAchievements(userId);
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
@@ -579,6 +581,62 @@ document.addEventListener('DOMContentLoaded', () => {
             userRankEl.textContent = '-';
             recentGamesListEl.innerHTML = '<tr><td colspan="2" class="error-message-cell">통계를 불러오는 데 실패했습니다.</td></tr>';
         }
+    }
+
+    async function loadUserAchievements(userId) {
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/achievements`);
+            if (!response.ok) {
+                throw { status: response.status, error: `HTTP error! status: ${response.status}` };
+            }
+            const achievements = await response.json();
+            
+            renderAchievements(achievements);
+        } catch (error) {
+            console.error('Failed to load user achievements:', error);
+            achievementsListEl.innerHTML = '<li class="error-message">업적을 불러오는 데 실패했습니다.</li>';
+        }
+    }
+
+    function renderAchievements(achievements) {
+        achievementsListEl.innerHTML = '';
+        
+        if (achievements.length === 0) {
+            achievementsListEl.innerHTML = '<li class="empty-message">업적이 없습니다.</li>';
+            return;
+        }
+
+        achievements.forEach((achievement, index) => {
+            const li = document.createElement('li');
+            li.className = achievement.unlocked ? 'achievement-unlocked' : 'achievement-locked';
+            
+            const icon = achievement.unlocked ? '✓' : '○';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'achievement-name';
+            nameSpan.textContent = `${icon} ${achievement.name}`;
+            
+            const descSpan = document.createElement('span');
+            descSpan.className = 'achievement-description';
+            descSpan.textContent = achievement.description;
+            
+            li.appendChild(nameSpan);
+            li.appendChild(document.createTextNode(' - '));
+            li.appendChild(descSpan);
+            
+            // Add fade-in animation
+            li.style.opacity = '0';
+            li.style.transform = 'translateX(-10px)';
+            li.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            li.style.transitionDelay = `${index * 0.05}s`;
+            
+            achievementsListEl.appendChild(li);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                li.style.opacity = '1';
+                li.style.transform = 'translateX(0)';
+            });
+        });
     }
 
     function renderRecentGames(games) {
