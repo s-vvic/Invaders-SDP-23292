@@ -80,26 +80,20 @@ public class TransitionScreen extends Screen {
         this.type = type;
         this.sourceImage = sourceImage;
 
-        int duration;
         switch (this.type) {
             case STARFIELD:
-                duration = STARFIELD_DURATION;
+                this.transitionCooldown = Core.getCooldown(STARFIELD_DURATION);
+                this.random = new Random();
+                this.stars = new ArrayList<>();
+                for (int i = 0; i < NUM_STARS; i++) {
+                    this.stars.add(new Star(this.random, this.width, this.height));
+                }
                 break;
             case FADE_OUT:
-                duration = FADE_OUT_DURATION;
+                this.transitionCooldown = Core.getCooldown(FADE_OUT_DURATION);
                 break;
             default:
-                duration = 0;
-                break;
-        }
-        this.transitionCooldown = Core.getCooldown(duration);
-
-        if (this.type == TransitionType.STARFIELD) {
-            this.random = new Random();
-            this.stars = new ArrayList<>();
-            for (int i = 0; i < NUM_STARS; i++) {
-                this.stars.add(new Star(this.random, this.width, this.height));
-            }
+                throw new IllegalArgumentException("Unsupported transition type: " + this.type);
         }
     }
 
@@ -203,8 +197,8 @@ public class TransitionScreen extends Screen {
 
                 // Apply ease-in-out cubic easing function for a smoother effect
                 float easedProgress = progress < 0.5f 
-                                    ? 4.0f * progress * progress * progress 
-                                    : 1.0f - (float) Math.pow(-2.0f * progress + 2.0f, 3.0f) / 2.0f;
+                                    ? 4.0f * progress * progress * progress
+                        : 1.0f - ((-2.0f * progress + 2.0f) * (-2.0f * progress + 2.0f) * (-2.0f * progress + 2.0f)) / 2.0f;
 
                 if (sourceImage != null) {
                     // Create a RescaleOp to darken the image
