@@ -1,6 +1,7 @@
 package engine;
 
 import java.util.prefs.Preferences;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Manages the user's authentication state (session), with persistence.
@@ -45,6 +46,18 @@ public class AuthManager {
     }
 
     /**
+     * Validates the loaded session with the backend.
+     * @return A CompletableFuture that resolves to true if the session is valid, false otherwise.
+     */
+    public CompletableFuture<Boolean> validateSessionOnStartup() {
+        if (!isLoggedIn()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        // Token exists locally, let's validate it with the server.
+        return ApiClient.getInstance().validateToken();
+    }
+
+    /**
      * Stores the user's token, username, and ID upon successful login.
      * Also persists the session to the Preferences API.
      *
@@ -67,6 +80,19 @@ public class AuthManager {
         this.authToken = null;
         this.username = null;
         this.userId = 0; // Reset userId
+        clearSession();
+    }
+
+    /**
+     * Invalidates the current session, typically called when the token has expired
+     * or is invalid. Logs a specific message and clears all session data.
+     */
+    public void invalidateSession() {
+        Core.getLogger().warning("Session invalidated due to token expiration or auth error. Logging out.");
+        DrawManager.addSystemMessage("Session expired. You will be logged out.");
+        this.authToken = null;
+        this.username = null;
+        this.userId = 0;
         clearSession();
     }
 

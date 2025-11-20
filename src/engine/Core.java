@@ -98,8 +98,17 @@ public final class Core {
 		levelManager = new LevelManager();
 		GameState gameState = new GameState(1, 0, MAX_LIVES, 0, 0, 0);
 
+		// Validate session on startup.
+		LOGGER.info("Validating session on startup...");
+		AuthManager.getInstance().validateSessionOnStartup().join();
 
-        int returnCode = 1;
+		int returnCode;
+		if (AuthManager.getInstance().isLoggedIn()) {
+			returnCode = 1; // Start with Title Screen
+		} else {
+			returnCode = 9; // Start with Login Screen
+		}
+		
 		do {
             gameState = new GameState(1, 0, MAX_LIVES, 0, 0, gameState.getCoin());
 			switch (returnCode) {
@@ -124,6 +133,12 @@ public final class Core {
                             + " high score screen at " + FPS + " fps.");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing high score screen.");
+
+                    // If high scores returns to main menu, check if session is still valid.
+                    if (returnCode == 1 && !AuthManager.getInstance().isLoggedIn()) {
+                        // If token expired during game, redirect to login screen.
+                        returnCode = 9;
+                    }
                     break;
                 case 4:
                     // Shop opened manually from main menu

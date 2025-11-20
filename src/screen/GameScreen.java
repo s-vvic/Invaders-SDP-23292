@@ -357,6 +357,7 @@ public class GameScreen extends Screen {
 					/ 12);
 		}
 
+		drawManager.drawSystemMessages(this);
 		drawManager.completeDrawing(this);
 	}
 

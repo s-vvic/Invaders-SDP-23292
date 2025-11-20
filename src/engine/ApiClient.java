@@ -7,6 +7,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Handles all communication with the backend API.
@@ -78,6 +79,47 @@ public class ApiClient {
     }
 
     /**
+     * Validates the current authentication token by making a request to a protected endpoint.
+     * If the token is invalid (401/403), the session will be invalidated.
+     *
+     * @return A CompletableFuture that resolves to true if the token is valid, false otherwise.
+     */
+    public CompletableFuture<Boolean> validateToken() {
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isLoggedIn()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/users/" + userId))
+                .header("Authorization", "Bearer " + token)
+                .GET()
+                .build();
+
+        Core.getLogger().info("Validating token for user " + userId);
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() == 200) {
+                        Core.getLogger().info("Token is valid.");
+                        return true;
+                    } else {
+                        Core.getLogger().warning("Token validation failed with status: " + response.statusCode());
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        }
+                        return false;
+                    }
+                }).exceptionally(e -> {
+                    Core.getLogger().severe("Exception during token validation: " + e.getMessage());
+                    return false;
+                });
+    }
+
+    /**
      * Saves the score by making a PUT request to the backend.
      * @param score The score to save.
      */
@@ -111,7 +153,9 @@ public class ApiClient {
                     .thenAccept(response -> {
                         Core.getLogger().info("Save score response status code: " + response.statusCode());
                         Core.getLogger().info("Save score response body: " + response.body());
-                        if (response.statusCode() != 200) {
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        } else if (response.statusCode() != 200) {
                             Core.getLogger().severe("Failed to save score. Status: " + response.statusCode() + ", Body: " + response.body());
                         } else {
                             Core.getLogger().info("Score " + score + " successfully saved to database for user " + userId);
@@ -160,7 +204,9 @@ public class ApiClient {
                     .thenAccept(response -> {
                         Core.getLogger().info("Unlock achievement response status code: " + response.statusCode());
                         Core.getLogger().info("Unlock achievement response body: " + response.body());
-                        if (response.statusCode() != 200) {
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        } else if (response.statusCode() != 200) {
                             Core.getLogger().severe("Failed to unlock achievement. Status: " + response.statusCode() + ", Body: " + response.body());
                         } else {
                             Core.getLogger().info("Achievement \"" + achievementName + "\" successfully unlocked for user " + userId);
