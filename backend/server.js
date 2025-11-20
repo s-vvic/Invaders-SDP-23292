@@ -877,10 +877,7 @@ app.post('/api/users/:id/achievements', authMiddleware, async function(req, res)
         }
 
         // 한국 시간대(UTC+9)로 현재 시간 저장
-        const now = new Date();
-        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
-        const koreaTime = new Date(utcTime + (9 * 60 * 60 * 1000));
-        const dateString = koreaTime.toISOString().replace('T', ' ').substring(0, 19);
+        const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
         // Achievement 해제
         await db.run(
