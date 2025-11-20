@@ -88,6 +88,12 @@ public class ApiClient {
             return;
         }
         int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        if (token == null || token.isEmpty()) {
+            Core.getLogger().severe("Cannot save score: Auth token is missing.");
+            return;
+        }
 
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -96,6 +102,7 @@ public class ApiClient {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(API_BASE_URL + "/users/" + userId + "/score"))
                     .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
                     .PUT(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
 
@@ -104,6 +111,11 @@ public class ApiClient {
                     .thenAccept(response -> {
                         Core.getLogger().info("Save score response status code: " + response.statusCode());
                         Core.getLogger().info("Save score response body: " + response.body());
+                        if (response.statusCode() != 200) {
+                            Core.getLogger().severe("Failed to save score. Status: " + response.statusCode() + ", Body: " + response.body());
+                        } else {
+                            Core.getLogger().info("Score " + score + " successfully saved to database for user " + userId);
+                        }
                     }).exceptionally(e -> {
                         Core.getLogger().severe("Failed to save score: " + e.getMessage());
                         return null;

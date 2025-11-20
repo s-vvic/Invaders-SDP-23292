@@ -107,9 +107,146 @@ async function startServer() {
         );
     `);
     
-    // 배포를 위해 테스트 사용자 자동 생성 로직 제거
+    // 테스트 데이터 추가 (개발 환경에서만)
+    await seedTestData();
     
     return db; // Return the database connection
+}
+
+async function seedTestData() {
+    try {
+        console.log('Seeding test data...');
+        
+        // 테스트 사용자들 생성 (이미 있으면 스킵)
+        const testUsers = [
+            { username: 'PlayerOne', password: 'password123' },
+            { username: 'PlayerTwo', password: 'password123' },
+            { username: 'SpaceInvader', password: 'password123' },
+            { username: 'ProGamer', password: 'password123' },
+            { username: 'Newbie', password: 'password123' },
+            { username: 'Champion', password: 'password123' },
+            { username: 'AcePlayer', password: 'password123' },
+            { username: 'Master', password: 'password123' },
+            { username: 'Elite', password: 'password123' },
+            { username: 'Legend', password: 'password123' }
+        ];
+
+        const userIds = [];
+        
+        for (const user of testUsers) {
+            // 사용자가 이미 있는지 확인
+            let existingUser = await db.get('SELECT id FROM users WHERE username = ?', [user.username]);
+            
+            if (existingUser) {
+                // 이미 존재하면 기존 ID 사용
+                userIds.push({ id: existingUser.id, username: user.username });
+            } else {
+                // 없으면 새로 생성
+                const hashedPassword = await bcrypt.hash(user.password, 10);
+                const result = await db.run(
+                    'INSERT INTO users (username, password, max_score) VALUES (?, ?, ?)',
+                    [user.username, hashedPassword, 0]
+                );
+                userIds.push({ id: result.lastID, username: user.username });
+            }
+        }
+        
+        // 기존 테스트 사용자들의 점수 확인
+        const testUserIds = userIds.map(u => u.id);
+        let existingScoresCount = 0;
+        if (testUserIds.length > 0) {
+            const countResult = await db.get(`
+                SELECT COUNT(*) as count 
+                FROM scores 
+                WHERE user_id IN (${testUserIds.map(() => '?').join(',')})
+            `, testUserIds);
+            existingScoresCount = countResult ? countResult.count : 0;
+        }
+        
+        // 이미 충분한 테스트 점수가 있으면 스킵 (27개 이상)
+        if (existingScoresCount >= 27) {
+            console.log(`Test scores already exist (${existingScoresCount} scores), skipping seed...`);
+            return;
+        }
+        
+        // 테스트 점수가 부족하면 기존 점수 삭제 후 재생성
+        if (testUserIds.length > 0 && existingScoresCount > 0) {
+            await db.run(`
+                DELETE FROM scores 
+                WHERE user_id IN (${testUserIds.map(() => '?').join(',')})
+            `, testUserIds);
+            console.log(`Cleared existing scores for test users`);
+        }
+
+        // 다양한 시점의 점수 데이터 추가
+        const now = new Date();
+        const scores = [
+            // 최근 점수들 (주간/연간에 포함됨)
+            { userId: userIds[0].id, score: 150000, daysAgo: 1 },
+            { userId: userIds[1].id, score: 125000, daysAgo: 2 },
+            { userId: userIds[2].id, score: 110000, daysAgo: 3 },
+            { userId: userIds[3].id, score: 95000, daysAgo: 4 },
+            { userId: userIds[4].id, score: 85000, daysAgo: 5 },
+            { userId: userIds[5].id, score: 75000, daysAgo: 6 },
+            { userId: userIds[6].id, score: 65000, daysAgo: 1 },
+            { userId: userIds[7].id, score: 55000, daysAgo: 2 },
+            { userId: userIds[8].id, score: 45000, daysAgo: 3 },
+            { userId: userIds[9].id, score: 35000, daysAgo: 4 },
+            
+            // 추가 점수들 (더 많은 기록)
+            { userId: userIds[0].id, score: 140000, daysAgo: 10 },
+            { userId: userIds[1].id, score: 120000, daysAgo: 15 },
+            { userId: userIds[2].id, score: 105000, daysAgo: 20 },
+            { userId: userIds[3].id, score: 90000, daysAgo: 30 },
+            { userId: userIds[4].id, score: 80000, daysAgo: 45 },
+            { userId: userIds[5].id, score: 70000, daysAgo: 60 },
+            { userId: userIds[6].id, score: 60000, daysAgo: 90 },
+            { userId: userIds[7].id, score: 50000, daysAgo: 120 },
+            { userId: userIds[8].id, score: 40000, daysAgo: 180 },
+            { userId: userIds[9].id, score: 30000, daysAgo: 200 },
+            
+            // 연간에는 포함되지만 주간에는 포함되지 않는 점수들
+            { userId: userIds[0].id, score: 135000, daysAgo: 100 },
+            { userId: userIds[1].id, score: 115000, daysAgo: 150 },
+            { userId: userIds[2].id, score: 100000, daysAgo: 200 },
+            { userId: userIds[3].id, score: 88000, daysAgo: 250 },
+            { userId: userIds[4].id, score: 78000, daysAgo: 300 },
+            
+            // 오래된 점수들 (연간에도 포함되지 않음)
+            { userId: userIds[0].id, score: 130000, daysAgo: 400 },
+            { userId: userIds[1].id, score: 110000, daysAgo: 500 }
+        ];
+
+        for (const scoreData of scores) {
+            const scoreDate = new Date(now);
+            scoreDate.setDate(scoreDate.getDate() - scoreData.daysAgo);
+            const dateString = scoreDate.toISOString().replace('T', ' ').substring(0, 19);
+            
+            await db.run(
+                'INSERT INTO scores (user_id, score, created_at) VALUES (?, ?, ?)',
+                [scoreData.userId, scoreData.score, dateString]
+            );
+        }
+
+        // 각 사용자의 최고 점수 업데이트
+        for (const user of userIds) {
+            const maxScore = await db.get(
+                'SELECT MAX(score) as max FROM scores WHERE user_id = ?',
+                [user.id]
+            );
+            if (maxScore && maxScore.max) {
+                await db.run(
+                    'UPDATE users SET max_score = ? WHERE id = ?',
+                    [maxScore.max, user.id]
+                );
+            }
+        }
+
+        console.log(`Test data seeded: ${testUsers.length} users, ${scores.length} scores`);
+    } catch (error) {
+        console.error('Error seeding test data:', error);
+        // 에러가 발생해도 서버는 계속 실행되도록 함
+    }
 }
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
@@ -389,6 +526,117 @@ app.get('/api/users/:id', async function(req, res) {
 
 /**
  * @swagger
+ * /api/users/{id}/stats:
+ *   get:
+ *     summary: Retrieve user statistics (total games, average score, rank, recent games)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: User statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalGames:
+ *                   type: integer
+ *                 averageScore:
+ *                   type: number
+ *                 rank:
+ *                   type: integer
+ *                 rankOutOf:
+ *                   type: integer
+ *                 recentGames:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       score:
+ *                         type: integer
+ *                       created_at:
+ *                         type: string
+ *       400:
+ *         description: Invalid user ID
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server database error
+ */
+app.get('/api/users/:id/stats', async function(req, res) {
+    try {
+        const userId = parseInt(req.params.id, 10);
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        // 사용자 존재 확인
+        const user = await db.get('SELECT id, max_score FROM users WHERE id = ?', [userId]);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // 총 게임 수
+        const totalGamesResult = await db.get(
+            'SELECT COUNT(*) as count FROM scores WHERE user_id = ?',
+            [userId]
+        );
+        const totalGames = totalGamesResult ? totalGamesResult.count : 0;
+
+        // 평균 점수
+        const avgScoreResult = await db.get(
+            'SELECT AVG(score) as avg FROM scores WHERE user_id = ?',
+            [userId]
+        );
+        const averageScore = avgScoreResult && avgScoreResult.avg ? Math.round(avgScoreResult.avg) : 0;
+
+        // 순위 계산 (max_score 기준)
+        const rankResult = await db.get(`
+            SELECT COUNT(*) + 1 as rank
+            FROM users
+            WHERE max_score > ?
+        `, [user.max_score]);
+        const rank = rankResult ? rankResult.rank : 1;
+
+        // 전체 사용자 수
+        const totalUsersResult = await db.get('SELECT COUNT(*) as count FROM users');
+        const rankOutOf = totalUsersResult ? totalUsersResult.count : 1;
+
+        // 최근 게임 기록 (최근 10개)
+        const recentGames = await db.all(`
+            SELECT score, created_at
+            FROM scores
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 10
+        `, [userId]);
+
+        res.json({
+            totalGames,
+            averageScore,
+            rank,
+            rankOutOf,
+            recentGames: recentGames.map(game => ({
+                score: game.score,
+                created_at: game.created_at
+            }))
+        });
+
+    } catch (error) {
+        console.error('Database error while fetching user stats:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
+/**
+ * @swagger
  * /api/scores:
  *   get:
  *     summary: Retrieve a list of all scores
@@ -426,6 +674,92 @@ app.get('/api/scores', async function(req, res) {
         res.json(scores);
     } catch (error) {
         console.error('Database error while fetching scores:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
+/**
+ * @swagger
+ * /api/scores/weekly:
+ *   get:
+ *     summary: Retrieve weekly high scores (last 7 days)
+ *     tags: [Scores]
+ *     responses:
+ *       200:
+ *         description: A list of weekly scores with usernames, ordered by score descending
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   username:
+ *                     type: string
+ *                   score:
+ *                     type: integer
+ *                   created_at:
+ *                     type: string
+ *       500:
+ *         description: Server database error
+ */
+app.get('/api/scores/weekly', async function(req, res) {
+    try {
+        // 지난 7일간의 점수를 가져옵니다
+        const scores = await db.all(`
+            SELECT u.username, s.score, s.created_at 
+            FROM scores s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.created_at >= datetime('now', '-7 days')
+            ORDER BY s.score DESC
+            LIMIT 100 
+        `);
+        res.json(scores);
+    } catch (error) {
+        console.error('Database error while fetching weekly scores:', error);
+        res.status(500).json({ error: 'Server database error' });
+    }
+});
+
+/**
+ * @swagger
+ * /api/scores/yearly:
+ *   get:
+ *     summary: Retrieve yearly high scores (last 365 days)
+ *     tags: [Scores]
+ *     responses:
+ *       200:
+ *         description: A list of yearly scores with usernames, ordered by score descending
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   username:
+ *                     type: string
+ *                   score:
+ *                     type: integer
+ *                   created_at:
+ *                     type: string
+ *       500:
+ *         description: Server database error
+ */
+app.get('/api/scores/yearly', async function(req, res) {
+    try {
+        // 지난 1년간의 점수를 가져옵니다
+        const scores = await db.all(`
+            SELECT u.username, s.score, s.created_at 
+            FROM scores s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.created_at >= datetime('now', '-365 days')
+            ORDER BY s.score DESC
+            LIMIT 100 
+        `);
+        res.json(scores);
+    } catch (error) {
+        console.error('Database error while fetching yearly scores:', error);
         res.status(500).json({ error: 'Server database error' });
     }
 });
@@ -517,9 +851,16 @@ app.put('/api/users/:id/score', authMiddleware, async (req, res) => {
         }
 
         // scores 테이블에 현재 점수 기록
+        // 한국 시간대(UTC+9)로 현재 시간 저장
+        const now = new Date();
+        // UTC 시간을 한국 시간(UTC+9)으로 변환
+        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+        const koreaTime = new Date(utcTime + (9 * 60 * 60 * 1000));
+        const dateString = koreaTime.toISOString().replace('T', ' ').substring(0, 19);
+        
         await db.run(
-            'INSERT INTO scores (user_id, score) VALUES (?, ?)',
-            [userIdFromParams, score]
+            'INSERT INTO scores (user_id, score, created_at) VALUES (?, ?, ?)',
+            [userIdFromParams, score, dateString]
         );
         
         console.log(`Logged score ${score} for user ${userIdFromParams}`);

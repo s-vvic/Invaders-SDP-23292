@@ -262,7 +262,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Utility Functions ---
     function formatDate(dateString) {
         if (!dateString) return '날짜 없음';
-        return new Date(dateString).toLocaleString('ko-KR');
+        
+        // SQLite에서 반환되는 날짜 형식 처리 (YYYY-MM-DD HH:MM:SS)
+        // 서버에서 한국 시간대로 저장했으므로, 이를 한국 시간대로 간주
+        let date;
+        if (dateString.includes('T')) {
+            // ISO 형식 (YYYY-MM-DDTHH:MM:SS 또는 YYYY-MM-DDTHH:MM:SSZ)
+            date = new Date(dateString);
+        } else {
+            // SQLite 형식 (YYYY-MM-DD HH:MM:SS) - 한국 시간대로 간주
+            // 시간대 정보가 없으므로, 한국 시간대(UTC+9)로 명시적으로 설정
+            const dateTimeStr = dateString.replace(' ', 'T');
+            // 한국 시간대를 UTC+9로 명시
+            date = new Date(dateTimeStr + '+09:00');
+        }
+        
+        // 한국 시간대 형식으로 표시
+        return date.toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
     }
 
     function getRankEmoji(rank) {
@@ -529,14 +552,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             let stats;
             
-            if (USE_MOCK_API) {
-                stats = await mockGetUserStats();
-            } else {
-                // Use real API (when implemented)
-                // const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/stats`);
-                // stats = await response.json();
-                stats = await mockGetUserStats(); // Fallback to mock for now
+            // Always use real API for user stats (not mock)
+            const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/stats`);
+            if (!response.ok) {
+                throw { status: response.status, error: `HTTP error! status: ${response.status}` };
             }
+            stats = await response.json();
 
             // Update statistics with animation
             animateValue(totalGamesEl, stats.totalGames || 0, { duration: 800 });
@@ -602,7 +623,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let scores;
             
-            if (USE_MOCK_API) {
+            // 모든 리더보드는 실제 API를 사용
+            const useRealAPI = !USE_MOCK_API || endpoint === '/scores' || endpoint === '/scores/weekly' || endpoint === '/scores/yearly';
+            
+            if (useRealAPI) {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`);
+                
+                if (!response.ok) {
+                    throw { status: response.status, error: `HTTP error! status: ${response.status}` };
+                }
+                
+                scores = await response.json();
+            } else {
                 if (endpoint === '/scores') {
                     // Overall leaderboard needs date conversion
                     const mockData = await mockDataFn();
@@ -614,14 +646,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     scores = await mockDataFn();
                 }
-            } else {
-                const response = await fetch(`${API_BASE_URL}${endpoint}`);
-                
-                if (!response.ok) {
-                    throw { status: response.status, error: `HTTP error! status: ${response.status}` };
-                }
-                
-                scores = await response.json();
             }
 
             // Store original scores for filtering
