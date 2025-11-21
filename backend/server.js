@@ -24,7 +24,7 @@ if (!fs.existsSync(envPath)) {
     }
 }
 
-require('dotenv').config();
+require('dotenv').config({ path: envPath });
 
 const REQUIRED_ENV_VARS = ['JWT_SECRET'];
 const missingEnv = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
@@ -48,6 +48,7 @@ const defaultOrigins = [
     'http://localhost:3000',
     'http://localhost:4173',
     'http://localhost:5173',
+    'http://localhost:8080',
 ];
 
 const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -456,7 +457,7 @@ function authenticateToken(req, res, next) {
     }
 
     // 토큰 검증
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
             // --- 수정 ---
             // 토큰이 유효하지 않거나 만료된 경우

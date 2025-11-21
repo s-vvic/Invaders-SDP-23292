@@ -213,6 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Mock API ---
     // ... (Mock API 함수들은 수정 없음) ...
+    function mockGetLeaderboard() {
+        return fetch('./mock_data/leaderboard.json').then(res => res.json());
+    }
 
     function mockGetWeeklyLeaderboard() {
         return fetch('./mock_data/weekly_scores.json').then(res => res.json());
@@ -499,31 +502,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Fetch user's specific data (including max_score)
-<<<<<<< HEAD
-            // --- 수정 ---
-            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}` // 토큰 헤더 추가
-                }
-            });
-            // --- 수정 끝 ---
-            
-            if (!response.ok) {
-                // 401 (토큰 만료/무효)을 감지하면 즉시 로그아웃
-                if (response.status === 401) {
-                    console.log('Token expired or invalid. Logging out.');
-                    alert('세션이 만료되었습니다. 다시 로그인해주세요.'); // 사용자에게 알림
-                    logout();
-                    return; // 함수 실행 중단
-                }
-                // 다른 HTTP 오류
-                throw new Error(`HTTP error! status: ${response.status}`);
-=======
             const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}`);
             if (!response.ok) {
                 throw { status: response.status, error: `HTTP error! status: ${response.status}` };
->>>>>>> d3d6d9ecee4ecf080299cfc88b4136f0558a6ed3
             }
             const userData = await response.json();
 
@@ -548,38 +529,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadUserStats(userId) {
         try {
-<<<<<<< HEAD
-            const token = localStorage.getItem('invaders_token'); // --- 추가 ---
-
-            // 1. API 엔드포인트를 /api/users -> /api/scores 로 변경합니다.
-            //    (이전에 server.js에 추가한 엔드포인트)
-            // --- 수정 ---
-            const response = await fetch(`${API_BASE_URL}/scores`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}` // 토큰 헤더 추가
-                }
-            }); 
-            // --- 수정 끝 ---
-=======
             let stats;
->>>>>>> d3d6d9ecee4ecf080299cfc88b4136f0558a6ed3
             
             // Always use real API for user stats (not mock)
             const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/stats`);
             if (!response.ok) {
-<<<<<<< HEAD
-                // 401 (토큰 만료/무효)을 감지
-                if (response.status === 401) {
-                    console.log('Token expired or invalid. Logging out.');
-                    alert('세션이 만료되었습니다. 다시 로그인해주세요.');
-                    logout();
-                    return; // 함수 실행 중단
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-=======
                 throw { status: response.status, error: `HTTP error! status: ${response.status}` };
->>>>>>> d3d6d9ecee4ecf080299cfc88b4136f0558a6ed3
             }
             stats = await response.json();
 
@@ -744,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const useRealAPI = !USE_MOCK_API || endpoint === '/scores' || endpoint === '/scores/weekly' || endpoint === '/scores/yearly';
             
             if (useRealAPI) {
-                const response = await fetch(`${API_BASE_URL}${endpoint}`);
+                const response = await fetchWithAuth(`${API_BASE_URL}${endpoint}`);
                 
                 if (!response.ok) {
                     throw { status: response.status, error: `HTTP error! status: ${response.status}` };
@@ -919,13 +874,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = localStorage.getItem('invaders_username');
         const token = localStorage.getItem('invaders_token'); // --- 추가 ---
 
-<<<<<<< HEAD
-        if (!userId || !token) { // --- 수정 ---
-            alert('로그인된 사용자 정보가 없습니다. 먼저 로그인해주세요.');
-=======
         if (!userId) {
             toastWarning('로그인된 사용자 정보가 없습니다. 먼저 로그인해주세요.');
->>>>>>> d3d6d9ecee4ecf080299cfc88b4136f0558a6ed3
             return;
         }
 
@@ -936,12 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading('점수 업데이트 중...');
 
         try {
-<<<<<<< HEAD
-            // --- 수정 ---
-            const response = await fetch(`${API_BASE_URL}/users/${userId}/score`, {
-=======
             const response = await fetchWithAuth(`${API_BASE_URL}/users/${userId}/score`, {
->>>>>>> d3d6d9ecee4ecf080299cfc88b4136f0558a6ed3
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -964,13 +909,9 @@ if (!response.ok) {
     throw new Error(errorData.error || '점수 업데이트 실패');
 }
 
-<<<<<<< HEAD
-const data = await response.json();
-=======
             if (!response.ok) {
                 throw { status: response.status, error: data.error || '점수 업데이트 실패' };
             }
->>>>>>> d3d6d9ecee4ecf080299cfc88b4136f0558a6ed3
 
             hideLoading();
             toastSuccess(
@@ -1084,19 +1025,6 @@ const data = await response.json();
         showError(registerError, '회원가입 중...');
 
         try {
-<<<<<<< HEAD
-            const data = USE_MOCK_API ? await mockRegister(username, password) : await (await fetch(`${API_BASE_URL}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) })).json();
-            
-            // --- 수정 --- (백엔드 오류 메시지 표시)
-            if (data.error) {
-                throw new Error(data.error);
-            }
-
-            alert(data.message); // Show success message
-            showLoginView(); // Go to login page after successful registration
-        } catch (error) {
-            registerError.textContent = error.message || 'Registration failed!'; // --- 수정 ---
-=======
             const response = await fetch(`${API_BASE_URL}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1124,7 +1052,6 @@ const data = await response.json();
             showError(registerError, getErrorMessage(error));
         } finally {
             setButtonLoading(submitButton, false);
->>>>>>> d3d6d9ecee4ecf080299cfc88b4136f0558a6ed3
         }
     });
 
