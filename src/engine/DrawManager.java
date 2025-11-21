@@ -9,6 +9,8 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,25 @@ import screen.TitleScreen.ShootingStar;
  *
  */
 public final class DrawManager {
+
+	/**
+	 * Private inner class for managing system messages with a timeout.
+	 */
+	private static class SystemMessage {
+		/** The message content. */
+		private String message;
+		/** The timestamp when the message should expire. */
+		private long expiryTime;
+
+		/**
+		 * @param message The text of the message.
+		 * @param duration The duration in milliseconds for the message to be displayed.
+		 */
+		SystemMessage(String message, long duration) {
+			this.message = message;
+			this.expiryTime = System.currentTimeMillis() + duration;
+		}
+	}
 
 	/** Singleton instance of the class. */
 	private static DrawManager instance;
@@ -55,9 +76,15 @@ public final class DrawManager {
 	/** Big sized font properties. */
 	private static FontMetrics fontBigMetrics;
 	/** Small sized font for credits. */
-    private static Font fontSmall;
-    /** Small sized font properties. */
-    private static FontMetrics fontSmallMetrics;
+	private static Font fontSmall;
+	/** Small sized font properties. */
+	private static FontMetrics fontSmallMetrics;
+
+	/** A thread-safe list to hold system messages. */
+	private static final List<SystemMessage> systemMessages = Collections.synchronizedList(new ArrayList<>());
+	/** Default duration for a system message to be on screen. */
+	private static final long MESSAGE_DURATION = 4000; // 4 seconds.
+
 
 	/** Sprite types mapped to their images. */
 	private static Map<SpriteType, boolean[][]> spriteMap;
@@ -103,7 +130,8 @@ public final class DrawManager {
 		EnemyShipB1, EnemyShipB2, EnemyShipC1, EnemyShipC2, EnemyShipSpecial,
 		FinalBoss1, FinalBoss2,FinalBossBullet,FinalBossDeath,OmegaBoss1, OmegaBoss2,OmegaBossDeath, Chaser, Explosion, SoundOn, SoundOff, Item_MultiShot,
 		Item_Atkspeed, Item_Penetrate, Item_Explode, Item_Slow, Item_Stop,
-		Item_Push, Item_Shield, Item_Heal
+		Item_Push, Item_Shield, Item_Heal, FinalBossPowerUp1, FinalBossPowerUp2,
+		FinalBossPowerUp3, FinalBossPowerUp4, BossLaser1, BossLaser2, BossLaser3,
 	}
 
 	/**
@@ -144,6 +172,13 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.OmegaBoss2, new boolean[32][14]);
 			spriteMap.put(SpriteType.OmegaBossDeath, new boolean[16][16]);
 			spriteMap.put(SpriteType.Chaser, new boolean[10][10]);
+			spriteMap.put(SpriteType.FinalBossPowerUp1, new boolean[80][70]);
+			spriteMap.put(SpriteType.FinalBossPowerUp2, new boolean[80][70]);
+			spriteMap.put(SpriteType.FinalBossPowerUp3, new boolean[80][70]);
+			spriteMap.put(SpriteType.FinalBossPowerUp4, new boolean[80][70]);
+			spriteMap.put(SpriteType.BossLaser1, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaser2, new boolean[50][40]);
+			spriteMap.put(SpriteType.BossLaser3, new boolean[50][40]);
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
 
@@ -166,6 +201,45 @@ public final class DrawManager {
 		if (instance == null)
 			instance = new DrawManager();
 		return instance;
+	}
+
+	/**
+	 * Adds a new system message to be displayed on screen.
+	 * @param message The message to display.
+	 */
+	public static void addSystemMessage(final String message) {
+		synchronized (systemMessages) {
+			systemMessages.add(new SystemMessage(message, MESSAGE_DURATION));
+		}
+	}
+
+	/**
+	 * Draws all active system messages on the screen and removes expired ones.
+	 * @param screen The screen to draw on.
+	 */
+	public void drawSystemMessages(final Screen screen) {
+		synchronized (systemMessages) {
+			long currentTime = System.currentTimeMillis();
+			// Remove expired messages
+			systemMessages.removeIf(msg -> msg.expiryTime < currentTime);
+
+			int yPos = 45; // Start below the top UI elements.
+			for (SystemMessage msg : systemMessages) {
+				backBufferGraphics.setFont(fontRegular);
+				int stringWidth = fontRegularMetrics.stringWidth(msg.message);
+				int xPos = (screen.getWidth() - stringWidth) / 2;
+
+				// Draw a semi-transparent background for readability
+				backBufferGraphics.setColor(new Color(0, 0, 0, 150));
+				backBufferGraphics.fillRoundRect(xPos - 10, yPos - fontRegularMetrics.getAscent(), stringWidth + 20, fontRegularMetrics.getHeight() + 4, 10, 10);
+
+				// Draw the message text
+				backBufferGraphics.setColor(Color.ORANGE);
+				backBufferGraphics.drawString(msg.message, xPos, yPos + 5);
+
+				yPos += fontRegularMetrics.getHeight() + 10;
+			}
+		}
 	}
 
 	    /**

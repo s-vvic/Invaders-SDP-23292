@@ -1,7 +1,12 @@
 [
-    { "rank": 1, "username": "PlayerOne", "score": 150000 },
-    { "rank": 2, "username": "PlayerTwo", "score": 125000 },
-    { "rank": 3, "username": "MockUser", "score": 99999 },
-    { "rank": 4, "username": "PlayerFour", "score": 80000 },
-    { "rank": 5, "username": "PlayerFive", "score": 50000 }
+    { "username": "PlayerOne", "score": 150000 },
+    { "username": "PlayerTwo", "score": 125000 },
+    { "username": "MockUser", "score": 99999 },
+    { "username": "PlayerFour", "score": 80000 },
+    { "username": "PlayerFive", "score": 50000 },
+    { "username": "test", "score": 8500 },
+    { "username": "Gamer123", "score": 7200 },
+    { "username": "SpaceInvader", "score": 6500 },
+    { "username": "ProPlayer", "score": 5800 },
+    { "username": "Newbie", "score": 3200 }
 ]

@@ -175,16 +175,25 @@ out/
 *.log
 log*/
 log*
+
+
+*.db
+/invaders.db
+/backend/invaders.db
+/backend/.data/
+backend/.data/
 *.ttf
 .checkstyle
 production
 achievements.dat
 /backend/target/
 node_modules/
-invaders.db
+
 
 #############
 ## Unignore
 #############
 !src/screen/LoginScreen.java
 !src/screen/LoginDrawer.java
+!src/frontent/login.css
+!backend/.env

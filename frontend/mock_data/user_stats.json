@@ -1,0 +1,51 @@
+{
+    "totalGames": 42,
+    "averageScore": 8750,
+    "totalScore": 367500,
+    "bestScore": 15000,
+    "recentGames": [
+        {
+            "score": 15000,
+            "created_at": "2025-11-17T14:30:00Z"
+        },
+        {
+            "score": 12500,
+            "created_at": "2025-11-17T12:15:00Z"
+        },
+        {
+            "score": 9800,
+            "created_at": "2025-11-17T10:00:00Z"
+        },
+        {
+            "score": 11200,
+            "created_at": "2025-11-16T18:45:00Z"
+        },
+        {
+            "score": 8500,
+            "created_at": "2025-11-16T15:20:00Z"
+        },
+        {
+            "score": 9200,
+            "created_at": "2025-11-16T11:30:00Z"
+        },
+        {
+            "score": 10500,
+            "created_at": "2025-11-15T20:10:00Z"
+        },
+        {
+            "score": 7800,
+            "created_at": "2025-11-15T16:00:00Z"
+        },
+        {
+            "score": 11000,
+            "created_at": "2025-11-15T13:25:00Z"
+        },
+        {
+            "score": 9500,
+            "created_at": "2025-11-14T19:50:00Z"
+        }
+    ],
+    "rank": 3,
+    "rankOutOf": 150
+}
+

@@ -5,11 +5,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Handles all communication with the backend API.
  */
 public class ApiClient {
+
+    /** The base URL for the backend API. */
+    private static final String API_BASE_URL = "http://localhost:8080/api";
 
     /** Helper record to hold structured login response data. */
     public record LoginResponse(String token, int userId, String username) {}
@@ -47,7 +53,7 @@ public class ApiClient {
         String jsonPayload = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/api/login"))
+                .uri(URI.create(API_BASE_URL + "/login"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
@@ -73,6 +79,47 @@ public class ApiClient {
     }
 
     /**
+     * Validates the current authentication token by making a request to a protected endpoint.
+     * If the token is invalid (401/403), the session will be invalidated.
+     *
+     * @return A CompletableFuture that resolves to true if the token is valid, false otherwise.
+     */
+    public CompletableFuture<Boolean> validateToken() {
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isLoggedIn()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/users/" + userId))
+                .header("Authorization", "Bearer " + token)
+                .GET()
+                .build();
+
+        Core.getLogger().info("Validating token for user " + userId);
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() == 200) {
+                        Core.getLogger().info("Token is valid.");
+                        return true;
+                    } else {
+                        Core.getLogger().warning("Token validation failed with status: " + response.statusCode());
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        }
+                        return false;
+                    }
+                }).exceptionally(e -> {
+                    Core.getLogger().severe("Exception during token validation: " + e.getMessage());
+                    return false;
+                });
+    }
+
+    /**
      * Saves the score by making a PUT request to the backend.
      * @param score The score to save.
      */
@@ -83,14 +130,21 @@ public class ApiClient {
             return;
         }
         int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        if (token == null || token.isEmpty()) {
+            Core.getLogger().severe("Cannot save score: Auth token is missing.");
+            return;
+        }
 
         try {
             HttpClient client = HttpClient.newHttpClient();
             String jsonPayload = "{\"score\": " + score + "}";
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/users/" + userId + "/score"))
+                    .uri(URI.create(API_BASE_URL + "/users/" + userId + "/score"))
                     .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
                     .PUT(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
 
@@ -99,6 +153,13 @@ public class ApiClient {
                     .thenAccept(response -> {
                         Core.getLogger().info("Save score response status code: " + response.statusCode());
                         Core.getLogger().info("Save score response body: " + response.body());
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        } else if (response.statusCode() != 200) {
+                            Core.getLogger().severe("Failed to save score. Status: " + response.statusCode() + ", Body: " + response.body());
+                        } else {
+                            Core.getLogger().info("Score " + score + " successfully saved to database for user " + userId);
+                        }
                     }).exceptionally(e -> {
                         Core.getLogger().severe("Failed to save score: " + e.getMessage());
                         return null;
@@ -106,6 +167,57 @@ public class ApiClient {
 
         } catch (Exception e) {
             Core.getLogger().severe("Exception while trying to save score: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Unlocks an achievement by making a POST request to the backend.
+     * @param achievementName The name of the achievement to unlock.
+     */
+    public void unlockAchievement(String achievementName) {
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isLoggedIn()) {
+            Core.getLogger().warning("Cannot unlock achievement: User is not logged in.");
+            return;
+        }
+        int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        if (token == null || token.isEmpty()) {
+            Core.getLogger().severe("Cannot unlock achievement: Auth token is missing.");
+            return;
+        }
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String jsonPayload = "{\"achievement_name\": \"" + achievementName.replace("\"", "\\\"") + "\"}";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(API_BASE_URL + "/users/" + userId + "/achievements"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            Core.getLogger().info("Unlocking achievement \"" + achievementName + "\" for user " + userId);
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenAccept(response -> {
+                        Core.getLogger().info("Unlock achievement response status code: " + response.statusCode());
+                        Core.getLogger().info("Unlock achievement response body: " + response.body());
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        } else if (response.statusCode() != 200) {
+                            Core.getLogger().severe("Failed to unlock achievement. Status: " + response.statusCode() + ", Body: " + response.body());
+                        } else {
+                            Core.getLogger().info("Achievement \"" + achievementName + "\" successfully unlocked for user " + userId);
+                        }
+                    }).exceptionally(e -> {
+                        Core.getLogger().severe("Failed to unlock achievement: " + e.getMessage());
+                        return null;
+                    });
+
+        } catch (Exception e) {
+            Core.getLogger().severe("Exception while trying to unlock achievement: " + e.getMessage());
         }
     }
 
@@ -125,12 +237,95 @@ public class ApiClient {
      * @param password The password for the new account.
      * @throws IOException if the username is already taken.
      */
-    public void register(String username, String password) throws IOException {
-        Core.getLogger().info("[Mock API] Attempting to register user: " + username);
-        if ("test".equals(username)) {
-            throw new IOException("Username 'test' is already taken.");
+    public void register(String username, String password) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"username\": \"" + username.replace("\"", "\\\"") + "\", " +
+                             "\"password\": \"" + password.replace("\"", "\\\"") + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/register"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Attempting to register user: " + username);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 201) {
+            Core.getLogger().severe("Registration failed with status code: " + response.statusCode() + ", Body: " + response.body());
+            String errorMessage = parseJsonField(response.body(), "error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                throw new IOException(errorMessage);
+            }
+            throw new IOException("Registration failed with status: " + response.statusCode());
         }
-        Core.getLogger().info("[Mock API] Registration successful for user: " + username);
+
+        Core.getLogger().info("Registration successful for user: " + username);
+    }
+
+    /**
+     * Fetches the global high scores from the backend.
+     * @return A list of Score objects representing the leaderboard.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public List<Score> getHighScores() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/scores"))
+                .GET()
+                .build();
+
+        Core.getLogger().info("Requesting high scores from backend.");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Failed to fetch high scores with status code: " + response.statusCode());
+            throw new IOException("Failed to fetch high scores: " + response.body());
+        }
+
+        String responseBody = response.body();
+        return parseScoreList(responseBody);
+    }
+
+    /**
+     * A very basic and brittle parser for a list of score objects from a JSON array.
+     * Assumes a format like: [{"username":"x","score":X},{"username":"y","score":Y}]
+     * @param jsonArray The JSON string representing the array of scores.
+     * @return A List of Score objects.
+     */
+    private List<Score> parseScoreList(String jsonArray) {
+        List<Score> scores = new ArrayList<>();
+
+        if (jsonArray == null || jsonArray.trim().isEmpty() || !jsonArray.startsWith("[") || !jsonArray.endsWith("]")) {
+            Core.getLogger().warning("Invalid JSON array for scores: " + jsonArray);
+            return scores;
+        }
+
+        String innerContent = jsonArray.substring(1, jsonArray.length() - 1); // Remove outer []
+        if (innerContent.isEmpty()) { // Handle empty array
+            return scores;
+        }
+
+        // Split by "},{" to get individual score objects as strings
+        String[] scoreStrings = innerContent.split("\\},\\{");
+
+        for (String scoreStr : scoreStrings) {
+            // Reconstruct a valid JSON object string for parsing
+            String fullScoreObject = "{" + scoreStr + "}";
+            String username = parseJsonField(fullScoreObject, "username");
+            String scoreValue = parseJsonField(fullScoreObject, "score");
+            
+            if (username != null && scoreValue != null) {
+                try {
+                    scores.add(new Score(username, Integer.parseInt(scoreValue.trim())));
+                } catch (NumberFormatException e) {
+                    Core.getLogger().warning("Failed to parse score value: " + scoreValue + " from JSON object: " + fullScoreObject);
+                }
+            }
+        }
+        return scores;
     }
 
     /**

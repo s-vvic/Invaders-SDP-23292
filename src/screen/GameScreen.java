@@ -11,8 +11,11 @@ import engine.GameState;
 import engine.GameTimer;
 import engine.AchievementManager;
 import engine.ItemHUDManager;
+import engine.AuthManager;
+import engine.ApiClient;
 import entity.*;
 import engine.level.Level;
+import engine.level.LevelManager;
 import engine.level.LevelEnemyFormation;
 
 
@@ -44,6 +47,8 @@ public class GameScreen extends Screen {
 
 	private static final int ITEMS_SEPARATION_LINE_HEIGHT = 600;
 
+	private static final int TAKE_LASER_DAMAGE_TIME = 3000;
+
 
     /** Current level data (direct from Level system). */
     private Level currentLevel;
@@ -59,6 +64,8 @@ public class GameScreen extends Screen {
 	private FinalBoss finalBoss;
 	/** Time until Boss explosion disappears. */
 	private Cooldown bossExplosionCooldown;
+	/** Time until the player can take damage again. */
+	private Cooldown takeLaserDamageCooldown;
 	/** Time from finishing the level to screen change. */
 
 	private EnemyShipChaserFormation chaserFormation;
@@ -97,20 +104,22 @@ public class GameScreen extends Screen {
 
     /** bossBullets carry bullets which Boss fires */
 	private Set<BossBullet> bossBullets;
+	/** bossLasers carry lasers which Boss fires */
+	private Set<BossLaser> bossLasers;
 	/** Is the bullet on the screen erased */
-  private boolean is_cleared = false;
-  /** Timer to track elapsed time. */
-  private GameTimer gameTimer;
-  /** Elapsed time since the game started. */
-  private long elapsedTime;
-  // Achievement popup
-  private String achievementText;
-  private Cooldown achievementPopupCooldown;
-  private enum StagePhase{wave, boss_wave};
-  private StagePhase currentPhase;
-  /** Health change popup. */
-  private String healthPopupText;
-  private Cooldown healthPopupCooldown;
+    private boolean is_cleared = false;
+    /** Timer to track elapsed time. */
+    private GameTimer gameTimer;
+    /** Elapsed time since the game started. */
+    private long elapsedTime;
+    // Achievement popup
+    private String achievementText;
+    private Cooldown achievementPopupCooldown;
+    private enum StagePhase{wave, boss_wave};
+    private StagePhase currentPhase;
+    /** Health change popup. */
+    private String healthPopupText;
+    private Cooldown healthPopupCooldown;
 
 	    /**
 	     * Constructor, establishes the properties of the screen.
@@ -156,6 +165,7 @@ public class GameScreen extends Screen {
 		/** Initialize the bullet Boss fired */
 		this.bossBullets = new HashSet<>();
         this.enemyFormations = new ArrayList<>();
+		this.bossLasers = new HashSet<>();
 
 		String formationType = "A"; // 1. 기본값을 "A"로 먼저 설정합니다.
 		LevelEnemyFormation formationInfo = this.currentLevel.getEnemyFormation();
@@ -202,6 +212,8 @@ public class GameScreen extends Screen {
 		enemyShipSpecialFormation.attach(this);
 		this.bossExplosionCooldown = Core
 				.getCooldown(BOSS_EXPLOSION);
+		this.takeLaserDamageCooldown = Core
+				.getCooldown(TAKE_LASER_DAMAGE_TIME);
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
         this.dropItems = new HashSet<DropItem>();
@@ -285,6 +297,11 @@ public class GameScreen extends Screen {
 			for (BossBullet bossBullet : bossBullets) {
 				drawManager.drawEntity(bossBullet, bossBullet.getPositionX(), bossBullet.getPositionY());
 			}
+
+			for (BossLaser bossLaser : bossLasers) {
+				drawManager.drawEntity(bossLaser, bossLaser.getPositionX(), bossLaser.getPositionY());
+			}
+
 			drawManager.drawEntity(finalBoss, finalBoss.getPositionX(), finalBoss.getPositionY());
 		}
 
@@ -340,6 +357,7 @@ public class GameScreen extends Screen {
 					/ 12);
 		}
 
+		drawManager.drawSystemMessages(this);
 		drawManager.completeDrawing(this);
 	}
 
@@ -686,17 +704,23 @@ public class GameScreen extends Screen {
 			if (this.gameTimer.isRunning()) {
 				this.gameTimer.stop();
 			}
+		}
+		if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
+			boolean isGameOver = this.lives == 0;
+			boolean isFinalLevelCleared = !isGameOver && this.level == new LevelManager().getNumberOfLevels();
 
-			if (this.lives > 0) {
+			if (isGameOver) { // Game Over condition
+				draw(); // Draw the final frame before capturing.
+				Core.lastScreenCapture = drawManager.getBackBuffer();
+				this.returnCode = 99;
+			} else { // Level cleared condition
+				// Unlock level-specific achievements
 				if (this.level == 1) {
 					AchievementManager.getInstance().unlockAchievement("Beginner");
 				} else if (this.level == 3) {
 					AchievementManager.getInstance().unlockAchievement("Intermediate");
 				}
-			}
-		}
-		if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
-			if (this.lives > 0) { // Check for win condition
+
 				if (this.currentlevel.getCompletionBonus() != null) {
 					this.coin += this.currentlevel.getCompletionBonus().getCurrency();
 					this.logger.info("Awarded " + this.currentlevel.getCompletionBonus().getCurrency() + " coins for level completion.");
@@ -707,10 +731,28 @@ public class GameScreen extends Screen {
 					AchievementManager.getInstance().unlockAchievement(achievement);
 					this.logger.info("Unlocked achievement: " + achievement);
 				}
-			} else { // Game Over condition
-				draw(); // Draw the final frame before capturing.
-				Core.lastScreenCapture = drawManager.getBackBuffer();
-				this.returnCode = 99;
+			}
+
+			// Submit score to backend if logged in
+			AuthManager authManager = AuthManager.getInstance();
+			if (authManager.isLoggedIn()) {
+				if (isGameOver || isFinalLevelCleared) {
+					// Unlock "Conqueror" achievement if the final level is cleared
+					if (isFinalLevelCleared) {
+						AchievementManager.getInstance().unlockAchievement("Conqueror");
+					}
+
+					try {
+						ApiClient.getInstance().saveScore(this.score);
+						this.logger.info("Score " + this.score + " submitted to backend for user " + authManager.getUserId());
+					} catch (Exception e) { // saveScore is async, but catching potential sync exceptions
+						this.logger.severe("Error submitting score to backend: " + e.getMessage());
+					}
+				} else {
+					this.logger.info("Level " + this.level + " cleared. Score will be saved at the end of the game.");
+				}
+			} else {
+				this.logger.info("User not logged in, score not submitted to backend.");
 			}
 			this.isRunning = false;
 		}
@@ -922,8 +964,12 @@ public class GameScreen extends Screen {
 
 		this.logger.info("Spawning boss: " + bossName);
 		switch (bossName) {
-			case "finalBoss":
-				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship);
+			case "finalBoss1":
+				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship, 1);
+				this.logger.info("Final Boss has spawned!");
+				break;
+			case "finalBoss2":
+				this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship, 2);
 				this.logger.info("Final Boss has spawned!");
 				break;
 			case "omegaBoss":
@@ -936,50 +982,85 @@ public class GameScreen extends Screen {
 				this.logger.warning("Unknown bossId: " + bossName);
 				break;
 		}
+		this.is_cleared = false;
 	}
 
-
+	/** Manage Final Boss's shooting */
 	public void finalbossManage(){
 		if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
 			this.finalBoss.update();
 			/** called the boss shoot logic */
-			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() / 4) {
-				bossBullets.addAll(this.finalBoss.shoot1());
-				bossBullets.addAll(this.finalBoss.shoot2());
-			} else {
-				/** Is the bullet on the screen erased */
-				if (!is_cleared) {
-					bossBullets.clear();
-					is_cleared = true;
-					logger.info("boss is angry");
+			if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_2_HP_THRESHOLD) {
+				if (this.finalBoss.getDifficulty() == 1) {
+					bossBullets.addAll(this.finalBoss.shoot1());
+					bossBullets.addAll(this.finalBoss.shoot2());
 				} else {
 					bossBullets.addAll(this.finalBoss.shoot3());
 				}
+			} else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_3_HP_THRESHOLD) {
+				/**  clear bullets if shoot3() was called */
+				if (this.finalBoss.getDifficulty() != 1 && !is_cleared) {
+					bossBullets.clear();
+					is_cleared = true;
+				} else {
+					bossBullets.addAll(this.finalBoss.shoot1());
+					bossBullets.addAll(this.finalBoss.shoot2());
+					bossLasers.addAll(this.finalBoss.laserShoot());
+				}
+			} else { // dash pattern
+				if (this.finalBoss.getDifficulty() != 1) {
+					bossBullets.addAll(this.finalBoss.shoot4());
+				}
+				bossBullets.addAll(this.finalBoss.shoot2());
 			}
 
 			/** bullets to erase */
 			Set<BossBullet> bulletsToRemove = new HashSet<>();
 
-			for (BossBullet b : bossBullets) {
-				b.update();
+			for (BossBullet bossBullet : bossBullets) {
+				bossBullet.update();
 				/** If the bullet goes off the screen */
-				if (b.isOffScreen(width, height)) {
+				if (bossBullet.isOffScreen(width, height)) {
 					/** bulletsToRemove carry bullet */
-					bulletsToRemove.add(b);
+					bulletsToRemove.add(bossBullet);
 				}
 				/** If the bullet collides with ship */
-				else if (this.lives > 0 && this.checkCollision(b, this.ship)&& !GameState.isInvincible()) {
+				else if (this.lives > 0 && this.checkCollision(bossBullet, this.ship)&& !GameState.isInvincible()) {
 					if (!this.ship.isDestroyed()) {
 						this.ship.destroy();
 						this.lives--;
 						this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
 					}
-					bulletsToRemove.add(b);
+					bulletsToRemove.add(bossBullet);
+				}
+			}
+
+			/** lasers to erase */
+			Set<BossLaser> lasersToRemove = new HashSet<>();
+
+			for (BossLaser bossLaser : bossLasers) {
+				bossLaser.update();
+				/** If the laser goes off the screen */
+				if (bossLaser.isRemoved()) {
+					/** lasersToRemove carry laser */
+					lasersToRemove.add(bossLaser);
+				}
+				/** If the laser collides with ship */
+				else if (this.lives > 0 && this.checkCollision(bossLaser, this.ship)&& !GameState.isInvincible()
+				&& takeLaserDamageCooldown.checkFinished()) {
+
+					takeLaserDamageCooldown.reset();
+
+					if (!this.ship.isDestroyed()) {
+						this.ship.destroy();
+						this.lives--;
+						this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
+					}
 				}
 			}
 			/** all bullets are removed */
 			bossBullets.removeAll(bulletsToRemove);
-
+			bossLasers.removeAll(lasersToRemove);
 		}
 		if (this.finalBoss != null && this.finalBoss.isDestroyed()) {
 			this.levelFinished = true;
@@ -1030,7 +1111,7 @@ public class GameScreen extends Screen {
 					if (this.omegaBoss.isDestroyed()) {
 						if ("omegaAndFinal".equals(this.currentlevel.getBossId())) {
 							this.omegaBoss = null;
-							this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height, this.ship);
+							this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height, this.ship, 3);
 							this.logger.info("Final Boss has spawned!");
 						} else {
 							this.levelFinished = true;
