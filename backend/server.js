@@ -24,7 +24,7 @@ if (!fs.existsSync(envPath)) {
     }
 }
 
-require('dotenv').config();
+require('dotenv').config({ path: envPath });
 
 const REQUIRED_ENV_VARS = ['JWT_SECRET'];
 const missingEnv = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
@@ -48,6 +48,7 @@ const defaultOrigins = [
     'http://localhost:3000',
     'http://localhost:4173',
     'http://localhost:5173',
+    'http://localhost:8080',
 ];
 
 const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -442,6 +443,45 @@ app.post('/api/login', authLimiter, async function(req, res) {
     }
 });
 
+// --- 추가 ---
+// JWT 인증 미들웨어
+// ===============================================
+function authenticateToken(req, res, next) {
+    // 요청 헤더(Authorization)에서 'Bearer [token]' 형식의 토큰을 가져옵니다.
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // 'Bearer' 다음의 토큰 값
+
+    if (token == null) {
+        // 토큰이 없으면 401 Unauthorized (권한 없음)
+        return res.status(401).json({ error: 'Access token is required' });
+    }
+
+    // 토큰 검증
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            // --- 수정 ---
+            // 토큰이 유효하지 않거나 만료된 경우
+            // 403 (Forbidden) 대신 401 (Unauthorized)을 보냅니다.
+            // 401은 "인증 실패" (토큰 만료/없음)에 더 적합합니다.
+            console.log('JWT verification failed:', err.message);
+
+            let errorMessage = 'Invalid token. Please log in again.';
+            // 만료 오류인지 명확히 확인
+            if (err.name === 'TokenExpiredError') {
+                errorMessage = 'Token expired. Please log in again.';
+            }
+            
+            return res.status(401).json({ error: errorMessage });
+            // --- 수정 끝 ---
+        }
+
+        // 토큰이 유효하면, req.user에 사용자 정보를 추가합니다.
+        req.user = user;
+        next(); // 다음 핸들러로 이동
+    });
+}
+// ===============================================
+
 /**
  * @swagger
  * /api/register:
@@ -529,7 +569,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
  *       500:
  *         description: Server database error
  */
-app.get('/api/users', async function(req, res) {
+app.get('/api/users', authenticateToken, async function(req, res) {
     try {
         const users = await db.all('SELECT id, username, max_score FROM users');
         res.json(users);
@@ -573,7 +613,7 @@ app.get('/api/users', async function(req, res) {
  *       500:
  *         description: Server database error
  */
-app.get('/api/users/:id', async function(req, res) {
+app.get('/api/users/:id', authenticateToken, async function(req, res) {
     try {
         const userId = parseInt(req.params.id, 10); // Convert ID to integer
 
@@ -937,17 +977,17 @@ app.post('/api/users/:id/achievements', authMiddleware, async function(req, res)
  *       500:
  *         description: Server database error
  */
-app.get('/api/scores', async function(req, res) {
+app.get('/api/scores', authenticateToken, async function(req, res) {
     try {
         // scores 테이블과 users 테이블을 JOIN 하여
         // 유저이름, 점수, 생성일자를 점수 내림차순으로 100개 가져옵니다.
         const scores = await db.all(`
             SELECT u.username, s.score, s.created_at 
-            FROM scores s
+            FROM scores s 
             JOIN users u ON s.user_id = u.id
             ORDER BY s.score DESC
             LIMIT 100 
-        `);
+        `); // --- 수정: 'score' -> 'scores'
         res.json(scores);
     } catch (error) {
         console.error('Database error while fetching scores:', error);
