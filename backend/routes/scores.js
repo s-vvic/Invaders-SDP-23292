@@ -16,8 +16,6 @@ const { requireAuth } = require('../middleware/auth');
  *   get:
  *     summary: Retrieve a list of all scores (all-time)
  *     tags: [Scores]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: A list of scores with usernames, ordered by score descending
@@ -37,7 +35,7 @@ const { requireAuth } = require('../middleware/auth');
  *       500:
  *         description: Server database error
  */
-router.get('/', requireAuth, scoreController.getAllScores);
+router.get('/', scoreController.getAllScores);
 
 /**
  * @swagger
