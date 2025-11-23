@@ -248,6 +248,15 @@ public final class Core {
 
                             frame.setScreen(currentScreen);
                             LOGGER.info("Closing shop screen.");
+
+                            gameState = new GameState(
+                                    gameState.getLevel() + 1,          // Increment level
+                                    gameState.getScore(),              // Keep current score
+                                    gameState.getLivesRemaining(),     // Keep remaining lives
+                                    gameState.getBulletsShot(),        // Keep bullets fired
+                                    gameState.getShipsDestroyed(),     // Keep ships destroyed
+                                    gameState.getCoin()                // Keep current coins
+                            );
                         }
                     } while (gameState.getLivesRemaining() > 0);
 
