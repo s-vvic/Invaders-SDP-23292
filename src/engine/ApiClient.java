@@ -20,8 +20,18 @@ public class ApiClient {
     /** Helper record to hold structured login response data. */
     public record LoginResponse(String token, int userId, String username) {}
 
+    /** Helper record to hold structured device auth response data. */
+    public record DeviceAuthResponse(String deviceCode, String userCode, String verificationUri, int expiresIn, int interval) {}
+
+    /** Enum to represent the status of a polling request. */
+    public enum PollStatus { SUCCESS, PENDING, ERROR }
+
+    /** Helper record to hold the structured response from a polling request. */
+    public record PollResponse(PollStatus status, LoginResponse loginResponse, String errorMessage) {}
+
     /** Singleton instance of the class. */
     private static ApiClient instance;
+
 
     /**
      * Private constructor to prevent instantiation.
@@ -41,10 +51,91 @@ public class ApiClient {
     }
 
     /**
+     * Initiates the device authentication flow by requesting a code from the backend.
+     * @return A DeviceAuthResponse object on success.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public DeviceAuthResponse initiateDeviceAuth() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/device/initiate"))
+                .POST(HttpRequest.BodyPublishers.noBody()) // No body needed for this request
+                .build();
+
+        Core.getLogger().info("Initiating device authentication flow...");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Device auth initiation failed with status code: " + response.statusCode());
+            throw new IOException("Device auth initiation failed: " + response.body());
+        }
+
+        Core.getLogger().info("Device auth initiated. Parsing response...");
+        String responseBody = response.body();
+
+        // Manual JSON parsing using existing helpers
+        String deviceCode = parseJsonField(responseBody, "deviceCode");
+        String userCode = parseJsonField(responseBody, "userCode");
+        String verificationUri = parseJsonField(responseBody, "verificationUri");
+        int expiresIn = Integer.parseInt(parseJsonField(responseBody, "expiresIn"));
+        int interval = Integer.parseInt(parseJsonField(responseBody, "interval"));
+
+        return new DeviceAuthResponse(deviceCode, userCode, verificationUri, expiresIn, interval);
+    }
+
+    /**
+     * Polls the backend to check the status of a device authentication flow.
+     * @param deviceCode The device code to check.
+     * @return A PollResponse object indicating the status.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public PollResponse pollForToken(String deviceCode) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"deviceCode\": \"" + deviceCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/device/token"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+        
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        switch (response.statusCode()) {
+            case 200:
+                // Success case
+                Core.getLogger().info("Polling successful. Token received.");
+                String responseBody = response.body();
+                String token = parseJsonField(responseBody, "token");
+                String userJson = parseJsonObject(responseBody, "user");
+                int userId = Integer.parseInt(parseJsonField(userJson, "id"));
+                String parsedUsername = parseJsonField(userJson, "username");
+                LoginResponse loginResponse = new LoginResponse(token, userId, parsedUsername);
+                return new PollResponse(PollStatus.SUCCESS, loginResponse, null);
+                
+            case 202:
+                // Pending case
+                Core.getLogger().info("Polling: Authorization pending...");
+                return new PollResponse(PollStatus.PENDING, null, null);
+                
+            default:
+                // Error case
+                Core.getLogger().severe("Polling failed with status code: " + response.statusCode());
+                String errorMessage = parseJsonField(response.body(), "error");
+                if (errorMessage == null) {
+                    errorMessage = "Polling failed with status: " + response.statusCode();
+                }
+                return new PollResponse(PollStatus.ERROR, null, errorMessage);
+        }
+    }
+
+    /**
      * Performs a real login request to the backend API.
      * @param username The user's username.
      * @param password The user's password.
-     * @return A LoginResponse object on success.
+     * @return a LoginResponse object on success.
      * @throws IOException if the request fails.
      * @throws InterruptedException if the request is interrupted.
      */
@@ -53,7 +144,7 @@ public class ApiClient {
         String jsonPayload = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(API_BASE_URL + "/login"))
+                .uri(URI.create(API_BASE_URL + "/auth/login"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
@@ -243,7 +334,7 @@ public class ApiClient {
                              "\"password\": \"" + password.replace("\"", "\\\"") + "\"}";
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(API_BASE_URL + "/register"))
+                .uri(URI.create(API_BASE_URL + "/auth/register"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();

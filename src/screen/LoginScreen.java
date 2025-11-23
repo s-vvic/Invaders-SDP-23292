@@ -1,145 +1,205 @@
 package screen;
 
+import java.awt.Desktop;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import javax.swing.SwingWorker;
+
 import engine.Cooldown;
 import engine.Core;
 import engine.AuthManager;
 import engine.ApiClient;
+import engine.ApiClient.DeviceAuthResponse;
+import engine.ApiClient.PollResponse;
+import engine.ApiClient.PollStatus;
 
 /**
- * Implements the login screen.
+ * Implements the login screen for device authentication.
  */
 public class LoginScreen extends Screen {
 
-    /** Milliseconds between changes in user selection. */
-    private static final int SELECTION_COOLDOWN = 200;
-
+    /** Cooldown for menu navigation. */
+    private Cooldown selectionCooldown;
+    
     /** Logic to draw the login screen UI. */
     private LoginDrawer loginDrawer;
 
-    /** Cooldown for menu navigation. */
-    private Cooldown selectionCooldown;
-
-    /** The username string being entered. */
-    private StringBuilder username;
-    /** The password string being entered. */
-    private StringBuilder password;
-    
-    /** 0: username, 1: password, 2: login button. */
-    private int activeField;
-
+    /** The user code to display. */
+    private String userCode;
+    /** The instruction text to display. */
+    private String instruction;
     /** An error message to display, if any. */
     private String errorMessage;
+    /** Currently active selectable field (0: copy code, 1: cancel/go back). */
+    private int activeField; 
+
+    /** Worker for handling the auth flow in the background. */
+    private SwingWorker<PollResponse, Void> authWorker;
 
     public LoginScreen(final int width, final int height, final int fps) {
         super(width, height, fps);
 
         this.returnCode = 0; // Default return code
-        this.selectionCooldown = Core.getCooldown(SELECTION_COOLDOWN);
+        this.selectionCooldown = Core.getCooldown(200);
         this.selectionCooldown.reset();
 
         this.loginDrawer = new LoginDrawer(this.drawManager);
-        this.username = new StringBuilder();
-        this.password = new StringBuilder();
-        this.activeField = 0; // Default to username field
+        this.userCode = "......";
+        this.instruction = "Please wait, generating code...";
         this.errorMessage = "";
+        this.activeField = 0; // 0 for "Copy Code", 1 for "Go Back"
     }
 
     public final int run() {
+        startDeviceAuthFlow();
         super.run();
         return this.returnCode;
     }
 
     protected final void update() {
         super.update();
-
         handleInput();
-
         draw();
     }
 
     private void handleInput() {
         if (this.selectionCooldown.checkFinished()) {
-            if (inputManager.isKeyDown(KeyEvent.VK_UP)) {
-                this.activeField = (this.activeField == 0) ? 3 : this.activeField - 1;
-                this.selectionCooldown.reset();
-            } else if (inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
-                this.activeField = (this.activeField == 3) ? 0 : this.activeField + 1;
+            if (inputManager.isKeyDown(KeyEvent.VK_UP) || inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
+                this.activeField = 1 - this.activeField; // Toggle between 0 and 1
                 this.selectionCooldown.reset();
             }
-        }
 
-        Character typedChar = inputManager.pollTypedKey();
-        while (typedChar != null) {
-            if (Character.isLetterOrDigit(typedChar)) {
-                appendCharacter(typedChar);
-            }
-            typedChar = inputManager.pollTypedKey();
-        }
-
-        if (inputManager.isKeyDown(KeyEvent.VK_BACK_SPACE) && this.selectionCooldown.checkFinished()) {
-            deleteCharacter();
-            this.selectionCooldown.reset();
-        }
-
-        if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-            if (this.activeField == 2) { // Login button
-                this.errorMessage = ""; // Clear previous error
-                try {
-                    ApiClient apiClient = ApiClient.getInstance();
-                    // login now returns a structured response
-                    ApiClient.LoginResponse loginResponse = apiClient.login(username.toString(), password.toString());
-                    
-                    AuthManager authManager = AuthManager.getInstance();
-                    // Call login with all three required arguments
-                    authManager.login(loginResponse.token(), loginResponse.username(), loginResponse.userId());
-
+            if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+                if (this.activeField == 0) { // "Copy Code" selected
+                    copyToClipboard(this.userCode);
+                    this.errorMessage = "Code copied to clipboard!";
+                } else if (this.activeField == 1) { // "Go Back" selected
+                    if (this.authWorker != null && !this.authWorker.isDone()) {
+                        this.authWorker.cancel(true); // Attempt to cancel the background task
+                        Core.getLogger().info("Device auth flow cancelled by user.");
+                    }
                     this.returnCode = 1; // Go back to TitleScreen
                     this.isRunning = false;
-
-                } catch (Exception e) {
-                    this.errorMessage = e.getMessage();
                 }
-            } else if (this.activeField == 3) { // Register button
-                this.returnCode = 12; // Use 12 for RegisterScreen
-                this.isRunning = false;
+                this.selectionCooldown.reset();
             }
-            this.selectionCooldown.reset();
         }
 
         if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+            if (this.authWorker != null && !this.authWorker.isDone()) {
+                this.authWorker.cancel(true); // Attempt to cancel the background task
+                Core.getLogger().info("Device auth flow cancelled by user.");
+            }
             this.returnCode = 1; // Go back to TitleScreen
             this.isRunning = false;
         }
     }
 
-    private void appendCharacter(char c) {
-        if (activeField == 0) { // Username
-            if (username.length() < 20) { // Max length
-                username.append(Character.toLowerCase(c));
-            }
-        } else if (activeField == 1) { // Password
-            if (password.length() < 20) {
-                password.append(c);
-            }
-        }
-    }
-
-    private void deleteCharacter() {
-        if (activeField == 0) { // Username
-            if (username.length() > 0) {
-                username.deleteCharAt(username.length() - 1);
-            }
-        } else if (activeField == 1) { // Password
-            if (password.length() > 0) {
-                password.deleteCharAt(password.length() - 1);
-            }
-        }
-    }
-
     private void draw() {
         drawManager.initDrawing(this);
-        loginDrawer.draw(this, username.toString(), password.toString(), activeField, errorMessage);
+        loginDrawer.draw(this, this.userCode, this.instruction, this.errorMessage, this.activeField); 
         drawManager.completeDrawing(this);
+    }
+
+    /**
+     * Initiates the device authentication flow.
+     */
+    private void startDeviceAuthFlow() {
+        this.authWorker = new SwingWorker<PollResponse, Void>() {
+            @Override
+            protected PollResponse doInBackground() throws Exception {
+                // Step 1: Initiate the flow
+                DeviceAuthResponse initResponse;
+                try {
+                    initResponse = ApiClient.getInstance().initiateDeviceAuth();
+                    // Update UI fields for the Event Dispatch Thread (EDT) via publish/process
+                    // For simplicity here, we'll just update them directly and repaint.
+                    userCode = initResponse.userCode();
+                    instruction = "Go to " + initResponse.verificationUri() + " and enter the code:";
+                } catch (IOException | InterruptedException e) {
+                    Core.getLogger().severe("Failed to initiate device auth: " + e.getMessage());
+                    return new PollResponse(PollStatus.ERROR, null, "Connection to server failed.");
+                }
+
+                // Step 2: Open browser
+                try {
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI(initResponse.verificationUri()));
+                    } else {
+                         instruction = "Please manually open a browser and go to the URL above.";
+                    }
+                } catch (IOException | URISyntaxException e) {
+                    Core.getLogger().severe("Failed to open browser: " + e.getMessage());
+                    instruction = "Please manually open a browser and go to the URL above.";
+                }
+
+                // Step 3: Start polling
+                long startTime = System.currentTimeMillis();
+                long timeout = initResponse.expiresIn() * 1000;
+
+                while (System.currentTimeMillis() - startTime < timeout) {
+                    if (isCancelled()) return null;
+
+                    PollResponse pollResponse = ApiClient.getInstance().pollForToken(initResponse.deviceCode());
+
+                    if (pollResponse.status() == PollStatus.SUCCESS || pollResponse.status() == PollStatus.ERROR) {
+                        return pollResponse; // Success or permanent error, stop polling
+                    }
+                    
+                    // If pending, wait for the interval
+                    Thread.sleep(initResponse.interval());
+                }
+
+                // If the loop finishes, it's a timeout
+                return new PollResponse(PollStatus.ERROR, null, "Login timed out. Please try again.");
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    if (isCancelled()) return;
+
+                    PollResponse result = get();
+                    if (result == null) return; // Should only happen if cancelled during polling
+
+                    if (result.status() == PollStatus.SUCCESS) {
+                        AuthManager.getInstance().login(
+                            result.loginResponse().token(),
+                            result.loginResponse().username(),
+                            result.loginResponse().userId()
+                        );
+                        returnCode = 1; // Success, go back to TitleScreen
+                        isRunning = false;
+                    } else {
+                        // All other cases are errors (timeout, expired code, etc.)
+                        errorMessage = result.errorMessage();
+                        userCode = "ERROR";
+                        instruction = "Please press ESC and try again.";
+                    }
+                } catch (Exception e) {
+                    Core.getLogger().severe("An error occurred in the auth worker 'done' method: " + e.getMessage());
+                    errorMessage = "An unexpected error occurred.";
+                    userCode = "ERROR";
+                }
+            }
+        };
+
+        authWorker.execute();
+    }
+
+    /**
+     * Copies the given text to the system clipboard.
+     * @param text The text to copy.
+     */
+    private void copyToClipboard(String text) {
+        StringSelection stringSelection = new StringSelection(text);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(stringSelection, null);
+        Core.getLogger().info("Copied '" + text + "' to clipboard.");
     }
 }

@@ -1,7 +1,8 @@
 process.env.ALLOWED_ORIGINS = 'https://example.com';
 
 const request = require('supertest');
-const { app, startServer, db: serverDb } = require('../server');
+const { app } = require('../server');
+const { initDb } = require('../db');
 const rateLimit = require('express-rate-limit');
 
 describe('Security Middleware Tests', () => {
@@ -9,7 +10,7 @@ describe('Security Middleware Tests', () => {
     let testUser;
 
     beforeAll(async () => {
-        db = await startServer();
+        db = await initDb();
         testUser = await db.get("SELECT * FROM users WHERE username = 'test'");
     });
 

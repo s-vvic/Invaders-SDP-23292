@@ -61,3 +61,34 @@ async function fetchWithAuth(url, options = {}) {
 
     return response;
 }
+
+
+/**
+ * Connects a device for an already authenticated user.
+ * @param {string} userCode The code from the game device.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function connectDevice(userCode) {
+    // fetchWithAuth automatically includes the Authorization header.
+    return fetchWithAuth('/api/auth/device/connect', {
+        method: 'POST',
+        body: JSON.stringify({ userCode }),
+    });
+}
+
+/**
+ * Logs in and connects a device for an unauthenticated user.
+ * @param {string} userCode The code from the game device.
+ * @param {string} username The user's username.
+ * @param {string} password The user's password.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function loginWithDevice(userCode, username, password) {
+    return fetch('/api/auth/device/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userCode, username, password }),
+    });
+}
