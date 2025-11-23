@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { authenticateToken, authMiddleware } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ const { authenticateToken, authMiddleware } = require('../middleware/auth');
  *       500:
  *         description: Server database error
  */
-router.get('/', authenticateToken, userController.getAllUsers);
+router.get('/', requireAuth, userController.getAllUsers);
 
 /**
  * @swagger
@@ -75,7 +75,7 @@ router.get('/', authenticateToken, userController.getAllUsers);
  *       500:
  *         description: Server database error
  */
-router.get('/:id', authenticateToken, userController.getUserById);
+router.get('/:id', requireAuth, userController.getUserById);
 
 /**
  * @swagger
@@ -163,7 +163,7 @@ router.get('/:id/achievements', userController.getUserAchievements);
  *       500:
  *         description: Server database error
  */
-router.post('/:id/achievements', authMiddleware, userController.unlockAchievement);
+router.post('/:id/achievements', requireAuth, userController.unlockAchievement);
 
 /**
  * @swagger
@@ -202,6 +202,6 @@ router.post('/:id/achievements', authMiddleware, userController.unlockAchievemen
  *       500:
  *         description: Server database error
  */
-router.put('/:id/score', authMiddleware, userController.updateScore);
+router.put('/:id/score', requireAuth, userController.updateScore);
 
 module.exports = router;

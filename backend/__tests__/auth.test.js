@@ -77,25 +77,15 @@ describe('Authentication API & Middleware', () => {
         expect(response.body.error).toBe('Unauthorized: No token provided');
     });
 
-    test('Middleware (authMiddleware) - should return 403 if token is invalid', async () => {
+    test('Middleware - should return 401 if token is invalid', async () => {
         const protectedUrl = `/api/users/${testUser.id}/score`;
         const response = await request(app)
             .put(protectedUrl)
             .set('Authorization', 'Bearer FAKE_INVALID_TOKEN')
             .send({ score: 50 });
 
-        expect(response.statusCode).toBe(403);
-        expect(response.body.error).toBe('Forbidden: Invalid or expired token');
-    });
-    
-    test('Middleware (authenticateToken) - should return 401 if token is invalid', async () => {
-        const protectedUrl = `/api/users`;
-        const response = await request(app)
-            .get(protectedUrl)
-            .set('Authorization', 'Bearer FAKE_INVALID_TOKEN');
-
         expect(response.statusCode).toBe(401);
-        expect(response.body.error).toContain('Invalid token');
+        expect(response.body.error).toBe('Unauthorized: Invalid token');
     });
 
     test('Middleware - should grant access to a protected route if token is valid', async () => {

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { authMiddleware } = require('../middleware/auth'); // Import the auth middleware
+const { requireAuth } = require('../middleware/auth'); // Updated import
 
 /**
  * @swagger
@@ -199,7 +199,7 @@ router.post('/device/login', authLimiter, authController.loginWithDevice);
  *       500:
  *         description: Server error
  */
-router.post('/device/connect', authMiddleware, authController.connectDevice);
+router.post('/device/connect', requireAuth, authController.connectDevice);
 
 /* --- New Session Confirmation Flow Routes --- */
 
@@ -232,7 +232,7 @@ router.post('/device/connect', authMiddleware, authController.connectDevice);
  *       500:
  *         description: Server error.
  */
-router.post('/session/initiate', authMiddleware, authController.initiateSessionConfirmation);
+router.post('/session/initiate', requireAuth, authController.initiateSessionConfirmation);
 
 /**
  * @swagger
@@ -263,7 +263,7 @@ router.post('/session/initiate', authMiddleware, authController.initiateSessionC
  *       500:
  *         description: Server error.
  */
-router.post('/session/confirm', authMiddleware, authController.confirmSession);
+router.post('/session/confirm', requireAuth, authController.confirmSession);
 
 /**
  * @swagger
@@ -329,7 +329,7 @@ router.post('/session/status', authController.getSessionStatus);
  *       500:
  *         description: Server error.
  */
-router.post('/session/cancel', authMiddleware, authController.cancelSession);
+router.post('/session/cancel', requireAuth, authController.cancelSession);
 
 module.exports = router;
 

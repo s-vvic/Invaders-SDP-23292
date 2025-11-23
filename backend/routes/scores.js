@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const scoreController = require('../controllers/scoreController');
-const { authenticateToken } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ const { authenticateToken } = require('../middleware/auth');
  *       500:
  *         description: Server database error
  */
-router.get('/', authenticateToken, scoreController.getAllScores);
+router.get('/', requireAuth, scoreController.getAllScores);
 
 /**
  * @swagger
@@ -94,3 +94,4 @@ router.get('/weekly', scoreController.getWeeklyScores);
 router.get('/yearly', scoreController.getYearlyScores);
 
 module.exports = router;
+

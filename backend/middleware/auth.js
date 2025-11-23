@@ -1,31 +1,10 @@
 const jwt = require('jsonwebtoken');
 
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (token == null) {
-        return res.status(401).json({ error: 'Access token is required' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            console.log('JWT verification failed:', err.message);
-
-            let errorMessage = 'Invalid token. Please log in again.';
-            if (err.name === 'TokenExpiredError') {
-                errorMessage = 'Token expired. Please log in again.';
-            }
-            
-            return res.status(401).json({ error: errorMessage });
-        }
-
-        req.user = user;
-        next();
-    });
-}
-
-const authMiddleware = (req, res, next) => {
+/**
+ * Middleware to verify JWT token and attach user to the request.
+ * This is the single, consistent authentication middleware for the application.
+ */
+const requireAuth = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -39,11 +18,17 @@ const authMiddleware = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (error) {
-        return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
+        // More specific error message based on the type of JWT error
+        let errorMessage = 'Unauthorized: Invalid token';
+        if (error.name === 'TokenExpiredError') {
+            errorMessage = 'Unauthorized: Token has expired';
+        }
+        // Use 401 for all authentication-related failures
+        return res.status(401).json({ error: errorMessage });
     }
 };
 
 module.exports = {
-    authenticateToken,
-    authMiddleware,
+    requireAuth,
 };
+
