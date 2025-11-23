@@ -159,7 +159,7 @@ function cancelCode(confirmationCode) {
 /**
  * Cleans up expired or completed codes from the store periodically.
  */
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
     const now = Date.now();
     // Cleanup device codes
     for (const [deviceCode, info] of deviceCodes.entries()) {
@@ -174,8 +174,18 @@ setInterval(() => {
             confirmationCodes.delete(confirmationCode);
         }
     }
-    console.log(`Store cleanup. Active device codes: ${deviceCodes.size}, Active confirmation codes: ${confirmationCodes.size}`);
+    // Avoid logging during tests
+    if (process.env.NODE_ENV !== 'test') {
+        console.log(`Store cleanup. Active device codes: ${deviceCodes.size}, Active confirmation codes: ${confirmationCodes.size}`);
+    }
 }, 60 * 1000); // Run every minute
+
+/**
+ * Stops the periodic cleanup interval. Should be called during test teardown.
+ */
+function stopCleanup() {
+    clearInterval(cleanupInterval);
+}
 
 module.exports = {
     generateDeviceCode,
@@ -185,5 +195,6 @@ module.exports = {
     generateConfirmationCode,
     getConfirmationCodeInfo,
     confirmCode,
-    cancelCode
+    cancelCode,
+    stopCleanup // Export the new function
 };

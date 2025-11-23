@@ -4,6 +4,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initDb } = require('../db');
 const rateLimit = require('express-rate-limit');
+const { stopCleanup } = require('../utils/deviceStore');
 
 describe('Security Middleware Tests', () => {
     let db;
@@ -16,6 +17,7 @@ describe('Security Middleware Tests', () => {
 
     afterAll(async () => {
         await db.close();
+        stopCleanup();
     });
 
     describe('Helmet', () => {

@@ -2,6 +2,7 @@ const request = require('supertest');
 const bcrypt = require('bcrypt');
 const { app } = require('../server');
 const { initDb } = require('../db');
+const { stopCleanup } = require('../utils/deviceStore');
 
 const TEST_USERNAME = 'test_achievements'; // a unique user for this test suite
 const TEST_PASSWORD = 'Password123!';
@@ -38,6 +39,7 @@ afterAll(async () => {
         await db.run('DELETE FROM users WHERE username = ?', [TEST_USERNAME]);
         await db.close();
     }
+    stopCleanup();
 });
 
 describe('Achievement Endpoints', () => {

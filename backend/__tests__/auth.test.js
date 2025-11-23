@@ -2,6 +2,7 @@ const request = require('supertest');
 const bcrypt = require('bcrypt');
 const { app } = require('../server');
 const { initDb } = require('../db');
+const { stopCleanup } = require('../utils/deviceStore'); // Import the cleanup function
 
 // These are needed for the tests
 const TEST_USERNAME = 'test_auth'; // Use a unique username to avoid conflicts
@@ -41,6 +42,7 @@ afterAll(async () => {
         await db.run('DELETE FROM users WHERE username = ?', [TEST_USERNAME]);
         await db.close();
     }
+    stopCleanup(); // Stop the interval timer to allow Jest to exit gracefully
 });
 
 

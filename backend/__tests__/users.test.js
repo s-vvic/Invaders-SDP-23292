@@ -4,6 +4,7 @@ const request = require('supertest');
 const bcrypt = require('bcrypt');
 const { app } = require('../server');
 const { initDb } = require('../db');
+const { stopCleanup } = require('../utils/deviceStore');
 
 const TEST_USERNAME = 'test_users'; // Unique username for this test suite
 const TEST_PASSWORD = 'Password123!';
@@ -39,6 +40,7 @@ afterAll(async () => {
         await db.run('DELETE FROM users WHERE username = ?', [TEST_USERNAME]); // Clean up created user
         await db.close();
     }
+    stopCleanup();
 });
 
 describe('User API Endpoints', () => {
