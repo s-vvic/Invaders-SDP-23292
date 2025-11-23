@@ -4,8 +4,26 @@ const { getDb } = require('../db');
 const { validateCredentials } = require('../utils/validators');
 const deviceStore = require('../utils/deviceStore'); // Import deviceStore
 
-const login = async (req, res) => {
+/**
+ * A helper function to authenticate a user.
+ * @param {string} username - The user's username.
+ * @param {string} password - The user's password.
+ * @returns {Promise<object|null>} The user object if authentication is successful, otherwise null.
+ */
+const authenticateUser = async (username, password) => {
     const db = getDb();
+    const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+
+    if (user) {
+        const match = await bcrypt.compare(password, user.password);
+        if (match) {
+            return user;
+        }
+    }
+    return null;
+};
+
+const login = async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -14,24 +32,18 @@ const login = async (req, res) => {
             return res.status(400).json({ error: validationError });
         }
 
-        const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+        const user = await authenticateUser(username, password);
 
         if (user) {
-            const match = await bcrypt.compare(password, user.password);
-            if (match) {
-                const payload = { id: user.id, username: user.username };
-                const token = jwt.sign(
-                    payload,
-                    process.env.JWT_SECRET,
-                    { expiresIn: '1h' }
-                );
+            const payload = { id: user.id, username: user.username };
+            const token = jwt.sign(
+                payload,
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
 
-                console.log('Login successful:', user.username);
-                res.json({ token: token, user: { id: user.id, username: user.username } });
-            } else {
-                console.log('Login failed for:', username);
-                res.status(401).json({ error: 'Invalid username or password' });
-            }
+            console.log('Login successful:', user.username);
+            res.json({ token: token, user: { id: user.id, username: user.username } });
         } else {
             console.log('Login failed for:', username);
             res.status(401).json({ error: 'Invalid username or password' });
@@ -119,7 +131,6 @@ const getDeviceToken = (req, res) => {
 
 // 3. 웹에서 코드로 로그인하는 컨트롤러 (비로그인 사용자)
 const loginWithDevice = async (req, res) => {
-    const db = getDb();
     try {
         const { userCode, username, password } = req.body;
 
@@ -134,25 +145,19 @@ const loginWithDevice = async (req, res) => {
             return res.status(400).json({ error: 'Invalid or expired device code.' });
         }
         
-        const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+        const user = await authenticateUser(username, password);
 
         if (user) {
-            const match = await bcrypt.compare(password, user.password);
-            if (match) {
-                const payload = { id: user.id, username: user.username };
-                const token = jwt.sign(
-                    payload,
-                    process.env.JWT_SECRET,
-                    { expiresIn: '1h' }
-                );
+            const payload = { id: user.id, username: user.username };
+            const token = jwt.sign(
+                payload,
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
 
-                deviceStore.completeCode(searchResult.deviceCode, { token, user: { id: user.id, username: user.username } });
-                console.log('Device connected successfully via web login for:', user.username);
-                res.json({ message: 'Device connected successfully!', token: token, user: { id: user.id, username: user.username } });
-            } else {
-                console.log('Login failed for device connection:', username);
-                res.status(401).json({ error: 'Invalid username or password' });
-            }
+            deviceStore.completeCode(searchResult.deviceCode, { token, user: { id: user.id, username: user.username } });
+            console.log('Device connected successfully via web login for:', user.username);
+            res.json({ message: 'Device connected successfully!', token: token, user: { id: user.id, username: user.username } });
         } else {
             console.log('Login failed for device connection:', username);
             res.status(401).json({ error: 'Invalid username or password' });
