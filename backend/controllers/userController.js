@@ -193,7 +193,7 @@ const unlockAchievement = async (req, res) => {
         }
 
         // 한국 시간대(UTC+9)로 현재 시간 저장
-        const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const dateString = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19).replace('T', ' ');
 
         // Achievement 해제
         await db.run(
