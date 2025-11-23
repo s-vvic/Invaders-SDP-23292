@@ -92,7 +92,7 @@ function findByUserCode(userCode) {
  */
 function completeCode(deviceCode, data) {
     const info = deviceCodes.get(deviceCode);
-    if (info && info.status === 'pending') {
+    if (info) {
         info.status = 'completed';
         info.token = data.token;
         info.user = data.user;
