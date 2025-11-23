@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Session - Invaders</title>
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="utility.css">
+    <link rel="stylesheet" href="starfield.css">
+    <link rel="stylesheet" href="button.css">
+    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="toast.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Basic Spinner CSS */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success-icon {
+            font-size: 48px;
+            color: #4CAF50; /* Green color */
+            margin: 20px auto;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starfield-canvas"></canvas>
+    <div id="app">
+        <div id="confirm-session-view">
+            <div class="container">
+                <h1>Confirm Your Game Session</h1>
+                
+                <div id="loading-state">
+                    <p id="session-status-message">Connecting to game client...</p>
+                    <div class="spinner"></div>
+                </div>
+
+                <div id="success-state" class="hidden">
+                    <p class="success-icon">✅</p>
+                    <p>Authentication complete! You can now close this window and return to your game.</p>
+                </div>
+
+                <div id="error-state" class="hidden">
+                    <p id="error-message" class="error-message"></p>
+                </div>
+
+                <div id="logged-in-info" class="hidden">
+                    <p>Currently logged in as: <strong id="logged-in-username"></strong></p>
+                    <button id="logout-button">Not you? Logout and use a different account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="toast-container" class="toast-container"></div>
+    <script src="starfield.js"></script>
+    <script src="api.js"></script>
+    <script src="confirm-session.js"></script> 
+</body>
+</html>

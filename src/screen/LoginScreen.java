@@ -57,7 +57,14 @@ public class LoginScreen extends Screen {
 
     public final int run() {
         startDeviceAuthFlow();
-        super.run();
+        try {
+            super.run();
+        } finally {
+            // Ensure the worker is cancelled if the screen exits for any reason
+            if (this.authWorker != null && !this.authWorker.isDone()) {
+                this.authWorker.cancel(true);
+            }
+        }
         return this.returnCode;
     }
 
@@ -81,7 +88,6 @@ public class LoginScreen extends Screen {
                 } else if (this.activeField == 1) { // "Go Back" selected
                     if (this.authWorker != null && !this.authWorker.isDone()) {
                         this.authWorker.cancel(true); // Attempt to cancel the background task
-                        Core.getLogger().info("Device auth flow cancelled by user.");
                     }
                     this.returnCode = 1; // Go back to TitleScreen
                     this.isRunning = false;
@@ -93,7 +99,6 @@ public class LoginScreen extends Screen {
         if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
             if (this.authWorker != null && !this.authWorker.isDone()) {
                 this.authWorker.cancel(true); // Attempt to cancel the background task
-                Core.getLogger().info("Device auth flow cancelled by user.");
             }
             this.returnCode = 1; // Go back to TitleScreen
             this.isRunning = false;
@@ -113,20 +118,15 @@ public class LoginScreen extends Screen {
         this.authWorker = new SwingWorker<PollResponse, Void>() {
             @Override
             protected PollResponse doInBackground() throws Exception {
-                // Step 1: Initiate the flow
                 DeviceAuthResponse initResponse;
                 try {
                     initResponse = ApiClient.getInstance().initiateDeviceAuth();
-                    // Update UI fields for the Event Dispatch Thread (EDT) via publish/process
-                    // For simplicity here, we'll just update them directly and repaint.
                     userCode = initResponse.userCode();
                     instruction = "Go to " + initResponse.verificationUri() + " and enter the code:";
                 } catch (IOException | InterruptedException e) {
-                    Core.getLogger().severe("Failed to initiate device auth: " + e.getMessage());
                     return new PollResponse(PollStatus.ERROR, null, "Connection to server failed.");
                 }
 
-                // Step 2: Open browser
                 try {
                     if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                         Desktop.getDesktop().browse(new URI(initResponse.verificationUri()));
@@ -134,11 +134,9 @@ public class LoginScreen extends Screen {
                          instruction = "Please manually open a browser and go to the URL above.";
                     }
                 } catch (IOException | URISyntaxException e) {
-                    Core.getLogger().severe("Failed to open browser: " + e.getMessage());
                     instruction = "Please manually open a browser and go to the URL above.";
                 }
 
-                // Step 3: Start polling
                 long startTime = System.currentTimeMillis();
                 long timeout = initResponse.expiresIn() * 1000;
 
@@ -148,24 +146,26 @@ public class LoginScreen extends Screen {
                     PollResponse pollResponse = ApiClient.getInstance().pollForToken(initResponse.deviceCode());
 
                     if (pollResponse.status() == PollStatus.SUCCESS || pollResponse.status() == PollStatus.ERROR) {
-                        return pollResponse; // Success or permanent error, stop polling
+                        return pollResponse;
                     }
                     
-                    // If pending, wait for the interval
                     Thread.sleep(initResponse.interval());
                 }
 
-                // If the loop finishes, it's a timeout
                 return new PollResponse(PollStatus.ERROR, null, "Login timed out. Please try again.");
             }
 
             @Override
             protected void done() {
-                try {
-                    if (isCancelled()) return;
+                if (isCancelled()) {
+                    return;
+                }
 
+                try {
                     PollResponse result = get();
-                    if (result == null) return; // Should only happen if cancelled during polling
+                    if (result == null) {
+                        return;
+                    }
 
                     if (result.status() == PollStatus.SUCCESS) {
                         AuthManager.getInstance().login(
@@ -173,18 +173,19 @@ public class LoginScreen extends Screen {
                             result.loginResponse().username(),
                             result.loginResponse().userId()
                         );
-                        returnCode = 1; // Success, go back to TitleScreen
+                        returnCode = 1; 
                         isRunning = false;
                     } else {
-                        // All other cases are errors (timeout, expired code, etc.)
                         errorMessage = result.errorMessage();
                         userCode = "ERROR";
                         instruction = "Please press ESC and try again.";
                     }
+                } catch (java.util.concurrent.CancellationException e) {
+                    // Worker was cancelled, do nothing.
                 } catch (Exception e) {
-                    Core.getLogger().severe("An error occurred in the auth worker 'done' method: " + e.getMessage());
                     errorMessage = "An unexpected error occurred.";
                     userCode = "ERROR";
+                    instruction = "Please press ESC and try again.";
                 }
             }
         };
@@ -200,6 +201,5 @@ public class LoginScreen extends Screen {
         StringSelection stringSelection = new StringSelection(text);
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         clipboard.setContents(stringSelection, null);
-        Core.getLogger().info("Copied '" + text + "' to clipboard.");
     }
 }

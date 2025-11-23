@@ -101,21 +101,19 @@ const getDeviceToken = (req, res) => {
     }
 
     if (info.expiresAt < Date.now()) {
-        // Remove expired code from store if it somehow wasn't cleaned up
         deviceStore.completeCode(deviceCode, { token: null, user: null }); // Mark as completed then cleanup will remove it
-        return res.status(410).json({ error: 'Device code expired.' });
+        return res.status(410).json({ error: 'Device code expired.', status: 'expired' });
     }
 
     if (info.status === 'pending') {
-        return res.status(202).json({ message: 'Authorization pending.' });
+        return res.status(202).json({ message: 'Authorization pending.', status: 'pending' });
     }
 
     if (info.status === 'completed') {
-        res.json({ token: info.token, user: info.user });
-        // After returning the token, remove the code from the store to prevent reuse
-        deviceStore.completeCode(deviceCode, { token: null, user: null }); // Mark as completed then cleanup will remove it
+        res.json({ token: info.token, user: info.user, status: 'completed' });
+        deviceStore.completeCode(deviceCode, { token: null, user: null }); 
     } else {
-        res.status(500).json({ error: 'Unexpected device code status.' });
+        res.status(500).json({ error: 'Unexpected device code status.', status: 'error' });
     }
 };
 
@@ -170,9 +168,8 @@ const loginWithDevice = async (req, res) => {
 const connectDevice = (req, res) => {
     try {
         const { userCode } = req.body;
-        // req.user is set by the authentication middleware
         const { id, username } = req.user; 
-        const token = req.headers.authorization.split(' ')[1]; // Get the token from the request header
+        const token = req.headers.authorization.split(' ')[1];
 
         const searchResult = deviceStore.findByUserCode(userCode);
         
@@ -190,6 +187,91 @@ const connectDevice = (req, res) => {
     }
 };
 
+// --- New Session Confirmation Flow Controllers ---
+
+// 1. 세션 확인 시작 API
+const initiateSessionConfirmation = (req, res) => {
+    try {
+        const userToken = req.headers.authorization.split(' ')[1];
+        const user = req.user; // Set by authMiddleware
+        const codeData = deviceStore.generateConfirmationCode(userToken, user);
+        res.json({
+            confirmationCode: codeData.confirmationCode,
+            expiresIn: codeData.expiresIn,
+            interval: codeData.interval,
+            // TODO: Replace with your actual frontend URL for the session confirmation page
+            confirmationUri: 'http://localhost:8080/confirm-session.html' 
+        });
+    } catch (error) {
+        console.error('Error initiating session confirmation:', error);
+        res.status(500).json({ error: 'Failed to initiate session confirmation.' });
+    }
+};
+
+// 2. 세션 확인 완료 API
+const confirmSession = (req, res) => {
+    try {
+        const { confirmationCode } = req.body;
+        // The user should be authenticated for this call too (from web session)
+        const user = req.user; 
+
+        const codeInfo = deviceStore.getConfirmationCodeInfo(confirmationCode);
+
+        if (!codeInfo || codeInfo.user.id !== user.id) { // Ensure the web user is the same as the game user
+            return res.status(400).json({ error: 'Invalid or mismatched confirmation code.' });
+        }
+
+        if (codeInfo.expiresAt < Date.now()) {
+            deviceStore.cancelCode(confirmationCode); // Mark as cancelled if expired
+            return res.status(410).json({ error: 'Confirmation code expired.' });
+        }
+        
+        deviceStore.confirmCode(confirmationCode);
+        res.json({ message: 'Session confirmed successfully!' });
+    } catch (error) {
+        console.error('Error confirming session:', error);
+        res.status(500).json({ error: 'Failed to confirm session.' });
+    }
+};
+
+// 3. 세션 상태 폴링 API
+const getSessionStatus = (req, res) => {
+    const { confirmationCode } = req.body;
+    const info = deviceStore.getConfirmationCodeInfo(confirmationCode);
+
+    if (!info) {
+        return res.status(404).json({ error: 'Confirmation code not found or already used.' });
+    }
+
+    if (info.expiresAt < Date.now()) {
+        deviceStore.cancelCode(confirmationCode); // Mark as cancelled if expired
+        return res.status(410).json({ error: 'Confirmation code expired.', status: 'expired' });
+    }
+
+    // Return the current status
+    res.json({ status: info.status, username: info.user.username });
+};
+
+// 4. 세션 취소 API
+const cancelSession = (req, res) => {
+    try {
+        const { confirmationCode } = req.body;
+        const user = req.user; // Set by authMiddleware
+
+        const codeInfo = deviceStore.getConfirmationCodeInfo(confirmationCode);
+
+        if (!codeInfo || codeInfo.user.id !== user.id) {
+            return res.status(400).json({ error: 'Invalid or mismatched confirmation code.' });
+        }
+        
+        deviceStore.cancelCode(confirmationCode);
+        res.json({ message: 'Session cancelled successfully!' });
+    } catch (error) {
+        console.error('Error cancelling session:', error);
+        res.status(500).json({ error: 'Failed to cancel session.' });
+    }
+};
+
 module.exports = {
     login,
     register,
@@ -197,4 +279,8 @@ module.exports = {
     getDeviceToken,
     loginWithDevice,
     connectDevice,
+    initiateSessionConfirmation,
+    confirmSession,
+    getSessionStatus,
+    cancelSession,
 };

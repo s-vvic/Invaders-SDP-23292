@@ -50,7 +50,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for now, will refine later
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow eval()
             styleSrc: ["'self'", "'unsafe-inline'"],  // Allow inline styles for now
             imgSrc: ["'self'", "data:"],
             connectSrc: ["'self'", "http://localhost:8080", "ws://localhost:8080"], // Allow connections to the backend API and websockets
@@ -103,6 +103,9 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
 app.use((req, res, next) => {
+    if (req.url.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+    }
     if (req.url.endsWith('.ttf')) {
         res.setHeader('Content-Type', 'font/ttf');
     }

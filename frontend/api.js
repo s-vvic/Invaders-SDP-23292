@@ -92,3 +92,27 @@ async function loginWithDevice(userCode, username, password) {
         body: JSON.stringify({ userCode, username, password }),
     });
 }
+
+/**
+ * Confirms a session via a web browser.
+ * @param {string} confirmationCode The confirmation code from the game.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function confirmSession(confirmationCode) {
+    return fetchWithAuth('/api/auth/session/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ confirmationCode }),
+    });
+}
+
+/**
+ * Cancels a session confirmation.
+ * @param {string} confirmationCode The confirmation code from the game.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function cancelSession(confirmationCode) {
+    return fetchWithAuth('/api/auth/session/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ confirmationCode }),
+    });
+}

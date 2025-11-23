@@ -23,11 +23,18 @@ public class ApiClient {
     /** Helper record to hold structured device auth response data. */
     public record DeviceAuthResponse(String deviceCode, String userCode, String verificationUri, int expiresIn, int interval) {}
 
+    /** Helper record to hold structured session confirmation initiation response data. */
+    public record SessionConfirmationResponse(String confirmationCode, String confirmationUri, int expiresIn, int interval) {}
+
     /** Enum to represent the status of a polling request. */
-    public enum PollStatus { SUCCESS, PENDING, ERROR }
+    public enum PollStatus { SUCCESS, PENDING, ERROR, CANCELLED, CONFIRMED }
 
     /** Helper record to hold the structured response from a polling request. */
     public record PollResponse(PollStatus status, LoginResponse loginResponse, String errorMessage) {}
+
+    /** Helper record to hold the structured response from a session status polling request. */
+    public record SessionPollResponse(PollStatus status, String username, String errorMessage) {}
+
 
     /** Singleton instance of the class. */
     private static ApiClient instance;
@@ -85,6 +92,41 @@ public class ApiClient {
     }
 
     /**
+     * Initiates the session confirmation flow by requesting a confirmation code from the backend.
+     * Requires an already logged-in user's token.
+     * @param token The user's JWT.
+     * @return A SessionConfirmationResponse object on success.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public SessionConfirmationResponse initiateSessionConfirmation(String token) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/initiate"))
+                .header("Authorization", "Bearer " + token)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        Core.getLogger().info("Initiating session confirmation flow...");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Session confirmation initiation failed with status code: " + response.statusCode());
+            throw new IOException("Session confirmation initiation failed: " + response.body());
+        }
+
+        Core.getLogger().info("Session confirmation initiated. Parsing response...");
+        String responseBody = response.body();
+
+        String confirmationCode = parseJsonField(responseBody, "confirmationCode");
+        String confirmationUri = parseJsonField(responseBody, "confirmationUri");
+        int expiresIn = Integer.parseInt(parseJsonField(responseBody, "expiresIn"));
+        int interval = Integer.parseInt(parseJsonField(responseBody, "interval"));
+
+        return new SessionConfirmationResponse(confirmationCode, confirmationUri, expiresIn, interval);
+    }
+
+    /**
      * Polls the backend to check the status of a device authentication flow.
      * @param deviceCode The device code to check.
      * @return A PollResponse object indicating the status.
@@ -129,6 +171,109 @@ public class ApiClient {
                 }
                 return new PollResponse(PollStatus.ERROR, null, errorMessage);
         }
+    }
+
+    /**
+     * Polls the backend to check the status of a session confirmation flow.
+     * @param confirmationCode The confirmation code to check.
+     * @return A SessionPollResponse object indicating the status.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public SessionPollResponse pollSessionStatus(String confirmationCode) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"confirmationCode\": \"" + confirmationCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/status"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+        
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        String responseBody = response.body();
+        String statusString = parseJsonField(responseBody, "status");
+        String username = parseJsonField(responseBody, "username");
+
+        if (response.statusCode() == 200 && statusString != null) {
+            switch (statusString) {
+                case "pending":
+                    Core.getLogger().info("Session polling: Authorization pending...");
+                    return new SessionPollResponse(PollStatus.PENDING, username, null);
+                case "confirmed":
+                    Core.getLogger().info("Session polling: Confirmed.");
+                    return new SessionPollResponse(PollStatus.CONFIRMED, username, null);
+                case "cancelled":
+                    Core.getLogger().info("Session polling: Cancelled.");
+                    return new SessionPollResponse(PollStatus.CANCELLED, username, "Session cancelled by user.");
+                default:
+                    Core.getLogger().severe("Session polling failed with unknown status: " + statusString);
+                    return new SessionPollResponse(PollStatus.ERROR, username, "Unknown status received.");
+            }
+        } else {
+            Core.getLogger().severe("Session polling failed with status code: " + response.statusCode());
+            String errorMessage = parseJsonField(response.body(), "error");
+            if (errorMessage == null) {
+                errorMessage = "Session polling failed with status: " + response.statusCode();
+            }
+            return new SessionPollResponse(PollStatus.ERROR, username, errorMessage);
+        }
+    }
+
+    /**
+     * Sends a request to confirm the session on the backend.
+     * @param confirmationCode The code to confirm.
+     * @param token The user's JWT for authorization.
+     * @throws IOException if the request fails or unauthorized.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public void confirmSession(String confirmationCode, String token) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"confirmationCode\": \"" + confirmationCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/confirm"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Sending session confirmation for code: " + confirmationCode);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Session confirmation failed with status code: " + response.statusCode());
+            throw new IOException("Session confirmation failed: " + response.body());
+        }
+        Core.getLogger().info("Session confirmed successfully.");
+    }
+
+    /**
+     * Sends a request to cancel the session on the backend.
+     * @param confirmationCode The code to cancel.
+     * @param token The user's JWT for authorization.
+     * @throws IOException if the request fails or unauthorized.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public void cancelSession(String confirmationCode, String token) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"confirmationCode\": \"" + confirmationCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/cancel"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Sending session cancellation for code: " + confirmationCode);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Session cancellation failed with status code: " + response.statusCode());
+            throw new IOException("Session cancellation failed: " + response.body());
+        }
+        Core.getLogger().info("Session cancelled successfully.");
     }
 
     /**
