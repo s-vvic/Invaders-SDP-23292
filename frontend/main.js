@@ -954,7 +954,7 @@ if (!response.ok) {
         showError(loginError, '로그인 중...');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/login`, {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username.value, password: password.value })
@@ -1025,7 +1025,7 @@ if (!response.ok) {
         showError(registerError, '회원가입 중...');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/register`, {
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })

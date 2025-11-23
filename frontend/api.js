@@ -61,3 +61,58 @@ async function fetchWithAuth(url, options = {}) {
 
     return response;
 }
+
+
+/**
+ * Connects a device for an already authenticated user.
+ * @param {string} userCode The code from the game device.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function connectDevice(userCode) {
+    // fetchWithAuth automatically includes the Authorization header.
+    return fetchWithAuth('/api/auth/device/connect', {
+        method: 'POST',
+        body: JSON.stringify({ userCode }),
+    });
+}
+
+/**
+ * Logs in and connects a device for an unauthenticated user.
+ * @param {string} userCode The code from the game device.
+ * @param {string} username The user's username.
+ * @param {string} password The user's password.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function loginWithDevice(userCode, username, password) {
+    return fetch('/api/auth/device/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userCode, username, password }),
+    });
+}
+
+/**
+ * Confirms a session via a web browser.
+ * @param {string} confirmationCode The confirmation code from the game.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function confirmSession(confirmationCode) {
+    return fetchWithAuth('/api/auth/session/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ confirmationCode }),
+    });
+}
+
+/**
+ * Cancels a session confirmation.
+ * @param {string} confirmationCode The confirmation code from the game.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function cancelSession(confirmationCode) {
+    return fetchWithAuth('/api/auth/session/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ confirmationCode }),
+    });
+}
