@@ -260,16 +260,17 @@ public class TitleScreen extends Screen {
 		// Action keys
 		keyHandlers.put(KeyEvent.VK_SPACE, () -> {
 			this.secretCommandHandler.reset();
-			            			if (this.returnCode == 7) { // Web Dashboard
-			            				try {
-			            					if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-			            						Desktop.getDesktop().browse(new URI("http://localhost:8080"));
-			            					}
-			            				} catch (IOException | URISyntaxException e) {
-			            					e.printStackTrace();
-			            				}
-			            								this.returnCode = 14; // Transition to WebpageScreen
-			            								this.isRunning = false;			            			} else if (this.returnCode != 5) {
+if (this.returnCode == 7) { // Web Dashboard
+    try {
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            Desktop.getDesktop().browse(new URI("http://localhost:8080"));
+        }
+    } catch (IOException | URISyntaxException e) {
+        e.printStackTrace();
+    }
+    this.returnCode = 14; // Transition to WebpageScreen
+    this.isRunning = false;
+} else if (this.returnCode != 5) {
 				this.returnCode += 100;
 				this.isRunning = false;
 			} else { // Sound menu
