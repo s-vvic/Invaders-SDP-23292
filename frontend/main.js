@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- API Configuration ---
-    const API_BASE_URL = 'http://localhost:8080/api';
+    const API_BASE_URL = '/api';
     const USE_MOCK_API = false; // Set to false to use real API
 
     // --- Loading & Error Handling Utilities ---
@@ -954,7 +954,7 @@ if (!response.ok) {
         showError(loginError, '로그인 중...');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/login`, {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username.value, password: password.value })
@@ -1025,7 +1025,7 @@ if (!response.ok) {
         showError(registerError, '회원가입 중...');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/register`, {
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })

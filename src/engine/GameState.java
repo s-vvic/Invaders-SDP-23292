@@ -63,6 +63,26 @@ public class GameState {
         this.shipsDestroyed = shipsDestroyed;
         this.coin = coin;
 		    }
+
+    /**
+	 * Constructor that provides a default coin value of 0.
+	 * 
+	 * @param level
+	 *            Current game level.
+	 * @param score
+	 *            Current score.
+	 * @param livesRemaining
+	 *            Lives currently remaining.
+	 * @param bulletsShot
+	 *            Bullets shot until now.
+	 * @param shipsDestroyed
+	 *            Ships destroyed until now.
+	 */
+	public GameState(final int level, final int score,
+			final int livesRemaining, final int bulletsShot,
+			final int shipsDestroyed) {
+		this(level, score, livesRemaining, bulletsShot, shipsDestroyed, 0); // Delegates to the 6-argument constructor
+	}
 	/**
 	 * @return the level
 	 */

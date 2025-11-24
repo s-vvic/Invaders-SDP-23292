@@ -666,6 +666,14 @@ public final class DrawManager {
 	}
 
 	/**
+	 * Draws a centered string with the currently set font.
+	 */
+	public void drawCenteredString(final Screen screen, final String string, final int height) {
+		FontMetrics metrics = backBufferGraphics.getFontMetrics(); // Use current font's metrics
+		backBufferGraphics.drawString(string, screen.getWidth() / 2 - metrics.stringWidth(string) / 2, height);
+	}
+
+	/**
 	 * Draws a centered string on big font.
 	 */
 	    public void drawCenteredBigString(final Screen screen, final String string, final int height) {

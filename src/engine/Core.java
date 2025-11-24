@@ -20,6 +20,8 @@ import screen.ShopScreen;
 import screen.TitleScreen;
 import screen.RegisterScreen;
 import screen.LoginScreen;
+import screen.ConfirmSessionScreen; // Import the new screen
+import screen.WebpageScreen;
 import screen.TransitionScreen;
 import screen.GameOverScreen;
 import java.awt.image.BufferedImage;
@@ -42,7 +44,7 @@ public final class Core {
 			/** Height of current screen. */
 
 			private static final int HEIGHT = 780;
-	/** Max fps of current screen. */
+	/** Max fps of current screen. */	
 	private static final int FPS = 60;
 
 	/** Max lives. */
@@ -104,9 +106,9 @@ public final class Core {
 
 		int returnCode;
 		if (AuthManager.getInstance().isLoggedIn()) {
-			returnCode = 1; // Start with Title Screen
+			returnCode = 11; // NEW: Start with ConfirmSessionScreen
 		} else {
-			returnCode = 9; // Start with Login Screen
+			returnCode = 9; // Start with Login Screen (Device Auth)
 		}
 		
 		do {
@@ -171,12 +173,19 @@ public final class Core {
 					currentScreen = new CreditScreen(width, height, FPS);
 					LOGGER.info("Starting " + currentScreen.getClass().getSimpleName() + " screen.");
 					returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing " + currentScreen.getClass().getSimpleName() + " screen.");
 					break;
-                case 9: // LoginScreen
+                case 9: // LoginScreen (Device Auth)
                     currentScreen = new LoginScreen(width, height, FPS);
-                    LOGGER.info("Starting Login screen.");
+                    LOGGER.info("Starting Login screen (Device Auth).");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing Login screen.");
+                    break;
+                case 11: // ConfirmSessionScreen
+                    currentScreen = new ConfirmSessionScreen(width, height, FPS);
+                    LOGGER.info("Starting Confirm Session screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Confirm Session screen.");
                     break;
                 case 12: // RegisterScreen
                     currentScreen = new RegisterScreen(width, height, FPS);
@@ -189,6 +198,12 @@ public final class Core {
                     LOGGER.info("Starting transition screen to 1P game.");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing transition screen.");
+                    break;
+                case 14: // WebpageScreen
+                    currentScreen = new WebpageScreen(width, height, FPS);
+                    LOGGER.info("Starting Webpage screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Webpage screen.");
                     break;
                 case 10: // 1 Player
                     do {
@@ -222,7 +237,6 @@ public final class Core {
                                 + " game screen at " + FPS + " fps.");
                         int gameScreenReturnCode = frame.setScreen(currentScreen);
                         LOGGER.info("Closing game screen.");
-
                         if (gameScreenReturnCode == 99) {
                             returnCode = 99; // Set the main loop's return code
                             break; // Break from the level loop to go to GameOverScreen
@@ -287,7 +301,7 @@ public final class Core {
 					currentScreen = new EasterEggScreen(width, height, FPS);
                		LOGGER.info("Starting Easter Egg screen.");
                 	returnCode = frame.setScreen(currentScreen);
-                	LOGGER.info("Closing Easter Egg screen.");
+                    LOGGER.info("Closing Easter Egg screen.");
                 	break;
                 default:
                     break;

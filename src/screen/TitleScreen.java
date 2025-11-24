@@ -29,6 +29,7 @@ import engine.CelestialManager;
 import engine.AuthManager;
 import engine.MenuManager;
 import engine.SecretCommandHandler;
+import engine.DrawManager;
 
 
 /**
@@ -212,6 +213,7 @@ public class TitleScreen extends Screen {
 		this.menuManager = new MenuManager(2, 2, 3, 6, 4, 7, 0);
 		this.secretCommandHandler = new SecretCommandHandler();
 		this.setupKeyHandlers();
+		this.inputDelay.reset(); // Defensively reset the input delay to prevent leaked key presses.
 	}
 
 	private void setupKeyHandlers() {
@@ -258,16 +260,16 @@ public class TitleScreen extends Screen {
 		// Action keys
 		keyHandlers.put(KeyEvent.VK_SPACE, () -> {
 			this.secretCommandHandler.reset();
-			if (this.returnCode == 7) { // Web Dashboard
-				try {
-					if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-						Desktop.getDesktop().browse(new URI("http://localhost:8080"));
-					}
-				} catch (IOException | URISyntaxException e) {
-					e.printStackTrace();
-				}
-			} else if (this.returnCode != 5) {
-				Core.lastScreenCapture = drawManager.getBackBuffer();
+			            			if (this.returnCode == 7) { // Web Dashboard
+			            				try {
+			            					if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+			            						Desktop.getDesktop().browse(new URI("http://localhost:8080"));
+			            					}
+			            				} catch (IOException | URISyntaxException e) {
+			            					e.printStackTrace();
+			            				}
+			            								this.returnCode = 14; // Transition to WebpageScreen
+			            								this.isRunning = false;			            			} else if (this.returnCode != 5) {
 				this.returnCode += 100;
 				this.isRunning = false;
 			} else { // Sound menu
@@ -293,6 +295,15 @@ public class TitleScreen extends Screen {
 		keyHandlers.put(KeyEvent.VK_O, () -> {
 			if (AuthManager.getInstance().isLoggedIn()) {
 				AuthManager.getInstance().logout();
+                DrawManager.addSystemMessage("You have been logged out.");
+                try {
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        // Open a specific logout page to clear the browser's localStorage
+                        Desktop.getDesktop().browse(new URI("http://localhost:8080/logout.html"));
+                    }
+                } catch (IOException | URISyntaxException e) {
+                    Core.getLogger().warning("Failed to open browser for logout: " + e.getMessage());
+                }
 			}
 		});
 	}
