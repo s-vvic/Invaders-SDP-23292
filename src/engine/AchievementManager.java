@@ -75,6 +75,15 @@ public class AchievementManager {
                 achievement.unlock();
 
                 saveAchievements();
+                
+                // Save to backend API if logged in
+                try {
+                    ApiClient.getInstance().unlockAchievement(name);
+                } catch (Exception e) {
+                    // Log error but don't fail the unlock process
+                    System.err.println("Failed to save achievement to backend: " + e.getMessage());
+                }
+                
                 break;
             }
         }

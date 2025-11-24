@@ -77,7 +77,7 @@
         { "enemyType": "enemyB", "itemId": "Slow", "dropChance": 0.1 },
         { "enemyType": "enemyB", "itemId": "Push", "dropChance": 0.05 }
       ],
-      "bossId": "finalBoss",
+      "bossId": "finalBoss1",
       "completionBonus": { "currency": 40 }
     },
     {
@@ -124,7 +124,7 @@
         { "enemyType": "enemyC", "itemId": "Explode", "dropChance": 0.05 },
         { "enemyType": "enemyC", "itemId": "Stop", "dropChance": 0.05 }
       ],
-      "bossId": "finalBoss",
+      "bossId": "finalBoss2",
       "completionBonus": { "currency": 70 }
     },
     {

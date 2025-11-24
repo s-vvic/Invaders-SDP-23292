@@ -20,6 +20,7 @@ import screen.ShopScreen;
 import screen.TitleScreen;
 import screen.RegisterScreen;
 import screen.LoginScreen;
+import screen.ConfirmSessionScreen; // Import the new screen
 import screen.TransitionScreen;
 import screen.GameOverScreen;
 import java.awt.image.BufferedImage;
@@ -42,7 +43,7 @@ public final class Core {
 			/** Height of current screen. */
 
 			private static final int HEIGHT = 780;
-	/** Max fps of current screen. */
+	/** Max fps of current screen. */	
 	private static final int FPS = 60;
 
 	/** Max lives. */
@@ -98,9 +99,30 @@ public final class Core {
 		levelManager = new LevelManager();
 		GameState gameState = new GameState(1, 0, MAX_LIVES, 0, 0, 0);
 
+		// Validate session on startup.
+		LOGGER.info("Validating session on startup...");
+		AuthManager.getInstance().validateSessionOnStartup().join();
 
-        int returnCode = 1;
+		int returnCode;
+		if (AuthManager.getInstance().isLoggedIn()) {
+			returnCode = 11; // NEW: Start with ConfirmSessionScreen
+		} else {
+			returnCode = 9; // Start with Login Screen (Device Auth)
+		}
+		
 		do {
+            {
+                final int FADE_OUT_TRANSITION_OFFSET = 100;
+                if (returnCode >= FADE_OUT_TRANSITION_OFFSET && returnCode < 200) {
+                    int nextScreenCode = returnCode - FADE_OUT_TRANSITION_OFFSET;
+                    currentScreen = new TransitionScreen(width, height, FPS, nextScreenCode,
+                            TransitionScreen.TransitionType.FADE_OUT, Core.lastScreenCapture);
+                    LOGGER.info("Starting fade out transition to screen " + nextScreenCode);
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing fade out transition screen.");
+                }
+            }
+
             gameState = new GameState(1, 0, MAX_LIVES, 0, 0, gameState.getCoin());
 			switch (returnCode) {
                 case 1:
@@ -124,6 +146,12 @@ public final class Core {
                             + " high score screen at " + FPS + " fps.");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing high score screen.");
+
+                    // If high scores returns to main menu, check if session is still valid.
+                    if (returnCode == 1 && !AuthManager.getInstance().isLoggedIn()) {
+                        // If token expired during game, redirect to login screen.
+                        returnCode = 9;
+                    }
                     break;
                 case 4:
                     // Shop opened manually from main menu
@@ -144,12 +172,19 @@ public final class Core {
 					currentScreen = new CreditScreen(width, height, FPS);
 					LOGGER.info("Starting " + currentScreen.getClass().getSimpleName() + " screen.");
 					returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing " + currentScreen.getClass().getSimpleName() + " screen.");
 					break;
-                case 9: // LoginScreen
+                case 9: // LoginScreen (Device Auth)
                     currentScreen = new LoginScreen(width, height, FPS);
-                    LOGGER.info("Starting Login screen.");
+                    LOGGER.info("Starting Login screen (Device Auth).");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing Login screen.");
+                    break;
+                case 11: // ConfirmSessionScreen
+                    currentScreen = new ConfirmSessionScreen(width, height, FPS);
+                    LOGGER.info("Starting Confirm Session screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Confirm Session screen.");
                     break;
                 case 12: // RegisterScreen
                     currentScreen = new RegisterScreen(width, height, FPS);
@@ -158,7 +193,7 @@ public final class Core {
                     LOGGER.info("Closing Register screen.");
                     break;
                 case 13: // Transition to 1P
-                    currentScreen = new TransitionScreen(width, height, FPS, 10);
+                    currentScreen = new TransitionScreen(width, height, FPS, 10, TransitionScreen.TransitionType.STARFIELD);
                     LOGGER.info("Starting transition screen to 1P game.");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing transition screen.");
@@ -195,7 +230,6 @@ public final class Core {
                                 + " game screen at " + FPS + " fps.");
                         int gameScreenReturnCode = frame.setScreen(currentScreen);
                         LOGGER.info("Closing game screen.");
-
                         if (gameScreenReturnCode == 99) {
                             returnCode = 99; // Set the main loop's return code
                             break; // Break from the level loop to go to GameOverScreen
@@ -256,11 +290,11 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing Game Over screen.");
                     break;
-				case 100:
+                case 200: // EasterEggScreen
 					currentScreen = new EasterEggScreen(width, height, FPS);
                		LOGGER.info("Starting Easter Egg screen.");
                 	returnCode = frame.setScreen(currentScreen);
-                	LOGGER.info("Closing Easter Egg screen.");
+                    LOGGER.info("Closing Easter Egg screen.");
                 	break;
                 default:
                     break;

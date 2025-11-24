@@ -80,7 +80,7 @@ public class Screen {
 	 */
 	public int run() {
 		this.isRunning = true;
-		inputManager.clearKeyQueue();
+		inputManager.resetKeyState(); // Replaced clearKeyQueue with resetKeyState
 
 		while (this.isRunning) {
 			long time = System.currentTimeMillis();
@@ -97,7 +97,7 @@ public class Screen {
 			}
 		}
 
-		return 0;
+		return this.returnCode; // Correctly return the exit code
 	}
 
 	/**

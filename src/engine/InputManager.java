@@ -4,6 +4,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Arrays; // Added for Arrays.fill()
 
 /**
  * Manages keyboard input for the provided screen.
@@ -98,5 +99,14 @@ public final class InputManager implements KeyListener {
      */
     public void clearKeyQueue() {
         keyTypedQueue.clear();
+    }
+
+    /**
+     * Resets the state of all keys to not pressed.
+     * This should be called when transitioning between screens to prevent
+     * lingering key presses from affecting new screens.
+     */
+    public void resetKeyState() {
+        Arrays.fill(keys, false);
     }
 }

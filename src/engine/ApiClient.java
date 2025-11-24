@@ -5,17 +5,40 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Handles all communication with the backend API.
  */
 public class ApiClient {
 
+    /** The base URL for the backend API. */
+    private static final String API_BASE_URL = "http://localhost:8080/api";
+
     /** Helper record to hold structured login response data. */
     public record LoginResponse(String token, int userId, String username) {}
 
+    /** Helper record to hold structured device auth response data. */
+    public record DeviceAuthResponse(String deviceCode, String userCode, String verificationUri, int expiresIn, int interval) {}
+
+    /** Helper record to hold structured session confirmation initiation response data. */
+    public record SessionConfirmationResponse(String confirmationCode, String confirmationUri, int expiresIn, int interval) {}
+
+    /** Enum to represent the status of a polling request. */
+    public enum PollStatus { SUCCESS, PENDING, ERROR, CANCELLED, CONFIRMED }
+
+    /** Helper record to hold the structured response from a polling request. */
+    public record PollResponse(PollStatus status, LoginResponse loginResponse, String errorMessage) {}
+
+    /** Helper record to hold the structured response from a session status polling request. */
+    public record SessionPollResponse(PollStatus status, String username, String errorMessage) {}
+
+
     /** Singleton instance of the class. */
     private static ApiClient instance;
+
 
     /**
      * Private constructor to prevent instantiation.
@@ -35,10 +58,229 @@ public class ApiClient {
     }
 
     /**
+     * Initiates the device authentication flow by requesting a code from the backend.
+     * @return A DeviceAuthResponse object on success.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public DeviceAuthResponse initiateDeviceAuth() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/device/initiate"))
+                .POST(HttpRequest.BodyPublishers.noBody()) // No body needed for this request
+                .build();
+
+        Core.getLogger().info("Initiating device authentication flow...");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Device auth initiation failed with status code: " + response.statusCode());
+            throw new IOException("Device auth initiation failed: " + response.body());
+        }
+
+        Core.getLogger().info("Device auth initiated. Parsing response...");
+        String responseBody = response.body();
+
+        // Manual JSON parsing using existing helpers
+        String deviceCode = parseJsonField(responseBody, "deviceCode");
+        String userCode = parseJsonField(responseBody, "userCode");
+        String verificationUri = parseJsonField(responseBody, "verificationUri");
+        int expiresIn = Integer.parseInt(parseJsonField(responseBody, "expiresIn"));
+        int interval = Integer.parseInt(parseJsonField(responseBody, "interval"));
+
+        return new DeviceAuthResponse(deviceCode, userCode, verificationUri, expiresIn, interval);
+    }
+
+    /**
+     * Initiates the session confirmation flow by requesting a confirmation code from the backend.
+     * Requires an already logged-in user's token.
+     * @param token The user's JWT.
+     * @return A SessionConfirmationResponse object on success.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public SessionConfirmationResponse initiateSessionConfirmation(String token) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/initiate"))
+                .header("Authorization", "Bearer " + token)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        Core.getLogger().info("Initiating session confirmation flow...");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Session confirmation initiation failed with status code: " + response.statusCode());
+            throw new IOException("Session confirmation initiation failed: " + response.body());
+        }
+
+        Core.getLogger().info("Session confirmation initiated. Parsing response...");
+        String responseBody = response.body();
+
+        String confirmationCode = parseJsonField(responseBody, "confirmationCode");
+        String confirmationUri = parseJsonField(responseBody, "confirmationUri");
+        int expiresIn = Integer.parseInt(parseJsonField(responseBody, "expiresIn"));
+        int interval = Integer.parseInt(parseJsonField(responseBody, "interval"));
+
+        return new SessionConfirmationResponse(confirmationCode, confirmationUri, expiresIn, interval);
+    }
+
+    /**
+     * Polls the backend to check the status of a device authentication flow.
+     * @param deviceCode The device code to check.
+     * @return A PollResponse object indicating the status.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public PollResponse pollForToken(String deviceCode) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"deviceCode\": \"" + deviceCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/device/token"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+        
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        switch (response.statusCode()) {
+            case 200:
+                // Success case
+                Core.getLogger().info("Polling successful. Token received.");
+                String responseBody = response.body();
+                String token = parseJsonField(responseBody, "token");
+                String userJson = parseJsonObject(responseBody, "user");
+                int userId = Integer.parseInt(parseJsonField(userJson, "id"));
+                String parsedUsername = parseJsonField(userJson, "username");
+                LoginResponse loginResponse = new LoginResponse(token, userId, parsedUsername);
+                return new PollResponse(PollStatus.SUCCESS, loginResponse, null);
+                
+            case 202:
+                // Pending case
+                Core.getLogger().info("Polling: Authorization pending...");
+                return new PollResponse(PollStatus.PENDING, null, null);
+                
+            default:
+                // Error case
+                Core.getLogger().severe("Polling failed with status code: " + response.statusCode());
+                String errorMessage = parseJsonField(response.body(), "error");
+                if (errorMessage == null) {
+                    errorMessage = "Polling failed with status: " + response.statusCode();
+                }
+                return new PollResponse(PollStatus.ERROR, null, errorMessage);
+        }
+    }
+
+    /**
+     * Polls the backend to check the status of a session confirmation flow.
+     * @param confirmationCode The confirmation code to check.
+     * @return A SessionPollResponse object indicating the status.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public SessionPollResponse pollSessionStatus(String confirmationCode) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"confirmationCode\": \"" + confirmationCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/status"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+        
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        String responseBody = response.body();
+        String statusString = parseJsonField(responseBody, "status");
+        String username = parseJsonField(responseBody, "username");
+
+        if (response.statusCode() == 200 && statusString != null) {
+            switch (statusString) {
+                case "pending":
+                    Core.getLogger().info("Session polling: Authorization pending...");
+                    return new SessionPollResponse(PollStatus.PENDING, username, null);
+                case "confirmed":
+                    Core.getLogger().info("Session polling: Confirmed.");
+                    return new SessionPollResponse(PollStatus.CONFIRMED, username, null);
+                case "cancelled":
+                    Core.getLogger().info("Session polling: Cancelled.");
+                    return new SessionPollResponse(PollStatus.CANCELLED, username, "Session cancelled by user.");
+                default:
+                    Core.getLogger().severe("Session polling failed with unknown status: " + statusString);
+                    return new SessionPollResponse(PollStatus.ERROR, username, "Unknown status received.");
+            }
+        } else {
+            Core.getLogger().severe("Session polling failed with status code: " + response.statusCode());
+            String errorMessage = parseJsonField(response.body(), "error");
+            if (errorMessage == null) {
+                errorMessage = "Session polling failed with status: " + response.statusCode();
+            }
+            return new SessionPollResponse(PollStatus.ERROR, username, errorMessage);
+        }
+    }
+
+    /**
+     * Sends a request to confirm the session on the backend.
+     * @param confirmationCode The code to confirm.
+     * @param token The user's JWT for authorization.
+     * @throws IOException if the request fails or unauthorized.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public void confirmSession(String confirmationCode, String token) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"confirmationCode\": \"" + confirmationCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/confirm"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Sending session confirmation for code: " + confirmationCode);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Session confirmation failed with status code: " + response.statusCode());
+            throw new IOException("Session confirmation failed: " + response.body());
+        }
+        Core.getLogger().info("Session confirmed successfully.");
+    }
+
+    /**
+     * Sends a request to cancel the session on the backend.
+     * @param confirmationCode The code to cancel.
+     * @param token The user's JWT for authorization.
+     * @throws IOException if the request fails or unauthorized.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public void cancelSession(String confirmationCode, String token) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"confirmationCode\": \"" + confirmationCode + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/session/cancel"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Sending session cancellation for code: " + confirmationCode);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Session cancellation failed with status code: " + response.statusCode());
+            throw new IOException("Session cancellation failed: " + response.body());
+        }
+        Core.getLogger().info("Session cancelled successfully.");
+    }
+
+    /**
      * Performs a real login request to the backend API.
      * @param username The user's username.
      * @param password The user's password.
-     * @return A LoginResponse object on success.
+     * @return a LoginResponse object on success.
      * @throws IOException if the request fails.
      * @throws InterruptedException if the request is interrupted.
      */
@@ -47,7 +289,7 @@ public class ApiClient {
         String jsonPayload = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/api/login"))
+                .uri(URI.create(API_BASE_URL + "/auth/login"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
@@ -73,6 +315,47 @@ public class ApiClient {
     }
 
     /**
+     * Validates the current authentication token by making a request to a protected endpoint.
+     * If the token is invalid (401/403), the session will be invalidated.
+     *
+     * @return A CompletableFuture that resolves to true if the token is valid, false otherwise.
+     */
+    public CompletableFuture<Boolean> validateToken() {
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isLoggedIn()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/users/" + userId))
+                .header("Authorization", "Bearer " + token)
+                .GET()
+                .build();
+
+        Core.getLogger().info("Validating token for user " + userId);
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() == 200) {
+                        Core.getLogger().info("Token is valid.");
+                        return true;
+                    } else {
+                        Core.getLogger().warning("Token validation failed with status: " + response.statusCode());
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        }
+                        return false;
+                    }
+                }).exceptionally(e -> {
+                    Core.getLogger().severe("Exception during token validation: " + e.getMessage());
+                    return false;
+                });
+    }
+
+    /**
      * Saves the score by making a PUT request to the backend.
      * @param score The score to save.
      */
@@ -83,14 +366,21 @@ public class ApiClient {
             return;
         }
         int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        if (token == null || token.isEmpty()) {
+            Core.getLogger().severe("Cannot save score: Auth token is missing.");
+            return;
+        }
 
         try {
             HttpClient client = HttpClient.newHttpClient();
             String jsonPayload = "{\"score\": " + score + "}";
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/users/" + userId + "/score"))
+                    .uri(URI.create(API_BASE_URL + "/users/" + userId + "/score"))
                     .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
                     .PUT(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
 
@@ -99,6 +389,13 @@ public class ApiClient {
                     .thenAccept(response -> {
                         Core.getLogger().info("Save score response status code: " + response.statusCode());
                         Core.getLogger().info("Save score response body: " + response.body());
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        } else if (response.statusCode() != 200) {
+                            Core.getLogger().severe("Failed to save score. Status: " + response.statusCode() + ", Body: " + response.body());
+                        } else {
+                            Core.getLogger().info("Score " + score + " successfully saved to database for user " + userId);
+                        }
                     }).exceptionally(e -> {
                         Core.getLogger().severe("Failed to save score: " + e.getMessage());
                         return null;
@@ -106,6 +403,57 @@ public class ApiClient {
 
         } catch (Exception e) {
             Core.getLogger().severe("Exception while trying to save score: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Unlocks an achievement by making a POST request to the backend.
+     * @param achievementName The name of the achievement to unlock.
+     */
+    public void unlockAchievement(String achievementName) {
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isLoggedIn()) {
+            Core.getLogger().warning("Cannot unlock achievement: User is not logged in.");
+            return;
+        }
+        int userId = authManager.getUserId();
+        String token = authManager.getToken();
+
+        if (token == null || token.isEmpty()) {
+            Core.getLogger().severe("Cannot unlock achievement: Auth token is missing.");
+            return;
+        }
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String jsonPayload = "{\"achievement_name\": \"" + achievementName.replace("\"", "\\\"") + "\"}";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(API_BASE_URL + "/users/" + userId + "/achievements"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            Core.getLogger().info("Unlocking achievement \"" + achievementName + "\" for user " + userId);
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenAccept(response -> {
+                        Core.getLogger().info("Unlock achievement response status code: " + response.statusCode());
+                        Core.getLogger().info("Unlock achievement response body: " + response.body());
+                        if (response.statusCode() == 401 || response.statusCode() == 403) {
+                            AuthManager.getInstance().invalidateSession();
+                        } else if (response.statusCode() != 200) {
+                            Core.getLogger().severe("Failed to unlock achievement. Status: " + response.statusCode() + ", Body: " + response.body());
+                        } else {
+                            Core.getLogger().info("Achievement \"" + achievementName + "\" successfully unlocked for user " + userId);
+                        }
+                    }).exceptionally(e -> {
+                        Core.getLogger().severe("Failed to unlock achievement: " + e.getMessage());
+                        return null;
+                    });
+
+        } catch (Exception e) {
+            Core.getLogger().severe("Exception while trying to unlock achievement: " + e.getMessage());
         }
     }
 
@@ -125,12 +473,95 @@ public class ApiClient {
      * @param password The password for the new account.
      * @throws IOException if the username is already taken.
      */
-    public void register(String username, String password) throws IOException {
-        Core.getLogger().info("[Mock API] Attempting to register user: " + username);
-        if ("test".equals(username)) {
-            throw new IOException("Username 'test' is already taken.");
+    public void register(String username, String password) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        String jsonPayload = "{\"username\": \"" + username.replace("\"", "\\\"") + "\", " +
+                             "\"password\": \"" + password.replace("\"", "\\\"") + "\"}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/auth/register"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        Core.getLogger().info("Attempting to register user: " + username);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 201) {
+            Core.getLogger().severe("Registration failed with status code: " + response.statusCode() + ", Body: " + response.body());
+            String errorMessage = parseJsonField(response.body(), "error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                throw new IOException(errorMessage);
+            }
+            throw new IOException("Registration failed with status: " + response.statusCode());
         }
-        Core.getLogger().info("[Mock API] Registration successful for user: " + username);
+
+        Core.getLogger().info("Registration successful for user: " + username);
+    }
+
+    /**
+     * Fetches the global high scores from the backend.
+     * @return A list of Score objects representing the leaderboard.
+     * @throws IOException if the request fails.
+     * @throws InterruptedException if the request is interrupted.
+     */
+    public List<Score> getHighScores() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_BASE_URL + "/scores"))
+                .GET()
+                .build();
+
+        Core.getLogger().info("Requesting high scores from backend.");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            Core.getLogger().severe("Failed to fetch high scores with status code: " + response.statusCode());
+            throw new IOException("Failed to fetch high scores: " + response.body());
+        }
+
+        String responseBody = response.body();
+        return parseScoreList(responseBody);
+    }
+
+    /**
+     * A very basic and brittle parser for a list of score objects from a JSON array.
+     * Assumes a format like: [{"username":"x","score":X},{"username":"y","score":Y}]
+     * @param jsonArray The JSON string representing the array of scores.
+     * @return A List of Score objects.
+     */
+    private List<Score> parseScoreList(String jsonArray) {
+        List<Score> scores = new ArrayList<>();
+
+        if (jsonArray == null || jsonArray.trim().isEmpty() || !jsonArray.startsWith("[") || !jsonArray.endsWith("]")) {
+            Core.getLogger().warning("Invalid JSON array for scores: " + jsonArray);
+            return scores;
+        }
+
+        String innerContent = jsonArray.substring(1, jsonArray.length() - 1); // Remove outer []
+        if (innerContent.isEmpty()) { // Handle empty array
+            return scores;
+        }
+
+        // Split by "},{" to get individual score objects as strings
+        String[] scoreStrings = innerContent.split("\\},\\{");
+
+        for (String scoreStr : scoreStrings) {
+            // Reconstruct a valid JSON object string for parsing
+            String fullScoreObject = "{" + scoreStr + "}";
+            String username = parseJsonField(fullScoreObject, "username");
+            String scoreValue = parseJsonField(fullScoreObject, "score");
+            
+            if (username != null && scoreValue != null) {
+                try {
+                    scores.add(new Score(username, Integer.parseInt(scoreValue.trim())));
+                } catch (NumberFormatException e) {
+                    Core.getLogger().warning("Failed to parse score value: " + scoreValue + " from JSON object: " + fullScoreObject);
+                }
+            }
+        }
+        return scores;
     }
 
     /**
