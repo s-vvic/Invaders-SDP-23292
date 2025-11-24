@@ -1016,4 +1016,27 @@ public final class DrawManager {
     	backBufferGraphics.setColor(Color.GRAY);
     	drawCenteredRegularString(screen, instructionsString, screen.getHeight() - 80);
 	}
+    public void drawFilledRectangle(int x, int y, int width, int height, Color color) {
+        backBufferGraphics.setColor(color);
+        backBufferGraphics.fillRect(x, y, width, height);
+    }
+    public void drawCenteredText(final Screen screen, final String text,
+                                 final int centerX, final int centerY,
+                                 final int fontSize, final Color color) {
+
+        Font oldFont = backBufferGraphics.getFont();
+        Font newFont = fontRegular.deriveFont((float)fontSize);
+
+        backBufferGraphics.setFont(newFont);
+        FontMetrics metrics = backBufferGraphics.getFontMetrics();
+
+        int x = centerX - metrics.stringWidth(text) / 2;
+        int y = centerY + metrics.getAscent() / 2;
+
+        backBufferGraphics.setColor(color);
+        backBufferGraphics.drawString(text, x, y);
+
+        backBufferGraphics.setFont(oldFont);
+    }
+
 }
