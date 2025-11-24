@@ -21,6 +21,7 @@ import screen.TitleScreen;
 import screen.RegisterScreen;
 import screen.LoginScreen;
 import screen.ConfirmSessionScreen; // Import the new screen
+import screen.WebpageScreen;
 import screen.TransitionScreen;
 import screen.GameOverScreen;
 import java.awt.image.BufferedImage;
@@ -197,6 +198,12 @@ public final class Core {
                     LOGGER.info("Starting transition screen to 1P game.");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing transition screen.");
+                    break;
+                case 14: // WebpageScreen
+                    currentScreen = new WebpageScreen(width, height, FPS);
+                    LOGGER.info("Starting Webpage screen.");
+                    returnCode = frame.setScreen(currentScreen);
+                    LOGGER.info("Closing Webpage screen.");
                     break;
                 case 10: // 1 Player
                     do {

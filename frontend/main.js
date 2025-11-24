@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- API Configuration ---
-    const API_BASE_URL = 'http://localhost:8080/api';
+    const API_BASE_URL = '/api';
     const USE_MOCK_API = false; // Set to false to use real API
 
     // --- Loading & Error Handling Utilities ---

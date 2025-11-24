@@ -46,6 +46,7 @@ if (missingEnv.length > 0) {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Add this line to trust the proxy
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -66,7 +67,8 @@ const defaultOrigins = [
     'http://localhost:4173',
     'http://localhost:5173',
     'http://localhost:8080',
-    'http://localhost:8080/'
+    'http://localhost:8080/',
+    'https://cleveland-unbrittle-pseudoaesthetically.ngrok-free.dev'
 ];
 
 const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -95,7 +97,10 @@ app.use(limiter);
 
 
 
+
+
 app.use(morgan('dev'));
+
 
 
 
@@ -122,25 +127,6 @@ app.get('/', function(req,res) {
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/scores', scoreRouter);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // Load and use Swagger only if not in a test environment
@@ -175,7 +161,8 @@ if (require.main === module) {
                     const PORT = process.env.PORT || 8080;
                     app.listen(PORT, () => {
                         console.log(`Server listening on port ${PORT}`);
-                    });    });
+                    });
+    });
 }
 
 module.exports = { app };
