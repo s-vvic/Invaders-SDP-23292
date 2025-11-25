@@ -1,347 +1,271 @@
 package engine;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import entity.Ship;
 import entity.ShopItem;
 import entity.DropItem;
+import screen.GameScreen;
 import screen.Screen;
+import engine.DisplayableItem;
 
 /**
- * Manages the display of items in the HUD.
- * 
- * Features:
- * - 5 fixed squares for shop items (MultiShot, RapidFire, Penetration, BulletSpeed, ShipSpeed)
- * - 6 dynamic squares for dropped items (Explode, Slow, Stop, Push, Shield, Heal)
- * 
- * @author Team 8 - HUD Implementation
+ * Manages the display of items in the HUD, including tooltips and visual effects.
+ * It handles both permanent shop upgrades and temporary dropped items in a unified way.
+ *
+ * @author Team 8 - HUD Implementation (Refactored)
  */
 public class ItemHUDManager {
-    
+
     /** Singleton instance */
     private static ItemHUDManager instance;
-    
-    /** Size of each item square */
+
     private static final int ITEM_SQUARE_SIZE = 20;
-    
-    /** Spacing between squares */
     private static final int SQUARE_SPACING = 3;
-    
-    /** Y position for fixed shop items (bottom row) */
-    private static final int FIXED_ITEMS_Y = 450;
-    
-    /** Y position for dynamic dropped items (top row) */
-    private static final int DYNAMIC_ITEMS_Y = 420;
-    
-    /** X position to start drawing items (right side) */
+    private static final int PERMANENT_ITEMS_Y = 450;
+    private static final int ACTIVE_ITEMS_Y = 420;
     private int startX;
-    
-    /** Currently active dropped items */
-    private List<DroppedItemInfo> activeDroppedItems;
-    
-    /** Maximum number of dynamic items that can be displayed */
+
+    private final List<ActiveItemInfo> activeItems;
+    private final List<DisplayableItem> permanentItems;
+    private DisplayableItem hoveredItem = null;
+    private final List<Rectangle> itemRects = new ArrayList<>();
+    private final List<DisplayableItem> rectItems = new ArrayList<>();
+
+    /** Timers for the item activation "flash" effect, in frames. */
+    private final HashMap<DisplayableItem, Integer> flashTimers = new HashMap<>();
+    private static final int FLASH_DURATION_FRAMES = 30; // Approx 0.5 seconds at 60fps
+
     private static final int MAX_DYNAMIC_ITEMS = 6;
-    
-    /** Duration to show dropped items (in milliseconds) */
     private static final long DROPPED_ITEM_DISPLAY_DURATION = 10000; // 10 seconds
-    
-    /**
-     * Information about a dropped item being displayed
-     */
-    private static class DroppedItemInfo {
-        public DropItem.ItemType itemType;
+
+    private static class ActiveItemInfo {
+        public DisplayableItem item;
         public long displayStartTime;
-        
-        public DroppedItemInfo(DropItem.ItemType itemType) {
-            this.itemType = itemType;
+
+        public ActiveItemInfo(DisplayableItem item) {
+            this.item = item;
             this.displayStartTime = System.currentTimeMillis();
         }
-        
+
         public boolean isExpired() {
             return System.currentTimeMillis() - displayStartTime > DROPPED_ITEM_DISPLAY_DURATION;
         }
     }
-    
-    /**
-     * Private constructor for singleton pattern
-     */
+
     private ItemHUDManager() {
-        this.activeDroppedItems = new ArrayList<>();
+        this.activeItems = new ArrayList<>();
+        this.permanentItems = new ArrayList<>();
+        for (ShopItem.ShopUpgrade upgrade : ShopItem.getUpgrades()) {
+            this.permanentItems.add(upgrade);
+        }
     }
-    
-    /**
-     * Get singleton instance
-     */
+
     public static ItemHUDManager getInstance() {
         if (instance == null) {
             instance = new ItemHUDManager();
         }
         return instance;
     }
-    
-    /**
-     * Initialize the HUD manager with screen dimensions
-     */
+
     public void initialize(Screen screen) {
-        // Calculate starting X position to align items to the right
-        int totalFixedWidth = 5 * ITEM_SQUARE_SIZE + 4 * SQUARE_SPACING;
-        this.startX = screen.getWidth() - totalFixedWidth - 20; // 20px margin from right edge
+        int totalFixedWidth = permanentItems.size() * ITEM_SQUARE_SIZE + (permanentItems.size() - 1) * SQUARE_SPACING;
+        this.startX = screen.getWidth() - totalFixedWidth - 20;
     }
-    
-    /**
-     * Add a dropped item to be displayed
-     */
-    public void addDroppedItem(DropItem.ItemType itemType) {
-        // Remove expired items first
+
+    public void addActiveItem(DisplayableItem item) {
         cleanupExpiredItems();
-        
-        // If we have space, add the new item
-        if (activeDroppedItems.size() < MAX_DYNAMIC_ITEMS) {
-            activeDroppedItems.add(new DroppedItemInfo(itemType));
+        if (activeItems.size() < MAX_DYNAMIC_ITEMS) {
+            activeItems.add(new ActiveItemInfo(item));
         } else {
-            // Replace the oldest item
-            activeDroppedItems.remove(0);
-            activeDroppedItems.add(new DroppedItemInfo(itemType));
+            activeItems.remove(0);
+            activeItems.add(new ActiveItemInfo(item));
         }
     }
-    
-    /**
-     * Remove expired dropped items
-     */
+
     private void cleanupExpiredItems() {
-        activeDroppedItems.removeIf(DroppedItemInfo::isExpired);
+        activeItems.removeIf(ActiveItemInfo::isExpired);
     }
-    
+
     /**
-     * Draw all items on the HUD
+     * Triggers a visual flash effect on a specific item in the HUD.
+     * @param item The item to flash.
      */
+    public void triggerFlash(DisplayableItem item) {
+        flashTimers.put(item, FLASH_DURATION_FRAMES);
+    }
+
+    public void update(int mouseX, int mouseY) {
+        // Update hover state
+        this.hoveredItem = null;
+        for (int i = 0; i < itemRects.size(); i++) {
+            if (itemRects.get(i).contains(mouseX, mouseY)) {
+                this.hoveredItem = rectItems.get(i);
+                break;
+            }
+        }
+
+        // Update flash timers
+        if (!flashTimers.isEmpty()) {
+            List<DisplayableItem> toRemove = new ArrayList<>();
+            for (Map.Entry<DisplayableItem, Integer> entry : flashTimers.entrySet()) {
+                int newTime = entry.getValue() - 1;
+                if (newTime <= 0) {
+                    toRemove.add(entry.getKey());
+                } else {
+                    flashTimers.put(entry.getKey(), newTime);
+                }
+            }
+            toRemove.forEach(flashTimers::remove);
+        }
+    }
+
     public void drawItems(Screen screen, Graphics graphics) {
         cleanupExpiredItems();
-        
-        // Draw fixed shop items (bottom row)
-        drawFixedShopItems(screen, graphics);
-        
-        // Draw dynamic dropped items (top row)
-        drawDynamicDroppedItems(screen, graphics);
-    }
-    
-    /**
-     * Draw the 5 fixed shop items
-     */
-    private void drawFixedShopItems(Screen screen, Graphics graphics) {
+        itemRects.clear();
+        rectItems.clear();
+
         int x = startX;
-        int y = FIXED_ITEMS_Y;
-        
-        // Shop items in order: MultiShot, RapidFire, Penetration, BulletSpeed, ShipSpeed
-        ShopItemType[] shopItems = {
-            ShopItemType.MULTI_SHOT,
-            ShopItemType.RAPID_FIRE,
-            ShopItemType.PENETRATION,
-            ShopItemType.BULLET_SPEED,
-            ShopItemType.SHIP_SPEED
-        };
-        
-        for (ShopItemType itemType : shopItems) {
-            drawShopItemSquare(screen, graphics, x, y, itemType);
+        for (DisplayableItem item : permanentItems) {
+            drawItemSquare(screen, graphics, x, PERMANENT_ITEMS_Y, item);
+            Rectangle rect = new Rectangle(x, PERMANENT_ITEMS_Y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
+            itemRects.add(rect);
+            rectItems.add(item);
             x += ITEM_SQUARE_SIZE + SQUARE_SPACING;
         }
-    }
-    
-    /**
-     * Draw the 6 dynamic dropped items
-     */
-    private void drawDynamicDroppedItems(Screen screen, Graphics graphics) {
-        int x = startX;
-        int y = DYNAMIC_ITEMS_Y;
-        
-        // Draw up to 6 dynamic items
+
+        x = startX;
         for (int i = 0; i < MAX_DYNAMIC_ITEMS; i++) {
-            if (i < activeDroppedItems.size()) {
-                DroppedItemInfo itemInfo = activeDroppedItems.get(i);
-                drawDroppedItemSquare(screen, graphics, x, y, itemInfo.itemType);
+            int currentX = x + i * (ITEM_SQUARE_SIZE + SQUARE_SPACING);
+            if (i < activeItems.size()) {
+                ActiveItemInfo itemInfo = activeItems.get(i);
+                drawItemSquare(screen, graphics, currentX, ACTIVE_ITEMS_Y, itemInfo.item);
+                Rectangle rect = new Rectangle(currentX, ACTIVE_ITEMS_Y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
+                itemRects.add(rect);
+                rectItems.add(itemInfo.item);
             } else {
-                // Draw empty square
-                drawEmptySquare(screen, graphics, x, y);
+                drawEmptySquare(graphics, currentX, ACTIVE_ITEMS_Y);
             }
-            x += ITEM_SQUARE_SIZE + SQUARE_SPACING;
+        }
+
+        if (this.hoveredItem != null) {
+            drawTooltip(graphics, this.hoveredItem, InputManager.getMouseX(), InputManager.getMouseY());
         }
     }
-    
-    /**
-     * Draw a shop item square
-     */
-    private void drawShopItemSquare(Screen screen, Graphics graphics, int x, int y, ShopItemType itemType) {
-        boolean isActive = isShopItemActive(itemType);
-        int level = getShopItemLevel(itemType);
-        
-        // Draw square background
-        Color bgColor = isActive ? Color.GREEN : Color.DARK_GRAY;
-        graphics.setColor(bgColor);
+
+    private void drawItemSquare(Screen screen, Graphics graphics, int x, int y, DisplayableItem item) {
+        int level = 0;
+        boolean isActive = false;
+
+        if (item instanceof ShopItem.ShopUpgrade) {
+            ShopItem.ShopUpgrade upgrade = (ShopItem.ShopUpgrade) item;
+            switch (upgrade) {
+                case MULTI_SHOT: level = ShopItem.getMultiShotLevel(); break;
+                case RAPID_FIRE: level = ShopItem.getRapidFireLevel(); break;
+                case PENETRATION: level = ShopItem.getPenetrationLevel(); break;
+                case BULLET_SPEED: level = ShopItem.getBulletSpeedLevel(); break;
+                case SHIP_SPEED: level = ShopItem.getSHIPSpeedCOUNT(); break;
+            }
+            isActive = level > 0;
+        } else if (item instanceof DropItem.ItemType) {
+            isActive = true;
+        }
+
+        graphics.setColor(isActive ? new Color(0, 0, 0, 150) : new Color(0, 0, 0, 200));
         graphics.fillRect(x, y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
-        
-        // Draw border
-        graphics.setColor(Color.WHITE);
+
+        // Draw item icon
+        DrawManager.SpriteType spriteType = item.getSpriteType();
+        if (spriteType != null && (isActive || item instanceof ShopItem.ShopUpgrade)) {
+            // The sprite itself is 5x5, but drawn with 2x pixels, so it's 10x10.
+            // Center it in the 20x20 square.
+            DrawManager.getInstance().drawSprite(spriteType, x + 5, y + 5, Color.WHITE);
+        }
+
+        // Cooldown VFX
+        if (item == DropItem.ItemType.Shield && screen instanceof GameScreen) {
+            Ship ship = ((GameScreen) screen).getShip();
+            if (ship != null && ship.isInvincible()) {
+                Cooldown shieldCooldown = ship.getShieldCooldown();
+                int totalDuration = shieldCooldown.getDuration();
+                long remaining = shieldCooldown.getRemainingMilliseconds();
+                double percent = (totalDuration > 0) ? (double)remaining / (double)totalDuration : 0;
+
+                Graphics2D g2d = (Graphics2D) graphics.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setColor(new Color(100, 100, 255, 100)); // Semi-transparent blue
+                g2d.fillArc(x, y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE, 90, (int)(360.0 * (1.0 - percent)));
+                g2d.dispose();
+            }
+        }
+
+        // Border and Flash VFX
+        if (flashTimers.containsKey(item)) {
+            graphics.setColor(Color.WHITE); // Bright white flash
+        } else {
+            graphics.setColor(isActive ? item.getRarity().getColor() : Color.DARK_GRAY);
+        }
         graphics.drawRect(x, y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
-        
-        // Draw item icon/letter
-        graphics.setColor(Color.WHITE);
-        String itemLetter = getShopItemLetter(itemType);
-        graphics.drawString(itemLetter, x + 6, y + 14);
-        
-        // Draw level indicator
-        if (level > 0) {
+
+        if (level > 0 && item instanceof ShopItem.ShopUpgrade) {
             graphics.setColor(Color.YELLOW);
             graphics.drawString(String.valueOf(level), x + ITEM_SQUARE_SIZE - 6, y + ITEM_SQUARE_SIZE - 3);
         }
     }
-    
-    /**
-     * Draw a dropped item square
-     */
-    private void drawDroppedItemSquare(Screen screen, Graphics graphics, int x, int y, DropItem.ItemType itemType) {
-        // Draw square background
-        Color bgColor = getDroppedItemColor(itemType);
-        graphics.setColor(bgColor);
+
+    private void drawEmptySquare(Graphics graphics, int x, int y) {
+        graphics.setColor(new Color(0, 0, 0, 100));
         graphics.fillRect(x, y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
-        
-        // Draw border
-        graphics.setColor(Color.WHITE);
-        graphics.drawRect(x, y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
-        
-        // Draw item icon/letter
-        graphics.setColor(Color.WHITE);
-        String itemLetter = getDroppedItemLetter(itemType);
-        graphics.drawString(itemLetter, x + 6, y + 14);
-    }
-    
-    /**
-     * Draw an empty square
-     */
-    private void drawEmptySquare(Screen screen, Graphics graphics, int x, int y) {
-        // Draw empty square background
-        graphics.setColor(Color.BLACK);
-        graphics.fillRect(x, y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
-        
-        // Draw border
         graphics.setColor(Color.GRAY);
         graphics.drawRect(x, y, ITEM_SQUARE_SIZE, ITEM_SQUARE_SIZE);
     }
-    
-    /**
-     * Check if a shop item is active
-     */
-    private boolean isShopItemActive(ShopItemType itemType) {
-        switch (itemType) {
-            case MULTI_SHOT:
-                return ShopItem.isMultiShotActive();
-            case RAPID_FIRE:
-                return ShopItem.getRapidFireLevel() > 0;
-            case PENETRATION:
-                return ShopItem.isPenetrationActive();
-            case BULLET_SPEED:
-                return ShopItem.getBulletSpeedLevel() > 0;
-            case SHIP_SPEED:
-                return ShopItem.getSHIPSpeedCOUNT() > 0;
-            default:
-                return false;
+
+    private void drawTooltip(Graphics g, DisplayableItem item, int mouseX, int mouseY) {
+        Font nameFont = new Font("SansSerif", Font.BOLD, 14);
+        Font descFont = new Font("SansSerif", Font.PLAIN, 12);
+        FontMetrics nameMetrics = g.getFontMetrics(nameFont);
+        FontMetrics descMetrics = g.getFontMetrics(descFont);
+
+        String name = item.getDisplayName();
+        String desc = item.getDescription();
+
+        int nameWidth = nameMetrics.stringWidth(name);
+        int descWidth = descMetrics.stringWidth(desc);
+        int width = Math.max(nameWidth, descWidth) + 20;
+        int height = nameMetrics.getHeight() + descMetrics.getHeight() + 20;
+
+        int x = mouseX + 15;
+        int y = mouseY;
+
+        if (x + width > 448) {
+            x = mouseX - width - 15;
         }
-    }
-    
-    /**
-     * Get the level of a shop item
-     */
-    private int getShopItemLevel(ShopItemType itemType) {
-        switch (itemType) {
-            case MULTI_SHOT:
-                return ShopItem.getMultiShotLevel();
-            case RAPID_FIRE:
-                return ShopItem.getRapidFireLevel();
-            case PENETRATION:
-                return ShopItem.getPenetrationLevel();
-            case BULLET_SPEED:
-                return ShopItem.getBulletSpeedLevel();
-            case SHIP_SPEED:
-                return ShopItem.getSHIPSpeedCOUNT();
-            default:
-                return 0;
+        if (y + height > 512) {
+            y = mouseY - height;
         }
+
+        g.setColor(new Color(0, 0, 0, 200));
+        g.fillRect(x, y, width, height);
+
+        g.setColor(item.getRarity().getColor());
+        g.drawRect(x, y, width, height);
+
+        g.setFont(nameFont);
+        g.setColor(item.getRarity().getColor());
+        g.drawString(name, x + 10, y + 10 + nameMetrics.getAscent());
+
+        g.setFont(descFont);
+        g.setColor(Color.WHITE);
+        g.drawString(desc, x + 10, y + 20 + nameMetrics.getHeight() + descMetrics.getAscent());
     }
-    
-    /**
-     * Get the letter to display for a shop item
-     */
-    private String getShopItemLetter(ShopItemType itemType) {
-        switch (itemType) {
-            case MULTI_SHOT:
-                return "M";
-            case RAPID_FIRE:
-                return "R";
-            case PENETRATION:
-                return "P";
-            case BULLET_SPEED:
-                return "B";
-            case SHIP_SPEED:
-                return "S";
-            default:
-                return "?";
-        }
-    }
-    
-    /**
-     * Get the letter to display for a dropped item
-     */
-    private String getDroppedItemLetter(DropItem.ItemType itemType) {
-        switch (itemType) {
-            case Explode:
-                return "E";
-            case Slow:
-                return "L";
-            case Stop:
-                return "T";
-            case Push:
-                return "U";
-            case Shield:
-                return "H";
-            case Heal:
-                return "A";
-            default:
-                return "?";
-        }
-    }
-    
-    /**
-     * Get the color for a dropped item
-     */
-    private Color getDroppedItemColor(DropItem.ItemType itemType) {
-        switch (itemType) {
-            case Explode:
-                return Color.RED;
-            case Slow:
-                return Color.BLUE;
-            case Stop:
-                return Color.BLUE;
-            case Push:
-                return Color.BLUE;
-            case Shield:
-                return Color.CYAN;
-            case Heal:
-                return Color.GREEN;
-            default:
-                return Color.GRAY;
-        }
-    }
-    
-    /**
-     * Enum for shop item types
-     */
-    private enum ShopItemType {
-        MULTI_SHOT,
-        RAPID_FIRE,
-        PENETRATION,
-        BULLET_SPEED,
-        SHIP_SPEED
-    }
-    
 }

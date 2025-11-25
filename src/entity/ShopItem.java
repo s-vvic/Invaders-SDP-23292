@@ -1,15 +1,60 @@
 package entity;
 
+import engine.DisplayableItem;
+import engine.DrawManager;
+import engine.ItemRarity;
+import engine.DrawManager.SpriteType;
+
 /**
  * Manages the in-game item (enhancement) system.
- * This is a temporary implementation focusing on functionality.
- *
- * Currently implemented: MultiShot, Rapid Fire, Penetration
- *
- * Example usage:
- * DropItem.setMultiShotLevel(2);  // Purchase level 2 in the shop
+ * This class holds the state (levels) of permanent upgrades purchased by the player.
+ * It also defines the static properties of those upgrades via the nested ShopUpgrade enum.
  */
 public class ShopItem {
+
+    /**
+     * Defines the static properties of all permanent shop upgrades.
+     * Implements DisplayableItem to be compatible with the HUD and tooltips.
+     */
+    public enum ShopUpgrade implements DisplayableItem {
+        MULTI_SHOT("멀티샷", "한 번에 여러 발의 총알을 발사합니다.", ItemRarity.EPIC, SpriteType.Item_Push),
+        RAPID_FIRE("연사 속도", "총알 발사 간격이 짧아집니다.", ItemRarity.RARE, SpriteType.Item_Slow),
+        PENETRATION("관통탄", "총알이 적을 관통하여 여러 적을 맞출 수 있습니다.", ItemRarity.EPIC, SpriteType.Item_Shield),
+        SHIP_SPEED("기체 속도", "플레이어 기체의 좌우 이동 속도가 증가합니다.", ItemRarity.COMMON, SpriteType.Item_Heal),
+        BULLET_SPEED("탄환 속도", "총알이 더 빠르게 날아갑니다.", ItemRarity.COMMON, SpriteType.Item_Stop);
+
+        private final String displayName;
+        private final String description;
+        private final ItemRarity rarity;
+        private final SpriteType spriteType;
+
+        ShopUpgrade(String displayName, String description, ItemRarity rarity, SpriteType spriteType) {
+            this.displayName = displayName;
+            this.description = description;
+            this.rarity = rarity;
+            this.spriteType = spriteType;
+        }
+
+        @Override
+        public String getDisplayName() { return displayName; }
+
+        @Override
+        public String getDescription() { return description; }
+
+        @Override
+        public SpriteType getSpriteType() { return spriteType; }
+
+        @Override
+        public ItemRarity getRarity() { return rarity; }
+    }
+
+    /**
+     * @return An array of all available shop upgrades.
+     */
+    public static ShopUpgrade[] getUpgrades() {
+        return ShopUpgrade.values();
+    }
+
 
     // ==================== MultiShot DropItem ====================
 
@@ -77,13 +122,6 @@ public class ShopItem {
 
     /** Bullet speed value per level */
     private static final int[] BULLET_SPEED_VALUES = {-6, -8, -10, -12};
-
-    /**
-     * Private constructor - this class should not be instantiated.
-     * It is intended to be used only with static methods.
-     */
-
-
 
     // ==================== MultiShot Methods ====================
 
