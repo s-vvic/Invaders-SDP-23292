@@ -21,22 +21,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 2. .env 파일 시크릿 설정 (이전에 해결했던 환경 변수 문제)
-      # 로컬 .env 파일을 커밋할 수 없으므로, CI에서 테스트용 환경 변수를 Secret으로 주입합니다.
-      - name: Create .env file for Test
-        run: |
-          echo "JWT_SECRET=$'{{ secrets.JWT_SECRET }}'" >> ./backend/.env.test
-          # 필요한 다른 환경 변수가 있다면 여기에 추가합니다.
-         # 🚨 주의: JWT_SECRET은 GitHub Secrets에 등록되어 있어야 합니다.
-
-      # 3. Docker Compose로 컨테이너 빌드 및 테스트 실행
+      # 2. CI 전용 Docker Compose 파일 사용 및 테스트 실행
       - name: Build and Run Tests via Docker Compose
         run: |
-          # 🚨 Docker Compose의 테스트 기능을 사용
-          # -f 옵션으로 docker-compose.yml 파일 경로를 지정합니다.
-          # --build: 이미지를 새로 빌드합니다. (최신 코드 반영)
-          # node-backend: 테스트를 실행할 서비스 이름 (docker-compose.yml의 서비스 이름)
-          docker compose -f docker-compose.yml run --rm backend npm test --no-cache
-        
-        # 🚨 중요: docker-compose.yml 파일이 프로젝트 루트에 있고,
-        # Node.js 서비스 이름이 'backend'여야 위 명령어가 작동합니다.
+          # 🚨 수정: docker-compose.yml 대신 docker-compose.ci.yml 파일을 사용합니다.
+          # JWT_SECRET은 --env 플래그를 통해 직접 컨테이너에 주입합니다.
+          docker compose -f docker-compose.ci.yml run --rm \
+            --env JWT_SECRET="$'{{ secrets.JWT_SECRET }}'" \
+            backend npm test
