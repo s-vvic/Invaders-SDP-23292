@@ -327,18 +327,35 @@ public class GameScreen extends Screen {
      */
     @Override
     protected final void update() {
+
+        // =====================================================
+        // ★ Pause 상태에서 Q 눌러 returnCode = 1 이 되면
+        //   게임 로직이 절대로 더 실행되면 안됨
+        //   → run() 종료 → Core.java로 returnCode=1 전달 → TitleScreen 이동
+        // =====================================================
+        if (this.returnCode == 1) {
+            this.isRunning = false;   // run() 루프 종료
+            return;                   // update 중단
+        }
+
         super.update();
 
-        // ========== 1) 항상 첫 번째로 ESC 입력 처리 ==========
+        // =====================================================
+        // ESC / Pause / Q 처리 (이 안에서 returnCode=1이 될 수 있음)
+        // =====================================================
         handleInput();
 
-        // ========== 2) 일시정지 상태면 게임 로직 중단 + Pause UI 출력 ==========
+        // =====================================================
+        // ★ Pause 화면이면 게임 업데이트 중단 + Pause UI만 렌더링
+        // =====================================================
         if (isPaused) {
             drawPausePopup();
             return;
         }
 
-        // ========== 3) 평상시 게임 업데이트 ==========
+        // =====================================================
+        // 게임 시작 전 카운트다운
+        // =====================================================
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
 
             // 타이머 시작
@@ -346,32 +363,41 @@ public class GameScreen extends Screen {
                 this.gameTimer.start();
             }
 
-            // 플레이어 이동 + 공격 입력 처리
-            // (ESC / Q는 handleInput()에서 이미 처리됨)
-            // 다른 입력 처리 필요 없음
-
-            // 게임 전체 로직 (적, 보스, 총알 등)
+            // =================================================
+            // ★ 실제 게임 진행 로직 (적 이동, 총알 업데이트, 보스 패턴 등)
+            // =================================================
             updateGameLogic();
         }
 
-        // ========== 4) 경과 시간 업데이트 ==========
+        // =====================================================
+        // 경과 시간 업데이트
+        // =====================================================
         if (this.gameTimer.isRunning()) {
             this.elapsedTime = this.gameTimer.getElapsedTime();
-            AchievementManager.getInstance().onTimeElapsedSeconds((int) (this.elapsedTime / 1000));
+            AchievementManager.getInstance()
+                    .onTimeElapsedSeconds((int)(elapsedTime / 1000));
         }
 
-        // ========== 5) 총알 / 아이템 / 충돌 처리 ==========
+        // =====================================================
+        // 총알 / 아이템 정리 + 충돌 처리
+        // =====================================================
         cleanItems();
         manageCollisions();
         ItemHUDManager.getInstance().update(inputManager.getMouseX(), inputManager.getMouseY());
         cleanBullets();
 
-        // ========== 6) 화면 그리기 ==========
+        // =====================================================
+        // 그리기
+        // =====================================================
         draw();
 
-        // ========== 7) 스테이지 종료 / 게임 오버 체크 ==========
+        // =====================================================
+        // 레벨 종료 / 게임오버 처리
+        // (여기서 returnCode가 변경될 수 있음)
+        // =====================================================
         checkGameStatus();
     }
+
 
 
     /**
@@ -1142,6 +1168,17 @@ public class GameScreen extends Screen {
      * Handles player input for both player 1 and player 2.
      * Processes movement and shooting based on keyboard input.
      */
+    /**
+     * Handles player input for both player 1 and player 2.
+     * Processes movement and shooting based on keyboard input.
+     */
+    /**
+     * Handles player input for both player 1 and player 2.
+     * Processes movement and shooting based on keyboard input.
+     */
+    /**
+     * Handles player input for pause, quit, movement, and shooting.
+     */
     private void handleInput() {
 
         // ===== ESC 입력으로 일시정지 토글 =====
@@ -1153,39 +1190,49 @@ public class GameScreen extends Screen {
 
         escPressedLastFrame = escPressed;
 
-        // ===== 일시정지 상태면 추가 입력 막기 =====
+        // ============================
+        //  일시정지 상태(Pause UI)
+        // ============================
         if (isPaused) {
 
-            // Q 눌러서 메인메뉴로 나가기
+            // Q 눌러서 TitleScreen으로 이동
             boolean qPressed = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_Q);
+
             if (qPressed) {
-                this.returnCode = 1;     // TitleScreen(메뉴)로 이동
+                this.returnCode = 1;   // ★ Core.java TitleScreen
                 this.isRunning = false;
             }
 
-            return;
+            return;  // Pause 상태에서 아래 입력은 무시
         }
 
-        // ===== 여기부터 원래 플레이어 입력 =====
+        // ============================
+        //  게임 플레이 입력 처리
+        // ============================
         if (this.lives > 0 && !this.ship.isDestroyed()) {
 
             boolean p1Right = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_D);
-            boolean p1Left = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_A);
-            boolean p1Up = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_W);
-            boolean p1Down = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_S);
-            boolean p1Fire = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_SPACE);
+            boolean p1Left  = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_A);
+            boolean p1Up    = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_W);
+            boolean p1Down  = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_S);
+            boolean p1Fire  = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_SPACE);
 
             boolean isRightBorder = this.ship.getPositionX()
                     + this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
-            boolean isLeftBorder = this.ship.getPositionX() - this.ship.getSpeed() < 1;
-            boolean isUpBorder = this.ship.getPositionY() - this.ship.getSpeed() < SEPARATION_LINE_HEIGHT;
+
+            boolean isLeftBorder = this.ship.getPositionX()
+                    - this.ship.getSpeed() < 1;
+
+            boolean isUpBorder = this.ship.getPositionY()
+                    - this.ship.getSpeed() < SEPARATION_LINE_HEIGHT;
+
             boolean isDownBorder = this.ship.getPositionY()
                     + this.ship.getHeight() + this.ship.getSpeed() > ITEMS_SEPARATION_LINE_HEIGHT;
 
             if (p1Right && !isRightBorder) this.ship.moveRight();
-            if (p1Left && !isLeftBorder) this.ship.moveLeft();
-            if (p1Up && !isUpBorder) this.ship.moveUp();
-            if (p1Down && !isDownBorder) this.ship.moveDown();
+            if (p1Left  && !isLeftBorder ) this.ship.moveLeft();
+            if (p1Up    && !isUpBorder   ) this.ship.moveUp();
+            if (p1Down  && !isDownBorder ) this.ship.moveDown();
 
             if (p1Fire) {
                 if (this.ship.shoot(this.bullets)) {
@@ -1195,6 +1242,9 @@ public class GameScreen extends Screen {
             }
         }
     }
+
+
+
 
     private void drawPausePopup() {
         drawManager.initDrawing(this);
