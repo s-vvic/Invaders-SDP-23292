@@ -19,6 +19,7 @@ services:
       
     # 로컬 코드 실시간 반영 (개발 편의성)
     volumes:
+      # ⬇️ 로컬 소스 코드는 컨테이너에 마운트합니다. (이것만 유지)
       - ./backend:/usr/src/app 
       
     depends_on:
