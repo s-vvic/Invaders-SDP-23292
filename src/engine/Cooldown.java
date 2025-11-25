@@ -90,4 +90,12 @@ public class Cooldown {
 		this.milliseconds = milliseconds;
 		this.duration = milliseconds;
 	}
+
+	/**
+	 * Gets the total duration of the current cooldown cycle.
+	 * @return The total duration in milliseconds.
+	 */
+	public final int getDuration() {
+		return this.duration;
+	}
 }

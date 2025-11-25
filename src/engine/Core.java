@@ -212,14 +212,14 @@ public final class Core {
                                 % EXTRA_LIFE_FRECUENCY == 0
                                 && gameState.getLivesRemaining() < MAX_LIVES;
 
-						// Music for each level
-						SoundManager.stopAll();
-						SoundManager.playLoop("sfx/level" + gameState.getLevel() + ".wav");
+                        // Music for each level
+                        SoundManager.stopAll();
+                        SoundManager.playLoop("sfx/level" + gameState.getLevel() + ".wav");
 
                         engine.level.Level currentLevel = levelManager.getLevel(gameState.getLevel());
 
                         if (currentLevel == null) {
-                          break;
+                            break;
                         }
 
                         // Start a new level
@@ -235,27 +235,49 @@ public final class Core {
 
                         LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
                                 + " game screen at " + FPS + " fps.");
+
+                        // ① GameScreen 실행 → returnCode 받기
                         int gameScreenReturnCode = frame.setScreen(currentScreen);
                         LOGGER.info("Closing game screen.");
+
+                        // ② GameScreen에서 게임오버로 끝났으면 case 99로 이동
                         if (gameScreenReturnCode == 99) {
-                            returnCode = 99; // Set the main loop's return code
-                            break; // Break from the level loop to go to GameOverScreen
+                            returnCode = 99;
+                            break;
                         }
 
-                        gameState = ((GameScreen) currentScreen).getGameState();
-                        if (gameState.getLivesRemaining() > 0) {
-							SoundManager.stopAll();
-							SoundManager.play("sfx/levelup.wav");
+                        // ③ Pause → Q 눌러 TitleScreen(returnCode = 1) 요청 시
+                        // ★ 가장 중요한 부분: ShopScreen 실행 전에 returnCode 체크
+                        if (gameScreenReturnCode == 1) {
+                            returnCode = 1;   // Core 루프에 제목 화면 요청
+                            break;            // ShopScreen 실행 금지
+                        }
 
-							LOGGER.info("Opening shop screen with "
+                        // ④ 다음 레벨 준비용 gameState 업데이트
+                        gameState = ((GameScreen) currentScreen).getGameState();
+
+                        // ⑤ 목숨 있으면 ShopScreen 실행
+                        if (gameState.getLivesRemaining() > 0) {
+
+                            // (중요) Pause → Q로 TitleScreen 요청된 상황이면 ShopScreen bypass
+                            if (gameScreenReturnCode == 1) {
+                                returnCode = 1;
+                                break;
+                            }
+
+                            SoundManager.stopAll();
+                            SoundManager.play("sfx/levelup.wav");
+
+                            LOGGER.info("Opening shop screen with "
                                     + gameState.getCoin() + " coins.");
 
-                            //Launch the ShopScreen (between levels)
+                            // ShopScreen (between levels)
                             currentScreen = new ShopScreen(gameState, width, height, FPS, true);
-
                             frame.setScreen(currentScreen);
+
                             LOGGER.info("Closing shop screen.");
 
+                            // 다음 레벨 준비
                             gameState = new GameState(
                                     gameState.getLevel() + 1,          // Increment level
                                     gameState.getScore(),              // Keep current score
@@ -268,18 +290,20 @@ public final class Core {
                     } while (gameState.getLivesRemaining() > 0);
 
                     if (returnCode == 99) {
-                        break; // Break from switch case to process case 99
+                        break;
                     }
 
-					SoundManager.stopAll();
-					SoundManager.play("sfx/gameover.wav");
-					
-					// Save score if logged in.
-					AuthManager authManager = AuthManager.getInstance();
-					if (authManager.isLoggedIn()) {
-						ApiClient apiClient = ApiClient.getInstance();
-						apiClient.saveScore(gameState.getScore());
-					}
+                    // Game Over → Score screen
+                    SoundManager.stopAll();
+                    SoundManager.play("sfx/gameover.wav");
+
+                    // Save score if logged in
+                    AuthManager authManager = AuthManager.getInstance();
+                    if (authManager.isLoggedIn()) {
+                        ApiClient apiClient = ApiClient.getInstance();
+                        apiClient.saveScore(gameState.getScore());
+                    }
+
                     LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
                             + " score screen at " + FPS + " fps, with a score of "
                             + gameState.getScore() + ", "
@@ -291,6 +315,7 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing score screen.");
                     break;
+
                 case 99: // Game Over
                     currentScreen = new GameOverScreen(width, height, FPS, lastScreenCapture);
                     LOGGER.info("Starting Game Over screen.");
