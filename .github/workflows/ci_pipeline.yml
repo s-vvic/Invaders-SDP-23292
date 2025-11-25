@@ -36,7 +36,7 @@ jobs:
           # -f 옵션으로 docker-compose.yml 파일 경로를 지정합니다.
           # --build: 이미지를 새로 빌드합니다. (최신 코드 반영)
           # node-backend: 테스트를 실행할 서비스 이름 (docker-compose.yml의 서비스 이름)
-          docker compose -f docker-compose.yml run --rm backend npm test
+          docker compose -f docker-compose.yml run --rm backend npm test --no-cache
         
         # 🚨 중요: docker-compose.yml 파일이 프로젝트 루트에 있고,
         # Node.js 서비스 이름이 'node-backend'여야 위 명령어가 작동합니다.
