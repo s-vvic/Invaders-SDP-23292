@@ -336,6 +336,7 @@ public class GameScreen extends Screen {
         }
 
         super.update();
+
         handleInput();
         if (isPaused) {
             drawPausePopup();
@@ -348,9 +349,9 @@ public class GameScreen extends Screen {
                 this.gameTimer.start();
             }
 
+
             updateGameLogic();
         }
-
 
         if (this.gameTimer.isRunning()) {
             this.elapsedTime = this.gameTimer.getElapsedTime();
@@ -364,6 +365,7 @@ public class GameScreen extends Screen {
         cleanBullets();
 
         draw();
+
         checkGameStatus();
     }
 
@@ -1124,18 +1126,19 @@ public class GameScreen extends Screen {
         }
 
         escPressedLastFrame = escPressed;
+
         if (isPaused) {
 
             boolean qPressed = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_Q);
 
             if (qPressed) {
                 this.returnCode = 1;
-
                 this.isRunning = false;
             }
 
             return;  // Pause 상태에서 아래 입력은 무시
         }
+
 
 
         if (this.lives > 0 && !this.ship.isDestroyed()) {
