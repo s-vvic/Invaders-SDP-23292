@@ -6,7 +6,7 @@ on:
     paths:
       - 'backend/**' # backend 폴더 내 파일 변경 시에만 실행 (효율성)
   push:
-    branches: [ master ] # master 브랜치에 push될 때 실행
+    branches: [ master, dev ] # master 브랜치에 push될 때 실행
 
 jobs:
   build_and_test_backend:
