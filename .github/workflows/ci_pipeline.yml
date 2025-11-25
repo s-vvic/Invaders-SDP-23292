@@ -23,11 +23,11 @@ jobs:
 
       # 2. .env 파일 시크릿 설정 (이전에 해결했던 환경 변수 문제)
       # 로컬 .env 파일을 커밋할 수 없으므로, CI에서 테스트용 환경 변수를 Secret으로 주입합니다.
-      - name: Create .env file for Test
-        run: |
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ./backend/.env.test
-          # 필요한 다른 환경 변수가 있다면 여기에 추가합니다.
-        # 🚨 주의: JWT_SECRET은 GitHub Secrets에 등록되어 있어야 합니다.
+      # - name: Create .env file for Test
+      #   run: |
+      #     echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ./backend/.env.test
+      #     # 필요한 다른 환경 변수가 있다면 여기에 추가합니다.
+      #   # 🚨 주의: JWT_SECRET은 GitHub Secrets에 등록되어 있어야 합니다.
 
       # 3. Docker Compose로 컨테이너 빌드 및 테스트 실행
       - name: Build and Run Tests via Docker Compose
