@@ -1,38 +1,42 @@
-name: Backend Node.js CI
+name: Backend Node.js CI (Docker 환경 사용)
 
 on:
-  pull_request: # PR이 생성되거나 업데이트될 때마다 실행
-    branches: [ master, dev ] # master 또는 dev 브랜치를 대상으로 하는 PR에 대해 실행
+  pull_request: 
+    branches: [ master, dev ]
     paths:
-      - 'backend/**' # backend 폴더 내 파일 변경 시에만 실행 (효율성)
+      - 'backend/**' 
   push:
-    branches: [ master, dev ] # master 브랜치에 push될 때 실행
+    branches: [ master, dev ]
 
 jobs:
-  build_and_test_backend:
-    name: Build & Test (Backend)
-    runs-on: ubuntu-latest # 실행 환경 (최신 우분투 VM)
-
+  build_and_test_backend_docker:
+    name: Docker Build & Test
+    runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4 # 저장소 코드 체크아웃
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20' # Node.js 버전 지정 (팀에서 사용하는 버전으로 변경 가능)
+      # 1. Docker 환경 설정 (필수)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install Dependencies
-        run: npm install # package.json 기반 의존성 설치
-        working-directory: ./backend # backend 폴더 내에서 명령어 실행
+      # 2. .env 파일 시크릿 설정 (이전에 해결했던 환경 변수 문제)
+      # 로컬 .env 파일을 커밋할 수 없으므로, CI에서 테스트용 환경 변수를 Secret으로 주입합니다.
+      - name: Create .env file for Test
+        run: |
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ./backend/.env.test
+          # 필요한 다른 환경 변수가 있다면 여기에 추가합니다.
+        # 🚨 주의: JWT_SECRET은 GitHub Secrets에 등록되어 있어야 합니다.
 
-      # - name: Run Tests
-      #   run: npm test # 테스트 명령어 실행 (package.json에 test 스크립트가 정의되어 있어야 함)
-      #   working-directory: ./backend
-      #   env:
-      #     JWT_SECRET: ${{ secrets.JWT_SECRET }} # IDE lint: disable
+      # 3. Docker Compose로 컨테이너 빌드 및 테스트 실행
+      - name: Build and Run Tests via Docker Compose
+        run: |
+          # 🚨 Docker Compose의 테스트 기능을 사용
+          # -f 옵션으로 docker-compose.yml 파일 경로를 지정합니다.
+          # --build: 이미지를 새로 빌드합니다. (최신 코드 반영)
+          # node-backend: 테스트를 실행할 서비스 이름 (docker-compose.yml의 서비스 이름)
+          docker compose -f docker-compose.yml run --rm node-backend npm test
         
-      # 만약 빌드 과정이 필요하다면 아래 주석 해제 (예: Babel 또는 Webpack 사용 시)
-      # - name: Build Project
-      #   run: npm run build
-      #   working-directory: ./backend
+        # 🚨 중요: docker-compose.yml 파일이 프로젝트 루트에 있고,
+        # Node.js 서비스 이름이 'node-backend'여야 위 명령어가 작동합니다.

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    # 1. backend 폴더의 Dockerfile을 사용하여 이미지 빌드
+    build:
+      context: ./backend 
+      dockerfile: Dockerfile
+    
+    # 2. 컨테이너 이름 지정
+    container_name: my-backend-service
+    
+    # 3. 로컬 포트와 컨테이너 포트 연결
+    ports:
+      - "8080:3000" # 로컬:컨테이너 포트 (3000은 server.js가 사용하는 포트여야 함)
+    
+    # 4. 환경 변수 주입 (로컬 환경용)
+    environment:
+      # .env 파일 대신 여기서 환경 변수를 직접 주입하거나, env_file을 사용할 수 있습니다.
+      # JWT_SECRET: "your_local_jwt_secret" 
+      
+      # ⚠️ 만약 backend/.env 파일을 사용한다면:
+      env_file: ./backend/.env 
+      
+    # 5. 로컬 코드 실시간 반영 (개발 편의성)
+    volumes:
+      - ./backend:/usr/src/app 
+      - /usr/src/app/node_modules # 호스트의 node_modules는 무시
+
+    # 6. DB 서비스가 완전히 준비될 때까지 기다림
+    depends_on:
+      - db
+
+  # (선택적) 데이터베이스 컨테이너 설정
+  db:
+    # SQLite 파일(.db)을 Docker 컨테이너로 관리하는 것은 복잡하므로,
+    # MySQL이나 PostgreSQL과 같은 표준 DB를 사용하지 않는다면 이 부분은 생략 가능합니다.
+    # 만약 SQLite 파일을 그대로 사용하고 싶다면, volume을 연결하여 데이터를 영구 보존합니다.
+    image: busybox
+    volumes:
+      - ./data:/data
+    container_name: my-database
