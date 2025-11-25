@@ -7,8 +7,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import javax.swing.SwingWorker;
 
-import engine.Cooldown;
-import engine.Core;
 import engine.AuthManager;
 import engine.ApiClient;
 import engine.ApiClient.SessionConfirmationResponse;
@@ -69,14 +67,14 @@ public class ConfirmSessionScreen extends Screen {
                 this.sessionAuthWorker.cancel(true); // Attempt to cancel the background task
             }
             // If user escapes, proceed to LoginScreen, as they might want to log out.
-            this.returnCode = 9; 
+            this.returnCode = 9;
             this.isRunning = false;
         }
     }
 
     private void draw() {
         drawManager.initDrawing(this);
-        confirmSessionDrawer.draw(this, this.username, this.instruction, this.errorMessage); 
+        confirmSessionDrawer.draw(this, this.username, this.instruction, this.errorMessage);
         drawManager.completeDrawing(this);
     }
 
@@ -102,28 +100,33 @@ public class ConfirmSessionScreen extends Screen {
 
                 try {
                     if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                        Desktop.getDesktop().browse(new URI(initResponse.confirmationUri() + "?code=" + initResponse.confirmationCode()));
+                        Desktop.getDesktop().browse(
+                                new URI(initResponse.confirmationUri() + "?code=" + initResponse.confirmationCode()));
                     } else {
-                         instruction = "Please manually open a browser and go to " + initResponse.confirmationUri() + "?code=" + initResponse.confirmationCode();
+                        instruction = "Please manually open a browser and go to " + initResponse.confirmationUri()
+                                + "?code=" + initResponse.confirmationCode();
                     }
                 } catch (IOException | URISyntaxException e) {
-                    instruction = "Please manually open a browser and go to " + initResponse.confirmationUri() + "?code=" + initResponse.confirmationCode();
+                    instruction = "Please manually open a browser and go to " + initResponse.confirmationUri()
+                            + "?code=" + initResponse.confirmationCode();
                 }
 
                 long startTime = System.currentTimeMillis();
                 long timeout = initResponse.expiresIn() * 1000L;
 
                 while (System.currentTimeMillis() - startTime < timeout) {
-                    if (isCancelled()) return null;
+                    if (isCancelled())
+                        return null;
 
-                    SessionPollResponse pollResponse = ApiClient.getInstance().pollSessionStatus(initResponse.confirmationCode());
+                    SessionPollResponse pollResponse = ApiClient.getInstance()
+                            .pollSessionStatus(initResponse.confirmationCode());
 
-                    if (pollResponse.status() == PollStatus.CONFIRMED || 
-                        pollResponse.status() == PollStatus.CANCELLED ||
-                        pollResponse.status() == PollStatus.ERROR) {
+                    if (pollResponse.status() == PollStatus.CONFIRMED ||
+                            pollResponse.status() == PollStatus.CANCELLED ||
+                            pollResponse.status() == PollStatus.ERROR) {
                         return pollResponse;
                     }
-                    
+
                     Thread.sleep(initResponse.interval());
                 }
 
