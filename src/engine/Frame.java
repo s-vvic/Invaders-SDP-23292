@@ -1,6 +1,8 @@
 package engine;
 
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import javax.swing.JFrame;
 
@@ -44,6 +46,35 @@ public class Frame extends JFrame {
 		setTitle("Invaders");
 
 		addKeyListener(Core.getInputManager());
+
+		// Add mouse listeners to capture mouse events.
+		MouseAdapter mouseAdapter = new MouseAdapter() {
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				InputManager.updateMouseState(e.getX(), e.getY(), InputManager.isMousePressed());
+			}
+
+			@Override
+			public void mouseDragged(MouseEvent e) {
+				InputManager.updateMouseState(e.getX(), e.getY(), true);
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+				if (e.getButton() == MouseEvent.BUTTON1) {
+					InputManager.updateMouseState(e.getX(), e.getY(), true);
+				}
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				if (e.getButton() == MouseEvent.BUTTON1) {
+					InputManager.updateMouseState(e.getX(), e.getY(), false);
+				}
+			}
+		};
+		addMouseListener(mouseAdapter);
+		addMouseMotionListener(mouseAdapter);
 	}
 
 	/**

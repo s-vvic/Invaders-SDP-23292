@@ -10,6 +10,7 @@ import engine.Core;
 import engine.GameState;
 import engine.GameTimer;
 import engine.AchievementManager;
+import engine.InputManager;
 import engine.ItemHUDManager;
 import engine.AuthManager;
 import engine.ApiClient;
@@ -362,6 +363,7 @@ public class GameScreen extends Screen {
         // ========== 5) 총알 / 아이템 / 충돌 처리 ==========
         cleanItems();
         manageCollisions();
+        ItemHUDManager.getInstance().update(inputManager.getMouseX(), inputManager.getMouseY());
         cleanBullets();
 
         // ========== 6) 화면 그리기 ==========
@@ -510,12 +512,6 @@ public class GameScreen extends Screen {
      * @param bullet The enemy bullet to check.
      * @param recyclable A set to add the bullet to if it should be recycled.
      */
-    /**
-     * Handles collisions between enemy bullets and player ships.
-     *
-     * @param bullet     The enemy bullet to check.
-     * @param recyclable A set to add the bullet to if it should be recycled.
-     */
     private void handleEnemyBulletCollision(Bullet bullet, Set<Bullet> recyclable) {
         if (this.lives > 0 && checkCollision(bullet, this.ship) && !this.levelFinished) {
             recyclable.add(bullet);
@@ -532,12 +528,6 @@ public class GameScreen extends Screen {
 
     /**
      * Handles collisions between player bullets and enemy ships.
-     *
-     * @param bullet The player bullet to check.
-     * @param recyclable A set to add the bullet to if it should be recycled.
-     */
-    /**
-     * Handles collisions between player bullets and enemy ships.
      * This method coordinates collision checks with different enemy types.
      *
      * @param bullet     The player bullet to check.
@@ -550,12 +540,7 @@ public class GameScreen extends Screen {
         }
         checkCollisionWithSpecialEnemiesAndBosses(bullet, recyclable);
     }
-    /**
-     * Checks and handles collisions between a player bullet and special enemies or bosses.
-     *
-     * @param bullet The player bullet.
-     * @param recyclable A set to add the bullet to if it is consumed.
-     */
+
     /**
      * Checks and handles collisions between a player bullet and special enemies or bosses.
      * Processes damage, awards points, and handles destruction for special enemies, Omega Boss, and Final Boss.
@@ -620,8 +605,6 @@ public class GameScreen extends Screen {
                 }
             }
         }
-
-
     }
 
     /**
@@ -633,52 +616,26 @@ public class GameScreen extends Screen {
      * @param recyclable A set to add the bullet to if it is consumed.
      * @return True if the bullet was consumed (hit a non-penetratable target), false otherwise.
      */
-
     private boolean checkCollisionWithNormalEnemies(Bullet bullet, Set<Bullet> recyclable) {
-
         for (EnemyShipFormation formation : this.enemyFormations) {
             for (EnemyShip enemyShip : formation) {
                 if (!enemyShip.isDestroyed() && checkCollision(bullet, enemyShip)) {
                     int pts = enemyShip.getPointValue();
-
                     addPoints(pts);
-
                     this.coin += (pts / 10);
-
                     this.shipsDestroyed++;
-
-
                     handleItemDrop(enemyShip);
-
                     formation.destroy(enemyShip);
-
                     AchievementManager.getInstance().onEnemyDefeated();
-
-
                     if (!bullet.penetration()) {
-
                         recyclable.add(bullet);
-
                         return true; // Bullet was consumed
-
                     }
                 }
-
             }
-
         }
-
         return false; // Bullet was not consumed
-
     }
-
-
-    /**
-     * Handles the logic for dropping an item when an enemy is destroyed.
-     *
-     * @param enemyShip The enemy ship that was destroyed.
-
-     */
 
     /**
      * Handles the logic for dropping an item when an enemy is destroyed.
@@ -687,74 +644,40 @@ public class GameScreen extends Screen {
      *
      * @param enemyShip The enemy ship that was destroyed.
      */
-
     private void handleItemDrop(EnemyShip enemyShip) {
-
         String enemyType = enemyShip.getEnemyType();
-
         if (enemyType != null && this.currentLevel.getItemDrops() != null) {
-
             List<engine.level.ItemDrop> potentialDrops = new ArrayList<>();
-
             for (engine.level.ItemDrop itemDrop : this.currentLevel.getItemDrops()) {
-
                 if (enemyType.equals(itemDrop.getEnemyType())) {
-
                     potentialDrops.add(itemDrop);
-
                 }
-
             }
-
 
             List<engine.level.ItemDrop> successfulDrops = new ArrayList<>();
-
             for (engine.level.ItemDrop itemDrop : potentialDrops) {
-
                 if (Math.random() < itemDrop.getDropChance()) {
-
                     successfulDrops.add(itemDrop);
-
                 }
-
             }
-
 
             if (!successfulDrops.isEmpty()) {
-
                 engine.level.ItemDrop selectedDrop = successfulDrops.get((int) (Math.random() * successfulDrops.size()));
-
-                DropItem.ItemType droppedType = DropItem.fromString(selectedDrop.getItemId());
-
+                DropItem.ItemType droppedType = DropItem.ItemType.fromString(selectedDrop.getItemId());
                 if (droppedType != null) {
-
                     final int ITEM_DROP_SPEED = 3;
-
-
                     DropItem newDropItem = ItemPool.getItem(
-
                             enemyShip.getPositionX() + enemyShip.getWidth() / 2,
-
                             enemyShip.getPositionY() + enemyShip.getHeight() / 2,
-
                             ITEM_DROP_SPEED,
-
                             droppedType
-
                     );
-
                     this.dropItems.add(newDropItem);
-
                     this.logger.info("An item (" + droppedType + ") dropped");
-
                 }
-
             }
-
         }
-
     }
-
 
     /**
      * Manages all collision detection within the game.
@@ -912,16 +835,13 @@ public class GameScreen extends Screen {
      */
     private void manageItemCollisions() {
         Set<DropItem> acquiredDropItems = new HashSet<DropItem>();
-
         if (!this.levelFinished && (this.lives > 0 && !this.ship.isDestroyed())) {
             for (DropItem dropItem : this.dropItems) {
-
                 if (this.lives > 0 && !this.ship.isDestroyed() && checkCollision(this.ship, dropItem)) {
                     this.logger.info("Player acquired dropItem: " + dropItem.getItemType());
-
                     // Add item to HUD display
-                    ItemHUDManager.getInstance().addDroppedItem(dropItem.getItemType());
-
+                    ItemHUDManager.getInstance().addActiveItem(dropItem.getItemType());
+                    ItemHUDManager.getInstance().triggerFlash(dropItem.getItemType());
                     switch (dropItem.getItemType()) {
                         case Heal:
                             gainLife();
@@ -1003,7 +923,6 @@ public class GameScreen extends Screen {
      *
      * @param message Text to display in the popup
      */
-
     public void showHealthPopup(String message) {
         this.healthPopupText = message;
         this.healthPopupCooldown = Core.getCooldown(500);
@@ -1030,6 +949,13 @@ public class GameScreen extends Screen {
         if (this.lives < this.maxLives) {
             this.lives++;
         }
+    }
+
+    /**
+     * @return The player's ship instance.
+     */
+    public Ship getShip() {
+        return this.ship;
     }
 
     private void bossReveal() {
