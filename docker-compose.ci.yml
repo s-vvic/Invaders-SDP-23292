@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # 1. 백엔드 서비스 (Node.js API)
+  backend:
+    build:
+      context: ./backend 
+      dockerfile: Dockerfile
+    
+    container_name: my-backend-service
+    
+    # 🚨 수정: CI 환경에서는 .env 파일이 존재하지 않으므로, 
+    # env_file 설정을 완전히 삭제합니다. (줄 전체 제거)
+    # env_file: ./backend/.env 
+      
+    volumes:
+      # 테스트를 위해 코드가 보이도록 유지합니다.
+      - ./backend:/usr/src/app 
+      
+    depends_on:
+      - db
+
+  # 2. 프론트엔드 서비스 (CI는 테스트만 하므로 실행될 필요가 없음)
+  frontend: 
+    build:
+      context: ./frontend 
+      dockerfile: Dockerfile
+    container_name: my-frontend-service
+    
+    # ports 제거 및 volumes 제거 (CI에서 불필요)
+    
+    depends_on:
+      - backend 
+
+  # 3. 데이터베이스 서비스
+  db:
+    image: busybox
+    volumes:
+      - ./data:/data
+    container_name: my-database
