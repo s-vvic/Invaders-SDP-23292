@@ -190,6 +190,15 @@ public class Ship extends Entity {
     }
 
     /**
+     * Getter for the ship's shield cooldown.
+     *
+     * @return The Cooldown object for the shield.
+     */
+    public final Cooldown getShieldCooldown() {
+        return this.shieldCooldown;
+    }
+
+    /**
      * Activates the ship's invincibility shield for a given duration.
      *
      * @param duration
