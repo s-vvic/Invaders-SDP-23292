@@ -24,8 +24,11 @@ services:
       
     # 5. 로컬 코드 실시간 반영 (개발 편의성)
     volumes:
+      # ⬇️ 로컬 소스 코드는 컨테이너에 마운트합니다. (이것만 유지)
       - ./backend:/usr/src/app 
-      - /usr/src/app/node_modules # 호스트의 node_modules는 무시
+      
+      # ⬇️ 이 줄을 완전히 삭제합니다. 이 줄이 컨테이너의 node_modules를 덮어씌웁니다.
+      # - /usr/src/app/node_modules
 
     # 6. DB 서비스가 완전히 준비될 때까지 기다림
     depends_on:

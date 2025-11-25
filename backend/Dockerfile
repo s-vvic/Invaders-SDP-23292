@@ -10,6 +10,8 @@ COPY package*.json ./
 # 4. 의존성 설치: 운영 환경에서는 개발 의존성(Jest 등)을 제외하고 설치합니다.
 RUN npm install --omit=dev
 
+VOLUME /usr/src/app/node_modules
+
 # 5. 나머지 모든 소스 코드 복사
 # .dockerignore 파일을 사용하면 git, .env 등 불필요한 파일을 제외할 수 있습니다.
 COPY . .
