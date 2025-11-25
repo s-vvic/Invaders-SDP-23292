@@ -1,15 +1,7 @@
 package screen;
 
 import java.awt.event.KeyEvent;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-
-import engine.Cooldown;
-import engine.Core;
 import engine.GameState;
-import engine.Score;
-import engine.ApiClient;
 
 /**
  * Implements the score screen.
@@ -32,13 +24,13 @@ public class ScoreScreen extends Screen {
 	 * Constructor, establishes the properties of the screen.
 	 * 
 	 * @param width
-	 *            Screen width.
+	 *                  Screen width.
 	 * @param height
-	 *            Screen height.
+	 *                  Screen height.
 	 * @param fps
-	 *            Frames per second, frame rate at which the game is run.
+	 *                  Frames per second, frame rate at which the game is run.
 	 * @param gameState
-	 *            Current game state.
+	 *                  Current game state.
 	 */
 	public ScoreScreen(final int width, final int height, final int fps,
 			final GameState gameState) {
@@ -95,7 +87,8 @@ public class ScoreScreen extends Screen {
 				false); // Passing false for isNewRecord
 		drawManager.drawResults(this, this.score, this.livesRemaining,
 				this.shipsDestroyed, (float) this.shipsDestroyed
-						/ this.bulletsShot, false); // Passing false for isNewRecord
+						/ this.bulletsShot,
+				false); // Passing false for isNewRecord
 
 		drawManager.completeDrawing(this);
 	}
