@@ -10,7 +10,6 @@ import engine.Core;
 import engine.DrawManager;
 import engine.level.Level;
 import screen.Screen;
-
 /**
  * Manages the spawning, updating, and drawing of independent Chaser enemies.
  */
@@ -47,13 +46,13 @@ public class EnemyShipChaserFormation implements Iterable<Chaser> {
 
         if (currentLevel >= 2 && currentLevel < 5) {
             // Level 1: Spawn 1 Chaser in the middle.
-            this.chasers.add(new Chaser(screenWidth / 2, spawnY, p1Ship));
+            this.chasers.add(new Chaser(screenWidth / 2, spawnY, p1Ship, currentLevel));
             this.logger.info("Spawned 1 Chaser for Level 2~4.");
             
         } else if (currentLevel >=5) {
             // Level 4: Spawn 2 Chasers at 1/3 and 2/3 positions.
-            this.chasers.add(new Chaser(screenWidth / 3, spawnY, p1Ship));
-            this.chasers.add(new Chaser((screenWidth / 3) * 2, spawnY, p1Ship));
+            this.chasers.add(new Chaser(screenWidth / 3, spawnY, p1Ship, currentLevel));
+            this.chasers.add(new Chaser((screenWidth / 3) * 2, spawnY, p1Ship, currentLevel));
             this.logger.info("Spawned 2 Chasers for Level 5~.");
         }
         // Other levels will spawn 0 Chasers.

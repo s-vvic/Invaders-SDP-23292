@@ -7,7 +7,7 @@ import java.util.Queue;
 import java.util.Arrays; // Added for Arrays.fill()
 
 /**
- * Manages keyboard input for the provided screen.
+ * Manages keyboard and mouse input for the provided screen.
  */
 public final class InputManager implements KeyListener {
 
@@ -17,6 +17,14 @@ public final class InputManager implements KeyListener {
     private static boolean[] keys;
     /** A queue to store typed characters for text input. */
     private static Queue<Character> keyTypedQueue;
+
+    /** Current X-coordinate of the mouse. */
+    private static int mouseX;
+    /** Current Y-coordinate of the mouse. */
+    private static int mouseY;
+    /** Current state of the primary mouse button. */
+    private static boolean mousePressed;
+
     /** Singleton instance of the class. */
     private static InputManager instance;
 
@@ -26,6 +34,9 @@ public final class InputManager implements KeyListener {
     private InputManager() {
         keys = new boolean[NUM_KEYS];
         keyTypedQueue = new LinkedList<Character>();
+        mouseX = 0;
+        mouseY = 0;
+        mousePressed = false;
     }
 
     /**
@@ -33,10 +44,44 @@ public final class InputManager implements KeyListener {
      * 
      * @return Shared instance of InputManager.
      */
-    protected static InputManager getInstance() {
+    public static InputManager getInstance() {
         if (instance == null)
             instance = new InputManager();
         return instance;
+    }
+
+    /**
+     * Updates the current state of the mouse.
+     * Called by mouse listeners.
+     * @param x The new X-coordinate.
+     * @param y The new Y-coordinate.
+     * @param pressed The new pressed state of the primary button.
+     */
+    public static void updateMouseState(int x, int y, boolean pressed) {
+        mouseX = x;
+        mouseY = y;
+        mousePressed = pressed;
+    }
+
+    /**
+     * @return The current X-coordinate of the mouse.
+     */
+    public static int getMouseX() {
+        return mouseX;
+    }
+
+    /**
+     * @return The current Y-coordinate of the mouse.
+     */
+    public static int getMouseY() {
+        return mouseY;
+    }
+
+    /**
+     * @return True if the primary mouse button is currently pressed.
+     */
+    public static boolean isMousePressed() {
+        return mousePressed;
     }
 
     /**

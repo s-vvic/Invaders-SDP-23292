@@ -26,6 +26,7 @@ public class Chaser extends Entity {
     /** Values of the ship, in points, when destroyed. */
     private int pointValue;
 
+
     /**
      * Constructor, establishes the ship's properties.
      *
@@ -33,7 +34,7 @@ public class Chaser extends Entity {
      * @param positionY Initial position of the ship in the Y axis.
      * @param ship      (Required by constructor, but not used for initial tracking)
      */
-    public Chaser(final int positionX, final int positionY, Ship ship) {
+    public Chaser(final int positionX, final int positionY, Ship ship, final int level) {
         
 
         super(positionX, positionY, 20, 20, Color.RED);
@@ -44,7 +45,7 @@ public class Chaser extends Entity {
         if (GameState.isDecreaseEnemyPower()) {
             this.healPoint = 1;
         } else {
-            this.healPoint = 30; 
+            this.healPoint = 10*level; 
         }
 
     
