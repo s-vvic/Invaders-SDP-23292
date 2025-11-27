@@ -325,14 +325,9 @@ public class GameScreen extends Screen {
     @Override
     protected final void update() {
 
-        // =====================================================
-        // ★ Pause 상태에서 Q 눌러 returnCode = 1 이 되면
-        //   게임 로직이 절대로 더 실행되면 안됨
-        //   → run() 종료 → Core.java로 returnCode=1 전달 → TitleScreen 이동
-        // =====================================================
         if (this.returnCode == 1) {
-            this.isRunning = false;   // run() 루프 종료
-            return;                   // update 중단
+            this.isRunning = false;
+            return;
         }
 
         super.update();
