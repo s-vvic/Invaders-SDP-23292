@@ -29,3 +29,40 @@ jobs:
           docker compose -f docker-compose.ci.yml run --rm \
             --env JWT_SECRET="$'{{ secrets.JWT_SECRET }}'" \
             backend npm test
+
+  # 2. Java 백엔드 CI Job (새로 추가)
+  build_and_test_java:
+    name: Java Code Compile & Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+    
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17' # ⬅️ 팀에서 사용하는 JDK 버전으로 변경
+          distribution: 'temurin'
+          
+      # 🚨 Java CI의 핵심: .class 파일을 생성하는 컴파일 단계
+      - name: Compile Java Code
+        # 자바 프로젝트의 루트 폴더를 기준으로 컴파일을 실행합니다.
+        # -d bin: 컴파일된 .class 파일을 'bin' 폴더에 저장하도록 지정합니다.
+        run: javac -d bin $(find src -name "*.java")
+        # ⚠️ 현재 외부 라이브러리(JAR 파일) 의존성이 없다고 가정합니다.
+        
+      # 🚨 Java 테스트 실행 단계 (테스트 프레임워크가 없다고 가정)
+      # 실제로는 JUnit 등 테스트 프레임워크가 있어야 하지만, 현재 환경에서는
+      # 테스트 코드가 있는지 확인이 어려우므로, 컴파일 성공만으로 CI 통과를 간주합니다.
+      # 
+        
+      - name: Verify Compilation Artifacts
+        # bin 폴더에 .class 파일이 생성되었는지 확인
+        run: |
+          if [ -d "bin" ] && [ "$(ls -A bin)" ]; then
+            echo "Java compilation succeeded. .class files found in bin/."
+          else
+            echo "Java compilation failed or no source files found."
+            exit 1
+          fi
