@@ -324,10 +324,15 @@ public class GameScreen extends Screen {
      */
     @Override
     protected final void update() {
+
+        if (this.returnCode == 1) {
+            this.isRunning = false;
+            return;
+        }
+
         super.update();
 
         handleInput();
-
         if (isPaused) {
             drawPausePopup();
             return;
@@ -339,12 +344,14 @@ public class GameScreen extends Screen {
                 this.gameTimer.start();
             }
 
+
             updateGameLogic();
         }
 
         if (this.gameTimer.isRunning()) {
             this.elapsedTime = this.gameTimer.getElapsedTime();
-            AchievementManager.getInstance().onTimeElapsedSeconds((int) (this.elapsedTime / 1000));
+            AchievementManager.getInstance()
+                    .onTimeElapsedSeconds((int)(elapsedTime / 1000));
         }
 
         cleanItems();
@@ -356,6 +363,7 @@ public class GameScreen extends Screen {
 
         checkGameStatus();
     }
+
 
 
     /**
@@ -1093,6 +1101,17 @@ public class GameScreen extends Screen {
      * Handles player input for both player 1 and player 2.
      * Processes movement and shooting based on keyboard input.
      */
+    /**
+     * Handles player input for both player 1 and player 2.
+     * Processes movement and shooting based on keyboard input.
+     */
+    /**
+     * Handles player input for both player 1 and player 2.
+     * Processes movement and shooting based on keyboard input.
+     */
+    /**
+     * Handles player input for pause, quit, movement, and shooting.
+     */
     private void handleInput() {
 
         boolean escPressed = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_ESCAPE);
@@ -1106,13 +1125,16 @@ public class GameScreen extends Screen {
         if (isPaused) {
 
             boolean qPressed = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_Q);
+
             if (qPressed) {
                 this.returnCode = 1;
                 this.isRunning = false;
             }
 
-            return;
+            return;  // Pause 상태에서 아래 입력은 무시
         }
+
+
 
         if (this.lives > 0 && !this.ship.isDestroyed()) {
 
@@ -1124,15 +1146,20 @@ public class GameScreen extends Screen {
 
             boolean isRightBorder = this.ship.getPositionX()
                     + this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
-            boolean isLeftBorder = this.ship.getPositionX() - this.ship.getSpeed() < 1;
-            boolean isUpBorder = this.ship.getPositionY() - this.ship.getSpeed() < SEPARATION_LINE_HEIGHT;
+
+            boolean isLeftBorder = this.ship.getPositionX()
+                    - this.ship.getSpeed() < 1;
+
+            boolean isUpBorder = this.ship.getPositionY()
+                    - this.ship.getSpeed() < SEPARATION_LINE_HEIGHT;
+
             boolean isDownBorder = this.ship.getPositionY()
                     + this.ship.getHeight() + this.ship.getSpeed() > ITEMS_SEPARATION_LINE_HEIGHT;
 
             if (p1Right && !isRightBorder) this.ship.moveRight();
-            if (p1Left && !isLeftBorder) this.ship.moveLeft();
-            if (p1Up && !isUpBorder) this.ship.moveUp();
-            if (p1Down && !isDownBorder) this.ship.moveDown();
+            if (p1Left  && !isLeftBorder ) this.ship.moveLeft();
+            if (p1Up    && !isUpBorder   ) this.ship.moveUp();
+            if (p1Down  && !isDownBorder ) this.ship.moveDown();
 
             if (p1Fire) {
                 if (this.ship.shoot(this.bullets)) {
@@ -1142,6 +1169,9 @@ public class GameScreen extends Screen {
             }
         }
     }
+
+
+
 
     private void drawPausePopup() {
         drawManager.initDrawing(this);
