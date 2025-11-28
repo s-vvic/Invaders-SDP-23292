@@ -10,7 +10,7 @@ import engine.Core;
 import engine.DrawManager;
 import engine.GameState;
 
-public class FinalBoss extends Entity implements BossEntity{
+public class FinalBoss extends Entity implements BossEntity {
 
     private int healPoint;
     private int maxHp;
@@ -244,7 +244,7 @@ public class FinalBoss extends Entity implements BossEntity{
             SoundManager.stop("sfx/pikachu.wav");
             SoundManager.play("sfx/pikachu.wav");
 		}	
-        if(this.healPoint <= 0){
+        if(this.healPoint <= 0) {
             this.destroy();
         }
     }
@@ -289,6 +289,35 @@ public class FinalBoss extends Entity implements BossEntity{
 
             dashPattern(this.dashSpeed);
         }
+    }
+
+    public Set<BossAttack> shootBossAttack() {
+        Set<BossAttack> attacks = new HashSet<>();
+
+        if(this.healPoint > this.maxHp*PHASE_2_HP_THRESHOLD) {
+            if (this.difficulty == 1) {
+                attacks.addAll(this.shoot1());
+                attacks.addAll(this.shoot2());
+            } else {
+                attacks.addAll(this.shoot3());
+            }
+        }else if (this.healPoint > this.maxHp*PHASE_3_HP_THRESHOLD) {
+            if (this.difficulty != 1 && !is_cleared) {
+                attacks.clear();
+                is_cleared = true;
+            } else {
+                attacks.addAll(this.shoot1());
+                attacks.addAll(this.shoot2());
+                attacks.addAll(this.laserShoot());
+        }
+        else {
+            if (this.difficulty != 1) {
+                attacks.addAll(this.shoot4());
+            }
+            attacks.addAll(this.shoot2());
+        }
+
+        return attacks;
     }
 
     /** preprocess before laser Pattern */

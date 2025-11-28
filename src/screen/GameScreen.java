@@ -168,15 +168,11 @@ public class GameScreen extends Screen {
     }
 
     /**
-     * bossBullets carry bullets which Boss fires
+     * bossBullets carry bullets or lasers which Boss fires
      */
-    private Set<BossBullet> bossBullets;
+    private Set<BossAttack> bossAttacks;
     /**
      * bossLasers carry lasers which Boss fires
-     */
-    private Set<BossLaser> bossLasers;
-    /**
-     * Is the bullet on the screen erased
      */
     private boolean is_cleared = false;
     /**
@@ -236,9 +232,8 @@ public class GameScreen extends Screen {
      */
     public final void initialize() {
         super.initialize();
-        this.bossBullets = new HashSet<>();
+        this.bossAttacks = new HashSet<>();
         this.enemyFormations = new ArrayList<>();
-        this.bossLasers = new HashSet<>();
 
         String formationType = "A";
         LevelEnemyFormation formationInfo = this.currentLevel.getEnemyFormation();
@@ -380,12 +375,8 @@ public class GameScreen extends Screen {
         enemyShipSpecialFormation.draw();
 
         if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
-            for (BossBullet bossBullet : bossBullets) {
-                drawManager.drawEntity(bossBullet, bossBullet.getPositionX(), bossBullet.getPositionY());
-            }
-
-            for (BossLaser bossLaser : bossLasers) {
-                drawManager.drawEntity(bossLaser, bossLaser.getPositionX(), bossLaser.getPositionY());
+            for (BossAttack bossAttack : bossAttacks) {
+                drawManager.drawEntity(bossAttack, bossAttack.getPositionX(), bossAttack.getPositionY());
             }
 
             drawManager.drawEntity(finalBoss, finalBoss.getPositionX(), finalBoss.getPositionY());
@@ -964,74 +955,111 @@ public class GameScreen extends Screen {
      * Manage Final Boss's shooting
      */
     public void finalbossManage() {
-        if (this.finalBoss != null && !this.finalBoss.isDestroyed()) {
-            this.finalBoss.update();
-            if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_2_HP_THRESHOLD) {
-                if (this.finalBoss.getDifficulty() == 1) {
-                    bossBullets.addAll(this.finalBoss.shoot1());
-                    bossBullets.addAll(this.finalBoss.shoot2());
-                } else {
-                    bossBullets.addAll(this.finalBoss.shoot3());
-                }
-            } else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_3_HP_THRESHOLD) {
-                if (this.finalBoss.getDifficulty() != 1 && !is_cleared) {
-                    bossBullets.clear();
-                    is_cleared = true;
-                } else {
-                    bossBullets.addAll(this.finalBoss.shoot1());
-                    bossBullets.addAll(this.finalBoss.shoot2());
-                    bossLasers.addAll(this.finalBoss.laserShoot());
-                }
-            } else {
-                if (this.finalBoss.getDifficulty() != 1) {
-                    bossBullets.addAll(this.finalBoss.shoot4());
-                }
-                bossBullets.addAll(this.finalBoss.shoot2());
-            }
-
-            Set<BossBullet> bulletsToRemove = new HashSet<>();
-
-            for (BossBullet bossBullet : bossBullets) {
-                bossBullet.update();
-                if (bossBullet.isOffScreen(width, height)) {
-                    bulletsToRemove.add(bossBullet);
-                }
-                else if (this.lives > 0 && this.checkCollision(bossBullet, this.ship) && !GameState.isInvincible()) {
-                    if (!this.ship.isDestroyed()) {
-                        this.ship.destroy();
-                        this.lives--;
-                        this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
-                    }
-                    bulletsToRemove.add(bossBullet);
-                }
-            }
-
-            Set<BossLaser> lasersToRemove = new HashSet<>();
-
-            for (BossLaser bossLaser : bossLasers) {
-                bossLaser.update();
-                if (bossLaser.isRemoved()) {
-                    lasersToRemove.add(bossLaser);
-                }
-                else if (this.lives > 0 && this.checkCollision(bossLaser, this.ship) && !GameState.isInvincible()
-                        && takeLaserDamageCooldown.checkFinished()) {
-
-                    takeLaserDamageCooldown.reset();
-
-                    if (!this.ship.isDestroyed()) {
-                        this.ship.destroy();
-                        this.lives--;
-                        this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
-                    }
-                }
-            }
-            bossBullets.removeAll(bulletsToRemove);
-            bossLasers.removeAll(lasersToRemove);
-        }
         if (this.finalBoss != null && this.finalBoss.isDestroyed()) {
             this.levelFinished = true;
             this.screenFinishedCooldown.reset();
+            return;
         }
+        this.finalBoss.update();
+
+        bossAttacks.addAll(this.finalBoss.shootBossAttack());
+
+        manageBossAttacks();
+    }
+        /* 
+        if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_2_HP_THRESHOLD) {
+            if (this.finalBoss.getDifficulty() == 1) {
+                bossBullets.addAll(this.finalBoss.shoot1());
+                bossBullets.addAll(this.finalBoss.shoot2());
+            } else {
+                bossBullets.addAll(this.finalBoss.shoot3());
+            }
+        } else if (this.finalBoss.getHealPoint() > this.finalBoss.getMaxHp() * FinalBoss.PHASE_3_HP_THRESHOLD) {
+            if (this.finalBoss.getDifficulty() != 1 && !is_cleared) {
+                bossBullets.clear();
+                is_cleared = true;
+            } else {
+                bossBullets.addAll(this.finalBoss.shoot1());
+                bossBullets.addAll(this.finalBoss.shoot2());
+                bossLasers.addAll(this.finalBoss.laserShoot());
+            }
+        } else {
+            if (this.finalBoss.getDifficulty() != 1) {
+                bossBullets.addAll(this.finalBoss.shoot4());
+            }
+            bossBullets.addAll(this.finalBoss.shoot2());
+        }
+
+        Set<BossBullet> bulletsToRemove = new HashSet<>();
+
+        for (BossBullet bossBullet : bossBullets) {
+            bossBullet.update();
+            if (bossBullet.isOffScreen(width, height)) {
+                bulletsToRemove.add(bossBullet);
+            }
+            else if (this.lives > 0 && this.checkCollision(bossBullet, this.ship) && !GameState.isInvincible()) {
+                if (!this.ship.isDestroyed()) {
+                    this.ship.destroy();
+                    this.lives--;
+                    this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
+                }
+                bulletsToRemove.add(bossBullet);
+            }
+        }
+
+        Set<BossLaser> lasersToRemove = new HashSet<>();
+
+        for (BossLaser bossLaser : bossLasers) {
+            bossLaser.update();
+            if (bossLaser.isRemoved()) {
+                lasersToRemove.add(bossLaser);
+            }
+            else if (this.lives > 0 && this.checkCollision(bossLaser, this.ship) && !GameState.isInvincible()
+                    && takeLaserDamageCooldown.checkFinished()) {
+
+                takeLaserDamageCooldown.reset();
+
+                if (!this.ship.isDestroyed()) {
+                    this.ship.destroy();
+                    this.lives--;
+                    this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
+                }
+            }
+        }
+        bossBullets.removeAll(bulletsToRemove);
+        bossLasers.removeAll(lasersToRemove);
+        */
+
+    /**
+     * Manages the boss attacks, updating their positions and checking for collisions with the player ship.
+     */
+    private void manageBossAttacks() {
+        Set<BossAttack> attacksToRemove = new HashSet<>();
+
+        for (BossAttack bossAttack : bossAttacks) {
+            bossAttack.update();
+            if (bossAttack instanceof BossBullet) {
+                BossBullet bossBullet = (BossBullet) bossAttack;
+                if (bossBullet.isOffScreen(width, height)) {
+                    attacksToRemove.add(bossAttack);
+                }
+            }
+            if (bossAttack instanceof BossLaser) {
+                BossLaser bossLaser = (BossLaser) bossAttack;
+                if (bossLaser.isRemoved()) {
+                    attacksToRemove.add(bossAttack);
+                }
+            }                
+            if (this.lives > 0 && this.checkCollision(bossAttack, this.ship) && !GameState.isInvincible()) {
+                if (!this.ship.isDestroyed()) {
+                    this.ship.destroy();
+                    this.lives--;
+                    this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
+                }
+                attacksToRemove.add(bossAttack);
+            }
+        }
+        bossAttacks.removeAll(attacksToRemove);
     }
 
     /**
@@ -1189,5 +1217,14 @@ public class GameScreen extends Screen {
         drawManager.drawCenteredText(this, "Press Q to Quit to Menu", this.width / 2, this.height / 2 + 50, 24, Color.WHITE);
 
         drawManager.completeDrawing(this);
+    }
+
+    /**
+     * Test method
+     * Sets the final boss for test.
+     * @param boss
+     */
+    public void setFinalBoss(FinalBoss boss) {
+    this.finalBoss = boss;
     }
 }
