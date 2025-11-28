@@ -150,12 +150,10 @@ public class BossAttackManager {
         Set<BossBullet> bullets = new HashSet<>();
         if (this.shootCooldown3.checkFinished()) {
             this.shootCooldown3.reset();
-         // if (!(this.getPositionX() == 0 || this.getPositionX() == 400)){
                 BossBullet bullet1 = new BossBullet(boss.getPositionX() + boss.getWidth() / 2 - 3 + 70, boss.getPositionY(), 0, 5,6,10,Color.blue);
                 BossBullet bullet2 = new BossBullet(boss.getPositionX() + boss.getWidth() / 2 - 3 - 70, boss.getPositionY(), 0, 5,6,10,Color.blue);
                 bullets.add(bullet1);
                 bullets.add(bullet2);
-         // }
         }
         return bullets;
     }
