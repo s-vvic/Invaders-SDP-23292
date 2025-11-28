@@ -11,10 +11,9 @@ import org.mockito.MockitoAnnotations;
 
 import engine.GameState;
 import engine.level.Level;
-import entity.BossBullet;
-import entity.BossLaser;
 import entity.FinalBoss;
 import entity.Ship;
+import entity.BossAttack;
 
 /**
  * Tests for finalbossManage method in GameScreen class.
@@ -39,57 +38,34 @@ class GameScreenBossTest {
         gameScreen = new GameScreen(mockGameState, mockLevel, false, 3, 800, 600, 60);
 
         injectMock(gameScreen, "finalBoss", mockFinalBoss);
-
         injectMock(gameScreen, "ship", mockShip);
-
-        injectMock(gameScreen, "bossBullets", new HashSet<BossBullet>());
-
-        injectMock(gameScreen, "bossLasers", new HashSet<BossLaser>());
+        injectMock(gameScreen, "bossAttacks", new HashSet<BossAttack>());
 
         when(mockFinalBoss.getDifficulty()).thenReturn(2);
         when(mockFinalBoss.getMaxHp()).thenReturn(90);
-        when(mockFinalBoss.shoot1()).thenReturn(new HashSet<>());
-        when(mockFinalBoss.shoot2()).thenReturn(new HashSet<>());
-        when(mockFinalBoss.shoot3()).thenReturn(new HashSet<>());
-        when(mockFinalBoss.shoot4()).thenReturn(new HashSet<>());
-        when(mockFinalBoss.laserShoot()).thenReturn(new HashSet<>());
+
+        when(mockFinalBoss.processAttacks()).thenReturn(new HashSet<>());
+        when(mockFinalBoss.shouldClearAttacks()).thenReturn(false);
     }
 
     @Test
-    @DisplayName("Boss should shoot3 in phase 1")
-    void testFinalBossShootPhase1() {
-        when(mockFinalBoss.getHealPoint()).thenReturn(90); // Phase 1 HP
+    @DisplayName("GameScreen delegates attack processing to FinalBoss")
+    void testAttackDelegation() {
+        when(mockFinalBoss.getHealPoint()).thenReturn(90);
 
         gameScreen.finalbossManage();
 
-        verify(mockFinalBoss).shoot3();
+        verify(mockFinalBoss, atLeastOnce()).processAttacks();
     }
 
-    /**
-     * Boss should start laser pattern in phase 2
-     */
     @Test
-    @DisplayName("Boss should start laser pattern in phase 2")
-    void testFinalBossShootPhase2() {
-        when(mockFinalBoss.getHealPoint()).thenReturn(45); // Phase 2 HP
-        gameScreen.finalbossManage();
+    @DisplayName("GameScreen checks if bullets should be cleared")
+    void testClearCheckDelegation() {
+        when(mockFinalBoss.shouldClearAttacks()).thenReturn(true);
+
         gameScreen.finalbossManage();
         
-        verify(mockFinalBoss).laserShoot();
-        verify(mockFinalBoss).shoot1();
-        verify(mockFinalBoss).shoot2();
-    }
-
-    /**
-     * Boss should shoot4 in phase 3
-     */
-    @Test
-    @DisplayName("Boss should shoot4 in phase 3")
-    void testFinalBossShootPhase3() {
-        when(mockFinalBoss.getHealPoint()).thenReturn(25); // Phase 3 HP
-        gameScreen.finalbossManage();
-
-        verify(mockFinalBoss).shoot4();
+        verify(mockFinalBoss).shouldClearAttacks();
     }
 
     /**
@@ -99,15 +75,15 @@ class GameScreenBossTest {
      * @param mock
      */
     private void injectMock(Object target, String fieldName, Object mock) {
-    try {
-        java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
-        
-        field.setAccessible(true); 
-        
-        field.set(target, mock);   
-        
-    } catch (Exception e) {
-        throw new RuntimeException("Mock insert failed: " + fieldName, e);
+        try {
+            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+            
+            field.setAccessible(true); 
+            
+            field.set(target, mock);   
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Mock insert failed: " + fieldName, e);
+        }
     }
-}
 }
