@@ -10,7 +10,7 @@ import engine.Core;
  * Implements a boss laser entity.
  * 
  */
-public class BossLaser extends Entity {
+public class BossLaser extends BossAttack {
     /** X_OFFSET to change position */
     private final static int X_OFFSET = 30;
     /** Y_OFFSET to change position */
