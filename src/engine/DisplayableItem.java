@@ -1,7 +1,5 @@
 package engine;
 
-import java.awt.image.BufferedImage;
-
 /**
  * An interface for any item that can be displayed on the HUD.
  * Ensures that all displayable items provide essential information for tooltips and UI rendering.

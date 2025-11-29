@@ -1,0 +1,92 @@
+name: Continuous Delivery (CD) - Artifact Staging
+
+on:
+  push:
+    branches: [ master, dev ] # ⬅️ 마스터 브랜치에 코드가 병합될 때만 CD 실행
+    paths:
+      - 'backend/**' 
+      - 'frontend/**' # ⬅️ 프론트엔드 코드 변경 시에도 CD를 실행하도록 경로 추가
+      - 'src/**'
+
+jobs:
+    # 1. 백엔드 Job (기존 Job: Docker 이미지 빌드)
+    deploy_backend: # ⬅️ Job 이름을 명확히 'deploy_backend'로 변경
+      name: Backend Image Build & Tag
+      runs-on: ubuntu-latest
+    
+      # needs: 설정을 제거(주석 처리)하여 CI 파일과의 직접적인 참조 오류를 해결합니다.
+      # needs: [build_and_test_backend_docker] 
+    
+      steps:
+        - name: Checkout Code
+          uses: actions/checkout@v4 
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3   
+        # 2. 이미지 빌드 및 태그 지정 (로컬 Runner에 저장)
+        - name: Build and Tag Final Image
+          uses: docker/build-push-action@v5
+          with:
+            context: ./backend # backend 폴더를 빌드 컨텍스트로 사용
+            file: ./backend/Dockerfile
+            push: false 
+            tags: my-backend-repo:latest, my-backend-repo:${{ github.sha }}
+
+    # ----------------------------------------------------
+    # 2. 프론트엔드 Job (새로 추가: 정적 파일 빌드 및 아티팩트 저장)
+    deploy_frontend:
+      name: Frontend Artifact Upload
+      runs-on: ubuntu-latest
+    
+      steps:
+        - name: Checkout Code
+          uses: actions/checkout@v4
+
+        # 🚨 프론트엔드 빌드 스텝 (선택 사항: 필요한 경우)
+        # React, Vue, Angular 등을 사용한다면 여기에 빌드 명령어를 추가합니다.
+        # 현재는 정적 파일이라고 가정하고 압축만 진행합니다.
+
+        - name: Archive Frontend Files
+          # tar 명령어를 사용하여 frontend 폴더 전체를 압축합니다.
+          run: tar -czf frontend-dist-${{ github.sha }}.tar.gz -C frontend .
+
+        - name: Upload Frontend Artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: frontend-dist-${{ github.sha }}
+            path: frontend-dist-${{ github.sha }}.tar.gz
+
+    # ----------------------------------------------------
+    deploy_java_backend:
+        name: Java Artifact Upload (Compiled)
+        runs-on: ubuntu-latest
+        
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v4
+
+          # 1. JDK 설정
+          - name: Set up JDK 17
+            uses: actions/setup-java@v4
+            with:
+              java-version: '17'
+              distribution: 'temurin'
+
+          # 2. 컴파일 및 .class 파일 생성
+          - name: Compile Java Code to Binaries
+            run: |
+              mkdir -p bin # 컴파일 결과 저장 폴더 생성
+              cp -r src .  # 루트의 src 폴더를 현재 작업 디렉토리로 복사
+              # 컴파일: CI와 동일하게 실행
+              javac -d bin $(find src -name "*.java")
+            
+          # 3. 컴파일된 결과물(.class 파일) 압축
+          - name: Archive Compiled Java Binaries
+            # bin 폴더의 모든 .class 파일을 압축하여 Java 아티팩트를 만듭니다.
+            run: tar -czf java-backend-binaries-${{ github.sha }}.tar.gz -C bin .
+            
+          # 4. 아티팩트 저장
+          - name: Upload Java Artifact
+            uses: actions/upload-artifact@v4
+            with:
+              name: java-backend-binaries-${{ github.sha }}
+              path: java-backend-binaries-${{ github.sha }}.tar.gz

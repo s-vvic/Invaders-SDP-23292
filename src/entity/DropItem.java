@@ -1,7 +1,6 @@
 package entity;
 
 import engine.DisplayableItem;
-import engine.DrawManager;
 import engine.ItemRarity;
 import engine.DrawManager.SpriteType;
 
