@@ -688,53 +688,76 @@ public class GameScreen extends Screen {
             }
         }
         if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
-            boolean isGameOver = this.lives == 0;
-            boolean isFinalLevelCleared = !isGameOver && this.level == new LevelManager().getNumberOfLevels();
-
-            if (isGameOver) {
-                draw();
-                Core.lastScreenCapture = drawManager.getBackBuffer();
-                this.returnCode = 99;
-            } else {
-                if (this.level == 1) {
-                    AchievementManager.getInstance().unlockAchievement("Beginner");
-                } else if (this.level == 3) {
-                    AchievementManager.getInstance().unlockAchievement("Intermediate");
-                }
-
-                if (this.currentlevel.getCompletionBonus() != null) {
-                    this.coin += this.currentlevel.getCompletionBonus().getCurrency();
-                    this.logger.info("Awarded " + this.currentlevel.getCompletionBonus().getCurrency() + " coins for level completion.");
-                }
-
-                String achievement = this.currentlevel.getAchievementTrigger();
-                if (achievement != null && !achievement.isEmpty()) {
-                    AchievementManager.getInstance().unlockAchievement(achievement);
-                    this.logger.info("Unlocked achievement: " + achievement);
-                }
-            }
-
-            AuthManager authManager = AuthManager.getInstance();
-            if (authManager.isLoggedIn()) {
-                if (isGameOver || isFinalLevelCleared) {
-                    if (isFinalLevelCleared) {
-                        AchievementManager.getInstance().unlockAchievement("Conqueror");
-                    }
-
-                    try {
-                        ApiClient.getInstance().saveScore(this.score);
-                        this.logger.info("Score " + this.score + " submitted to backend for user " + authManager.getUserId());
-                    } catch (Exception e) {
-                        this.logger.severe("Error submitting score to backend: " + e.getMessage());
-                    }
-                } else {
-                    this.logger.info("Level " + this.level + " cleared. Score will be saved at the end of the game.");
-                }
-            } else {
-                this.logger.info("User not logged in, score not submitted to backend.");
-            }
-            this.isRunning = false;
+            finishLevelOrGame();
         }
+    }
+
+    private void finishLevelOrGame() {
+        boolean isGameOver = (this.lives == 0);
+        boolean isFinalLevel = (this.level == new LevelManager().getNumberOfLevels());
+        boolean isVictory = !isGameOver && isFinalLevel;
+
+        if (isGameOver) {
+            processGameOverVisuals();
+        } else {
+            processLevelClearRewards();
+        }
+
+        processBackendSubmission(isGameOver, isVictory);
+
+        this.isRunning = false;
+    }
+    private void processGameOverVisuals() {
+        draw();
+        Core.lastScreenCapture = drawManager.getBackBuffer();
+        this.returnCode = 99;
+    }
+    private void processLevelClearRewards() {
+        if (this.level == 1) unlockAchievement("Beginner");
+        else if (this.level == 3) unlockAchievement("Intermediate");
+
+        String achievement = this.currentlevel.getAchievementTrigger();
+        if (achievement != null && !achievement.isEmpty()) {
+            unlockAchievement(achievement);
+            this.logger.info("Unlocked achievement: " + achievement);
+        }
+
+        if (this.currentlevel.getCompletionBonus() != null) {
+            int bonusCoin = this.currentlevel.getCompletionBonus().getCurrency();
+            this.coin += bonusCoin;
+            this.logger.info("Awarded " + bonusCoin + " coins for level completion.");
+        }
+    }
+
+    private void processBackendSubmission(boolean isGameOver, boolean isVictory) {
+        AuthManager authManager = AuthManager.getInstance();
+
+        if (!authManager.isLoggedIn()) {
+            this.logger.info("User not logged in, score not submitted to backend.");
+            return;
+        }
+
+        if (isGameOver || isVictory) {
+            if (isVictory) {
+                unlockAchievement("Conqueror");
+            }
+            submitScoreToBackend(authManager.getUserId());
+        } else {
+            this.logger.info("Level " + this.level + " cleared. Score will be saved at the end of the game.");
+        }
+    }
+
+    private void submitScoreToBackend(int userId) {
+        try {
+            ApiClient.getInstance().saveScore(this.score);
+            this.logger.info("Score " + this.score + " submitted to backend for user " + userId);
+        } catch (Exception e) {
+            this.logger.severe("Error submitting score to backend: " + e.getMessage());
+        }
+    }
+
+    private void unlockAchievement(String achievementId) {
+        AchievementManager.getInstance().unlockAchievement(achievementId);
     }
 
     /**
@@ -1041,57 +1064,123 @@ public class GameScreen extends Screen {
     private void updateGameLogic() {
         switch (this.currentPhase) {
             case wave:
-                if (!DropItem.isTimeFreezeActive()) {
-                    for (EnemyShipFormation formation : this.enemyFormations) {
-                        formation.update();
-                        formation.shoot(this.bullets);
-                    }
-                }
-
-
-                boolean allEmpty = true;
-                for (EnemyShipFormation formation : this.enemyFormations) {
-                    if (!formation.isEmpty()) {
-                        allEmpty = false;
-                        break;
-                    }
-                }
-
-
-                if (allEmpty) {
-                    this.currentPhase = StagePhase.boss_wave;
-                }
+                processWavePhase();
                 break;
 
             case boss_wave:
-                if (this.finalBoss == null && this.omegaBoss == null) {
-                    bossReveal();
-                    for (EnemyShipFormation formation : this.enemyFormations) {
-                        formation.clear();
-                    }
-                }
-                if (this.finalBoss != null) {
-                    finalbossManage();
-                } else if (this.omegaBoss != null) {
-                    this.omegaBoss.update();
-                    if (this.omegaBoss.isDestroyed()) {
-                        if ("omegaAndFinal".equals(this.currentlevel.getBossId())) {
-                            this.omegaBoss = null;
-                            this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height, this.ship, 3);
-                            this.logger.info("Final Boss has spawned!");
-                        } else {
-                            this.levelFinished = true;
-                            this.screenFinishedCooldown.reset();
-                        }
-                    }
-                } else {
-                    if (!this.levelFinished) {
-                        this.levelFinished = true;
-                        this.screenFinishedCooldown.reset();
-                    }
-                }
+                processBossPhase();
+                break;
+            default:
                 break;
         }
+
+        updateGlobalEntities();
+    }
+
+    /**
+     * Handles the logic during the standard enemy wave phase.
+     */
+    private void processWavePhase() {
+        if (!DropItem.isTimeFreezeActive()) {
+            updateEnemyFormations();
+        }
+
+        if (areAllFormationsEmpty()) {
+            this.currentPhase = StagePhase.boss_wave;
+            this.logger.info("Wave phase complete. Switching to Boss phase.");
+        }
+    }
+
+    /**
+     * Updates and shoots for all enemy formations.
+     */
+    private void updateEnemyFormations() {
+        for (EnemyShipFormation formation : this.enemyFormations) {
+            formation.update();
+            formation.shoot(this.bullets);
+        }
+    }
+
+    /**
+     * Checks if all enemy formations are cleared.
+     */
+    private boolean areAllFormationsEmpty() {
+        for (EnemyShipFormation formation : this.enemyFormations) {
+            if (!formation.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Handles the logic during the boss battle phase.
+     */
+    private void processBossPhase() {
+        if (this.finalBoss == null && this.omegaBoss == null) {
+            initializeBossEncounter();
+        }
+        if (this.finalBoss != null) {
+            finalbossManage();
+            if (this.finalBoss.isDestroyed()) {
+                completeLevel();
+            }
+        } else if (this.omegaBoss != null) {
+            handleOmegaBossLogic();
+        } else {
+            completeLevel();
+        }
+    }
+
+    /**
+     * Spawns the boss and cleans up previous formations.
+     */
+    private void initializeBossEncounter() {
+        bossReveal();
+        for (EnemyShipFormation formation : this.enemyFormations) {
+            formation.clear();
+        }
+    }
+
+    /**
+     * Handles specific logic for Omega Boss updates and transitions.
+     */
+    private void handleOmegaBossLogic() {
+        this.omegaBoss.update();
+
+        if (this.omegaBoss.isDestroyed()) {
+            if ("omegaAndFinal".equals(this.currentlevel.getBossId())) {
+                spawnFinalBossPhaseTwo();
+            } else {
+                this.omegaBoss = null;
+                completeLevel();
+            }
+        }
+    }
+
+    /**
+     * Spawns the Final Boss after Omega Boss is defeated (for 'omegaAndFinal' level).
+     */
+    private void spawnFinalBossPhaseTwo() {
+        this.omegaBoss = null;
+        this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height, this.ship, 3);
+        this.logger.info("Omega Boss defeated! Final Boss (Phase 2) has spawned!");
+    }
+    /**
+     * Marks the level as finished and starts the cooldown.
+     */
+    private void completeLevel() {
+        if (!this.levelFinished) {
+            this.levelFinished = true;
+            this.screenFinishedCooldown.reset();
+            this.logger.info("Level finished.");
+        }
+    }
+
+    /**
+     * Updates entities that are always active regardless of phase.
+     */
+    private void updateGlobalEntities() {
         this.ship.update();
         this.enemyShipSpecialFormation.update();
         this.chaserFormation.update(this.ship);
