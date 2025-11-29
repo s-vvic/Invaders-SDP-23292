@@ -184,6 +184,8 @@ public class GameScreen extends Screen {
      */
     private String healthPopupText;
     private Cooldown healthPopupCooldown;
+    /** A list of all entities that can collide with the player's ship. */
+    private List<Collidable> collidableEntities;
 
     /**
      * Constructor, establishes the properties of the screen.
@@ -222,6 +224,7 @@ public class GameScreen extends Screen {
         super.initialize();
         this.bossAttacks = new HashSet<>();
         this.enemyFormations = new ArrayList<>();
+        this.collidableEntities = new ArrayList<>();
 
         String formationType = "A";
         LevelEnemyFormation formationInfo = this.currentLevel.getEnemyFormation();
@@ -240,12 +243,17 @@ public class GameScreen extends Screen {
                 formation1.attach(this);
                 formation1.applyEnemyColorByLevel(this.currentLevel);
                 this.enemyFormations.add(formation1);
-
+                for (EnemyShip ship : formation1) {
+                    this.collidableEntities.add(ship);
+                }
 
                 EnemyShipFormation formation2 = new EnemyShipFormation(this.currentLevel, (2 * this.width / 3), 0, EnemyShipFormation.Direction.DOWN_LEFT);
                 formation2.attach(this);
                 formation2.applyEnemyColorByLevel(this.currentLevel);
                 this.enemyFormations.add(formation2);
+                for (EnemyShip ship : formation2) {
+                    this.collidableEntities.add(ship);
+                }
                 break;
 
             case "A":
@@ -255,6 +263,9 @@ public class GameScreen extends Screen {
                 formation.attach(this);
                 formation.applyEnemyColorByLevel(this.currentLevel);
                 this.enemyFormations.add(formation);
+                for (EnemyShip ship : formation) {
+                    this.collidableEntities.add(ship);
+                }
                 break;
         }
 
@@ -265,6 +276,10 @@ public class GameScreen extends Screen {
                 Core.getVariableCooldown(BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE),
                 Core.getCooldown(BONUS_SHIP_EXPLOSION));
         enemyShipSpecialFormation.attach(this);
+        for (EnemyShip specialShip : enemyShipSpecialFormation) {
+            this.collidableEntities.add(specialShip);
+        }
+
         this.bossExplosionCooldown = Core
                 .getCooldown(BOSS_EXPLOSION);
         this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
@@ -273,6 +288,9 @@ public class GameScreen extends Screen {
 
         this.chaserFormation = new EnemyShipChaserFormation(this.currentLevel, this.width, this.ship);
         this.chaserFormation.attach(this);
+        for (Chaser chaser : this.chaserFormation) {
+            this.collidableEntities.add(chaser);
+        }
 
         this.gameStartTime = System.currentTimeMillis();
         this.inputDelay = Core.getCooldown(INPUT_DELAY);
@@ -476,10 +494,10 @@ public class GameScreen extends Screen {
      * @param recyclable A set to add the bullet to if it should be recycled.
      */
     private void handleEnemyBulletCollision(Bullet bullet, Set<Bullet> recyclable) {
-        if (this.lives > 0 && checkCollision(bullet, this.ship) && !this.levelFinished) {
+        if (this.lives > 0 && bullet.collidesWith(this.ship) && !this.levelFinished) {
             recyclable.add(bullet);
             if (!this.ship.isInvincible() && !GameState.isInvincible()) {
-                if (!this.ship.isDestroyed()) {
+                if (!this.ship.isShipTemporarilyDestroyed()) {
                     this.ship.destroy();
                     this.lives--;
                     showHealthPopup("-1 Health");
@@ -514,7 +532,7 @@ public class GameScreen extends Screen {
     private void checkCollisionWithSpecialEnemiesAndBosses(Bullet bullet, Set<Bullet> recyclable) {
         for (EnemyShip enemyShipSpecial : this.enemyShipSpecialFormation) {
             if (enemyShipSpecial != null && !enemyShipSpecial.isDestroyed()
-                    && checkCollision(bullet, enemyShipSpecial)) {
+                    && bullet.collidesWith(enemyShipSpecial)) {
                 int pts = enemyShipSpecial.getPointValue();
                 addPoints(pts);
                 this.coin += (pts / 10);
@@ -525,7 +543,7 @@ public class GameScreen extends Screen {
         }
         if (this.omegaBoss != null
                 && !this.omegaBoss.isDestroyed()
-                && checkCollision(bullet, this.omegaBoss)) {
+                && bullet.collidesWith(this.omegaBoss)) {
             this.omegaBoss.takeDamage(2);
             if (this.omegaBoss.getHealPoint() <= 0) {
                 this.shipsDestroyed++;
@@ -539,7 +557,7 @@ public class GameScreen extends Screen {
             recyclable.add(bullet);
         }
 
-        if (this.finalBoss != null && !this.finalBoss.isDestroyed() && checkCollision(bullet, this.finalBoss)) {
+        if (this.finalBoss != null && !this.finalBoss.isDestroyed() && bullet.collidesWith(this.finalBoss)) {
             this.finalBoss.takeDamage(1);
             if (this.finalBoss.getHealPoint() <= 0) {
                 int pts = this.finalBoss.getPointValue();
@@ -551,7 +569,7 @@ public class GameScreen extends Screen {
             recyclable.add(bullet);
         }
         for (Chaser currentChaser : this.chaserFormation) {
-            if (!currentChaser.isDestroyed() && checkCollision(bullet, currentChaser)) {
+            if (!currentChaser.isDestroyed() && bullet.collidesWith(currentChaser)) {
 
                 currentChaser.takeDamage(1);
                 if (currentChaser.isDestroyed()) {
@@ -580,7 +598,7 @@ public class GameScreen extends Screen {
     private boolean checkCollisionWithNormalEnemies(Bullet bullet, Set<Bullet> recyclable) {
         for (EnemyShipFormation formation : this.enemyFormations) {
             for (EnemyShip enemyShip : formation) {
-                if (!enemyShip.isDestroyed() && checkCollision(bullet, enemyShip)) {
+                if (!enemyShip.isDestroyed() && bullet.collidesWith(enemyShip)) {
                     int pts = enemyShip.getPointValue();
                     addPoints(pts);
                     this.coin += (pts / 10);
@@ -715,82 +733,79 @@ public class GameScreen extends Screen {
     }
 
     /**
-     * Manages collisions between player ship and enemy ships.
-     * <p>
-     * Player loses a life immediately upon collision with any enemy.
+     * Manages collisions between player ship and all collidable entities.
      */
     private void manageShipEnemyCollisions() {
-        if (!this.levelFinished && this.lives > 0 && !this.ship.isDestroyed()
-                && !this.ship.isInvincible() && !GameState.isInvincible()) {
-            for (EnemyShipFormation formation : this.enemyFormations) {
-                for (EnemyShip enemyShip : formation) {
-                    if (!enemyShip.isDestroyed() && checkCollision(this.ship, enemyShip)) {
-                        formation.destroy(enemyShip);
-                        this.ship.destroy();
-                        this.lives--;
-                        showHealthPopup("-1 Life (Collision!)");
-                        this.logger.info("Ship collided with enemy! " + this.lives
-                                + " lives remaining.");
-                        return;
-                    }
-                }
-            }
-
-            for (EnemyShip enemyShipSpecial : this.enemyShipSpecialFormation) {
-                if (enemyShipSpecial != null && !enemyShipSpecial.isDestroyed()
-                        && checkCollision(this.ship, enemyShipSpecial)) {
-                    enemyShipSpecial.destroy();
-                    this.ship.destroy();
-                    this.lives--;
-                    showHealthPopup("-1 Life (Collision!)");
-                    this.logger.info("Ship collided with special enemy formation! "
-                            + this.lives + " lives remaining.");
+        if (isPlayerVulnerable()) {
+            for (Collidable entity : this.collidableEntities) {
+                Entity collidableEntity = (Entity) entity;
+                if (!collidableEntity.isDestroyed() && this.ship.collidesWith(collidableEntity)) {
+                    entity.handleCollisionWithShip(this);
+                    // Assuming one collision per frame is sufficient.
                     return;
                 }
-            }
-
-            for (Chaser currentChaser : this.chaserFormation) {
-                if (!currentChaser.isDestroyed() && checkCollision(this.ship, currentChaser)) {
-                    currentChaser.destroy();
-                    this.ship.destroy();
-                    this.lives--;
-                    showHealthPopup("-1 Life (Collision!)");
-                    this.logger.info("Ship collided with Chaser! " + this.lives + " lives remaining.");
-                    return;
-                }
-            }
-
-            if (this.omegaBoss != null && !this.omegaBoss.isDestroyed()
-                    && checkCollision(this.ship, this.omegaBoss)) {
-                this.ship.destroy();
-                this.lives--;
-                showHealthPopup("-1 Life (Boss Collision!)");
-                this.logger.info("Ship collided with omega boss! " + this.lives
-                        + " lives remaining.");
-                return;
-            }
-
-            if (this.finalBoss != null && !this.finalBoss.isDestroyed()
-                    && checkCollision(this.ship, this.finalBoss)) {
-                this.ship.destroy();
-                this.lives--;
-                showHealthPopup("-1 Life (Boss Collision!)");
-                this.logger.info("Ship collided with final boss! " + this.lives
-                        + " lives remaining.");
-                return;
             }
         }
+    }
+
+    /**
+     * Checks if the player's ship is in a state where it can be damaged.
+     * @return true if the player can take damage, false otherwise.
+     */
+    private boolean isPlayerVulnerable() {
+        return !this.levelFinished && this.lives > 0 && !this.ship.isShipTemporarilyDestroyed()
+                && !this.ship.isInvincible() && !GameState.isInvincible();
+    }
+
+    /**
+     * Handles the common logic when the player's ship is hit.
+     * @param enemyName The name of the enemy that hit the ship, for logging.
+     */
+    public void handlePlayerShipCollision(String enemyName) {
+        this.ship.destroy();
+        this.lives--;
+        showHealthPopup("-1 Life (Collision!)");
+        this.logger.info("Ship collided with " + enemyName + "! " + this.lives + " lives remaining.");
+    }
+
+    /**
+     * Finds and destroys an enemy ship within one of the regular formations.
+     * @param enemyShip The ship to destroy.
+     */
+    public void destroyEnemyInFormation(EnemyShip enemyShip) {
+        for (EnemyShipFormation formation : this.enemyFormations) {
+            // In a real implementation, EnemyShipFormation should have a more efficient way to do this.
+            // For now, we iterate. A 'contains' method would be better.
+            for (EnemyShip shipInFormation : formation) {
+                if (shipInFormation == enemyShip) {
+                    formation.destroy(enemyShip);
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * Destroys a special enemy ship.
+     * @param specialShip The special ship to destroy.
+     */
+    public void destroySpecialEnemy(EnemyShip specialShip) {
+        this.enemyShipSpecialFormation.destroy(specialShip);
     }
 
     /**
      * Manages collisions between player ship and dropped items.
      * Applies item effects when player collects them.
      */
+    /**
+     * Manages collisions between player ship and dropped items.
+     * Applies item effects when player collects them.
+     */
     private void manageItemCollisions() {
         Set<DropItem> acquiredDropItems = new HashSet<DropItem>();
-        if (!this.levelFinished && (this.lives > 0 && !this.ship.isDestroyed())) {
+        if (!this.levelFinished && (this.lives > 0 && !this.ship.isShipTemporarilyDestroyed())) {
             for (DropItem dropItem : this.dropItems) {
-                if (this.lives > 0 && !this.ship.isDestroyed() && checkCollision(this.ship, dropItem)) {
+                if (this.lives > 0 && !this.ship.isShipTemporarilyDestroyed() && this.ship.collidesWith(dropItem)) {
                     this.logger.info("Player acquired dropItem: " + dropItem.getItemType());
                     ItemHUDManager.getInstance().addActiveItem(dropItem.getItemType());
                     ItemHUDManager.getInstance().triggerFlash(dropItem.getItemType());
@@ -832,27 +847,6 @@ public class GameScreen extends Screen {
             this.dropItems.removeAll(acquiredDropItems);
             ItemPool.recycle(acquiredDropItems);
         }
-    }
-
-
-    /**
-     * Checks if two entities are colliding.
-     *
-     * @param a First entity, the bullet.
-     * @param b Second entity, the ship.
-     * @return Result of the collision test.
-     */
-    private boolean checkCollision(final Entity a, final Entity b) {
-        int centerAX = a.getPositionX() + a.getWidth() / 2;
-        int centerAY = a.getPositionY() + a.getHeight() / 2;
-        int centerBX = b.getPositionX() + b.getWidth() / 2;
-        int centerBY = b.getPositionY() + b.getHeight() / 2;
-        int maxDistanceX = a.getWidth() / 2 + b.getWidth() / 2;
-        int maxDistanceY = a.getHeight() / 2 + b.getHeight() / 2;
-        int distanceX = Math.abs(centerAX - centerBX);
-        int distanceY = Math.abs(centerAY - centerBY);
-
-        return distanceX < maxDistanceX && distanceY < maxDistanceY;
     }
 
     /**
@@ -918,15 +912,18 @@ public class GameScreen extends Screen {
         switch (bossName) {
             case "finalBoss1":
                 this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship, 1);
+                this.collidableEntities.add(this.finalBoss);
                 this.logger.info("Final Boss has spawned!");
                 break;
             case "finalBoss2":
                 this.finalBoss = new FinalBoss(this.width / 2 - 75, 80, this.width, this.height, this.ship, 2);
+                this.collidableEntities.add(this.finalBoss);
                 this.logger.info("Final Boss has spawned!");
                 break;
             case "omegaBoss":
             case "omegaAndFinal":
                 this.omegaBoss = new OmegaBoss(Color.ORANGE, ITEMS_SEPARATION_LINE_HEIGHT);
+                this.collidableEntities.add((Collidable) this.omegaBoss);
                 omegaBoss.attach(this);
                 this.logger.info("Omega Boss has spawned!");
                 break;
@@ -976,8 +973,8 @@ public class GameScreen extends Screen {
                     attacksToRemove.add(bossAttack);
                 }
             }                
-            if (this.lives > 0 && this.checkCollision(bossAttack, this.ship) && !GameState.isInvincible()) {
-                if (!this.ship.isDestroyed()) {
+            if (this.lives > 0 && bossAttack.collidesWith(this.ship) && !GameState.isInvincible()) {
+                if (!this.ship.isShipTemporarilyDestroyed()) {
                     this.ship.destroy();
                     this.lives--;
                     this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
@@ -1035,6 +1032,7 @@ public class GameScreen extends Screen {
                         if ("omegaAndFinal".equals(this.currentlevel.getBossId())) {
                             this.omegaBoss = null;
                             this.finalBoss = new FinalBoss(this.width / 2 - 50, 50, this.width, this.height, this.ship, 3);
+                            this.collidableEntities.add(this.finalBoss); // Add new FinalBoss to collidableEntities
                             this.logger.info("Final Boss has spawned!");
                         } else {
                             this.levelFinished = true;
@@ -1050,7 +1048,10 @@ public class GameScreen extends Screen {
                 break;
         }
         this.ship.update();
-        this.enemyShipSpecialFormation.update();
+        EnemyShip newSpecialEnemy = this.enemyShipSpecialFormation.update();
+        if (newSpecialEnemy != null) {
+            this.collidableEntities.add(newSpecialEnemy);
+        }
         this.chaserFormation.update(this.ship);
     }
 
@@ -1093,7 +1094,7 @@ public class GameScreen extends Screen {
 
 
 
-        if (this.lives > 0 && !this.ship.isDestroyed()) {
+        if (this.lives > 0 && !this.ship.isShipTemporarilyDestroyed()) {
 
             boolean p1Right = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_D);
             boolean p1Left = inputManager.isKeyDown(java.awt.event.KeyEvent.VK_A);

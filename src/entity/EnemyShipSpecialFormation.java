@@ -141,8 +141,9 @@ public class EnemyShipSpecialFormation implements Iterable<EnemyShip> {
 
     /**
      * Updates the position of the ships.
+     * @return A new special ship if one was created, null otherwise.
      */
-    public final void update() {
+    public final EnemyShip update() {
         // TO DO 2. Shoot feature
         if (this.shootingCooldown == null) {
             this.shootingCooldown = Core.getVariableCooldown(shootingInterval,
@@ -158,7 +159,9 @@ public class EnemyShipSpecialFormation implements Iterable<EnemyShip> {
             this.enemyShipSpecialRed = new EnemyShip(Color.RED, EnemyShip.Direction.RIGHT, 2);
             this.enemyShipSpecialCooldown.reset();
             this.logger.info("A special ship appears");
+            return this.enemyShipSpecialRed;
         }
+        return null;
     }
 
     public final void moveSpecialEnemy(EnemyShip enemyShipSpecial) {
