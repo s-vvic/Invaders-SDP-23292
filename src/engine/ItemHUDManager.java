@@ -17,7 +17,6 @@ import entity.ShopItem;
 import entity.DropItem;
 import screen.GameScreen;
 import screen.Screen;
-import engine.DisplayableItem;
 
 /**
  * Manages the display of items in the HUD, including tooltips and visual effects.

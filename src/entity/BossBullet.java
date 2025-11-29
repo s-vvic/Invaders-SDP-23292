@@ -5,7 +5,7 @@ import engine.DrawManager;
 import java.awt.*;
 
 
-public class BossBullet extends Entity{
+public class BossBullet extends BossAttack{
     /** amount of horizontal change*/
     private int dx;
     /** amount of vertical change*/
