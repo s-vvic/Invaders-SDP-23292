@@ -738,10 +738,8 @@ public class GameScreen extends Screen {
     private void manageShipEnemyCollisions() {
         if (isPlayerVulnerable()) {
             for (Collidable entity : this.collidableEntities) {
-                Entity collidableEntity = (Entity) entity;
-                if (!collidableEntity.isDestroyed() && this.ship.collidesWith(collidableEntity)) {
+                if (!entity.isDestroyed() && entity.collidesWith(this.ship)) {
                     entity.handleCollisionWithShip(this);
-                    // Assuming one collision per frame is sufficient.
                     return;
                 }
             }

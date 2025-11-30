@@ -157,8 +157,7 @@ public class Ship extends Entity {
 	@Override
 	public void destroy() {
         if (!this.isInvincible && !GameState.isInvincible()) {
-			super.destroy();
-			SoundManager.stop("sfx/impact.wav");
+            SoundManager.stop("sfx/impact.wav");
             SoundManager.play("sfx/impact.wav");
             this.destructionCooldown.reset();
         }

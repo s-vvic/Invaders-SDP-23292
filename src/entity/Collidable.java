@@ -12,4 +12,6 @@ public interface Collidable {
      * @param screen The GameScreen instance, providing context and access to game state.
      */
     void handleCollisionWithShip(GameScreen screen);
+    boolean isDestroyed();
+    boolean collidesWith(Entity other);
 }
