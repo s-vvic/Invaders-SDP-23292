@@ -18,7 +18,6 @@ public abstract class MidBoss extends Entity implements BossEntity {
 	protected int healPoint=10;
 	protected int maxHp=healPoint;
 	protected int pointValue=500;
-	protected boolean isDestroyed=false;
 	protected int pattern=1;
 	protected Screen screen;
 	protected Logger logger;
@@ -51,9 +50,6 @@ public abstract class MidBoss extends Entity implements BossEntity {
 
 	@Override
 	public int getPointValue() { return this.pointValue; }
-
-	@Override
-	public boolean isDestroyed() { return this.isDestroyed; }
 
 	/**
 	 * Associates the formation to a given screen.

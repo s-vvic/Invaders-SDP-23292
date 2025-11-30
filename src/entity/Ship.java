@@ -154,20 +154,21 @@ public class Ship extends Entity {
 	/**
 	 * Switches the ship to its destroyed state.
 	 */
-	public final void destroy() {
+	@Override
+	public void destroy() {
         if (!this.isInvincible && !GameState.isInvincible()) {
-			SoundManager.stop("sfx/impact.wav");
+            SoundManager.stop("sfx/impact.wav");
             SoundManager.play("sfx/impact.wav");
             this.destructionCooldown.reset();
         }
     }
 
 	/**
-	 * Checks if the ship is destroyed.
+	 * Checks if the ship is temporarily destroyed (recovering).
 	 * 
-	 * @return True if the ship is currently destroyed.
+	 * @return True if the ship is currently in a temporarily destroyed state.
 	 */
-	public final boolean isDestroyed() {
+	public final boolean isShipTemporarilyDestroyed() {
 		return !this.destructionCooldown.checkFinished();
 	}
 

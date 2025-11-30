@@ -6,12 +6,13 @@ import engine.Cooldown;
 import engine.Core; 
 import engine.DrawManager.SpriteType; 
 import engine.GameState;
+import screen.GameScreen;
 
 /**
  * Implements a Chaser enemy ship, which tracks the player.
  * This class extends Entity and implements its own logic.
  */
-public class Chaser extends Entity {
+public class Chaser extends Entity implements Collidable {
 
     /** Point value of a Chaser enemy. */
     private static final int CHASER_POINTS = 50; 
@@ -21,8 +22,6 @@ public class Chaser extends Entity {
     private int healPoint;
 
     private Cooldown explosionCooldown;
-    /** Checks if the ship has been hit by a bullet. */
-    private boolean isDestroyed;
     /** Values of the ship, in points, when destroyed. */
     private int pointValue;
 
@@ -48,8 +47,6 @@ public class Chaser extends Entity {
             this.healPoint = 10*level; 
         }
 
-    
-        this.isDestroyed = false;
         this.explosionCooldown = Core.getCooldown(500); 
     }
 
@@ -99,10 +96,10 @@ public class Chaser extends Entity {
         }
     }
 
-    
-    public final void destroy() {
+    @Override
+    public void destroy() {
         if (!this.isDestroyed) {
-            this.isDestroyed = true;
+            super.destroy();
             this.spriteType = SpriteType.Explosion; 
             this.explosionCooldown.reset();
         }
@@ -113,12 +110,13 @@ public class Chaser extends Entity {
         return this.pointValue;
     }
 
-  
-    public final boolean isDestroyed() {
-        return this.isDestroyed;
-    }
-
     public final boolean isExplosionFinished() {
         return this.isDestroyed && this.explosionCooldown.checkFinished();
+    }
+
+    @Override
+    public void handleCollisionWithShip(GameScreen screen) {
+        this.destroy();
+        screen.handlePlayerShipCollision("Chaser");
     }
 }
