@@ -1,4 +1,5 @@
 const { getDb } = require('../db');
+const userService = require('../services/userService');
 
 const getAllUsers = async (req, res) => {
     const db = getDb();
@@ -37,7 +38,6 @@ const getUserById = async (req, res) => {
 };
 
 const getUserStats = async (req, res) => {
-    const db = getDb();
     try {
         const userId = parseInt(req.params.id, 10);
 
@@ -45,60 +45,16 @@ const getUserStats = async (req, res) => {
             return res.status(400).json({ error: 'Invalid user ID' });
         }
 
-        // 사용자 존재 확인
-        const user = await db.get('SELECT id, max_score FROM users WHERE id = ?', [userId]);
-        if (!user) {
+        const stats = await userService.getUserStats(userId);
+
+        if (!stats) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // 총 게임 수
-        const totalGamesResult = await db.get(
-            'SELECT COUNT(*) as count FROM scores WHERE user_id = ?',
-            [userId]
-        );
-        const totalGames = totalGamesResult ? totalGamesResult.count : 0;
-
-        // 평균 점수
-        const avgScoreResult = await db.get(
-            'SELECT AVG(score) as avg FROM scores WHERE user_id = ?',
-            [userId]
-        );
-        const averageScore = avgScoreResult && avgScoreResult.avg ? Math.round(avgScoreResult.avg) : 0;
-
-        // 순위 계산 (max_score 기준)
-        const rankResult = await db.get(`
-            SELECT COUNT(*) + 1 as rank
-            FROM users
-            WHERE max_score > ?
-        `, [user.max_score]);
-        const rank = rankResult ? rankResult.rank : 1;
-
-        // 전체 사용자 수
-        const totalUsersResult = await db.get('SELECT COUNT(*) as count FROM users');
-        const rankOutOf = totalUsersResult ? totalUsersResult.count : 1;
-
-        // 최근 게임 기록 (최근 10개)
-        const recentGames = await db.all(`
-            SELECT score, created_at
-            FROM scores
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT 10
-        `, [userId]);
-
-        res.json({
-            totalGames,
-            averageScore,
-            rank,
-            rankOutOf,
-            recentGames: recentGames.map(game => ({
-                score: game.score,
-                created_at: game.created_at
-            }))
-        });
+        res.json(stats);
 
     } catch (error) {
-        console.error('Database error while fetching user stats:', error);
+        console.error('Error fetching user stats:', error); // Log general error
         res.status(500).json({ error: 'Server database error' });
     }
 };
@@ -146,18 +102,24 @@ const getUserAchievements = async (req, res) => {
 };
 
 const unlockAchievement = async (req, res) => {
-    const db = getDb();
     try {
         const userIdFromParams = parseInt(req.params.id, 10);
         const userIdFromToken = req.user.id;
 
+        if (isNaN(userIdFromParams)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        // 사용자 존재 확인은 서비스에서 한 번 더 하지만, 컨트롤러에서 기본적인 사용자 ID 유효성 검사 후 권한 체크를 위해 user 객체는 가져오지 않아도 됨.
+        // 하지만 테스트 편의성을 위해 404를 먼저 보내야 하는 경우를 대비해 여기서 먼저 체크하는 것이 좋음.
+        const user = await getDb().get('SELECT id FROM users WHERE id = ?', [userIdFromParams]);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
         // Authorization check
         if (userIdFromParams !== userIdFromToken) {
             return res.status(403).json({ error: 'Forbidden: You can only update your own achievements.' });
-        }
-
-        if (isNaN(userIdFromParams)) {
-            return res.status(400).json({ error: 'Invalid user ID' });
         }
 
         const { achievement_name } = req.body;
@@ -166,44 +128,16 @@ const unlockAchievement = async (req, res) => {
             return res.status(400).json({ error: 'Achievement name is required' });
         }
 
-        // 사용자 존재 확인
-        const user = await db.get('SELECT id FROM users WHERE id = ?', [userIdFromParams]);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+        const result = await userService.unlockAchievement(userIdFromParams, achievement_name);
+
+        if (result.status === 404) {
+            return res.status(404).json({ error: result.message });
+        } else if (result.status === 200) {
+            res.status(200).json({ message: result.message });
+        } else {
+            // Default to 500 if the service returns an unexpected status
+            res.status(result.status || 500).json({ error: result.message || 'Server error unlocking achievement' });
         }
-
-        // Achievement 존재 확인
-        const achievement = await db.get(
-            'SELECT id FROM achievements WHERE name = ?',
-            [achievement_name]
-        );
-
-        if (!achievement) {
-            return res.status(404).json({ error: 'Achievement not found' });
-        }
-
-        // 이미 해제되었는지 확인
-        const existing = await db.get(
-            'SELECT id FROM user_achievements WHERE user_id = ? AND achievement_id = ?',
-            [userIdFromParams, achievement.id]
-        );
-
-        if (existing) {
-            return res.status(200).json({ message: 'Achievement already unlocked' });
-        }
-
-        // 한국 시간대(UTC+9)로 현재 시간 저장
-        const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-        // Achievement 해제
-        await db.run(
-            'INSERT INTO user_achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)',
-            [userIdFromParams, achievement.id, dateString]
-        );
-
-        console.log(`Achievement "${achievement_name}" unlocked for user ${userIdFromParams}`);
-
-        res.json({ message: 'Achievement unlocked successfully' });
 
     } catch (error) {
         console.error('Error unlocking achievement:', error);
@@ -212,7 +146,6 @@ const unlockAchievement = async (req, res) => {
 };
 
 const updateScore = async (req, res) => {
-    const db = getDb();
     try {
         const userIdFromParams = parseInt(req.params.id, 10);
         const userIdFromToken = req.user.id;
@@ -228,34 +161,15 @@ const updateScore = async (req, res) => {
             return res.status(400).json({ error: 'Invalid user ID or score' });
         }
 
-        const user = await db.get('SELECT max_score FROM users WHERE id = ?', [userIdFromParams]);
+        const result = await userService.updateUserScore(userIdFromParams, score);
 
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        let responseMessage = '';
-        let newMaxScore = user.max_score;
-
-        if (score > user.max_score) {
-            await db.run('UPDATE users SET max_score = ? WHERE id = ?', [score, userIdFromParams]);
-            responseMessage = 'High score updated successfully';
-            newMaxScore = score;
+        if (result.status === 404) {
+            return res.status(404).json({ error: result.message });
+        } else if (result.status === 200) {
+            res.json({ message: result.message, new_max_score: result.new_max_score });
         } else {
-            responseMessage = 'Score is not higher than the current high score';
+            res.status(500).json({ error: result.message || 'Server error updating score' });
         }
-
-        // scores 테이블에 현재 점수 기록
-        const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        
-        await db.run(
-            'INSERT INTO scores (user_id, score, created_at) VALUES (?, ?, ?)',
-            [userIdFromParams, score, dateString]
-        );
-        
-        console.log(`Logged score ${score} for user ${userIdFromParams}`);
-
-        res.json({ message: responseMessage, new_max_score: newMaxScore });
 
     } catch (error) {
         console.error('Error updating/logging score:', error);

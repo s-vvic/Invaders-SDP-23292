@@ -180,8 +180,199 @@ describe('PUT /api/users/:id/score', () => {
         expect(response.body.error).toBe('Forbidden: You can only update your own score.');
 
         // 5. Clean up the created user
+        // 5. Clean up the created user
         await db.run('DELETE FROM users WHERE id = ?', [otherUserId]);
     });
 });
+
+describe('GET /api/users/:id/stats', () => {
+    let token;
+
+    beforeEach(async () => {
+        // Ensure the test user has some scores
+        await db.run('DELETE FROM scores WHERE user_id = ?', [testUser.id]); // Clean up previous scores
+        await db.run('INSERT INTO scores (user_id, score, created_at) VALUES (?, ?, ?)', [testUser.id, 50, new Date().toISOString().slice(0, 19).replace('T', ' ')]);
+        await db.run('INSERT INTO scores (user_id, score, created_at) VALUES (?, ?, ?)', [testUser.id, 100, new Date().toISOString().slice(0, 19).replace('T', ' ')]);
+        
+        // Ensure testUser max_score is updated
+        await db.run('UPDATE users SET max_score = 100 WHERE id = ?', [testUser.id]);
+
+        const loginResponse = await request(app)
+            .post('/api/auth/login')
+            .send({ username: TEST_USERNAME, password: TEST_PASSWORD });
+        token = loginResponse.body.token;
+    });
+
+    test('should fetch user stats successfully', async () => {
+        const response = await request(app)
+            .get(`/api/users/${testUser.id}/stats`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.headers['content-type']).toMatch(/json/);
+        expect(response.body).toHaveProperty('totalGames');
+        expect(response.body).toHaveProperty('averageScore');
+        expect(response.body).toHaveProperty('rank');
+        expect(response.body).toHaveProperty('rankOutOf');
+        expect(response.body).toHaveProperty('recentGames');
+        expect(response.body.totalGames).toBe(2);
+        expect(response.body.averageScore).toBe(75); // (50+100)/2
+        expect(Array.isArray(response.body.recentGames)).toBe(true);
+    });
+
+    test('should return 404 for a non-existent user', async () => {
+        const response = await request(app)
+            .get('/api/users/9999/stats')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.statusCode).toBe(404);
+        expect(response.body.error).toBe('User not found');
+    });
+
+    test('should return 400 for an invalid user ID', async () => {
+        const response = await request(app)
+            .get('/api/users/abc/stats')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe('Invalid user ID');
+    });
+});
+
+describe('POST /api/users/:id/achievements', () => {
+    let token;
+    const TEST_ACHIEVEMENT_NAME = 'First Blood';
+    let testAchievementId;
+
+    beforeAll(async () => {
+        // Ensure a dummy achievement exists for testing
+        let existingAchievement = await db.get('SELECT id FROM achievements WHERE name = ?', [TEST_ACHIEVEMENT_NAME]);
+        if (!existingAchievement) {
+            await db.run('INSERT INTO achievements (name, description) VALUES (?, ?)', [TEST_ACHIEVEMENT_NAME, 'Unlock your first achievement']);
+            existingAchievement = await db.get('SELECT id FROM achievements WHERE name = ?', [TEST_ACHIEVEMENT_NAME]);
+        }
+        testAchievementId = existingAchievement.id;
+    });
+
+    beforeEach(async () => {
+        // Clean up user achievements before each test
+        await db.run('DELETE FROM user_achievements WHERE user_id = ? AND achievement_id = ?', [testUser.id, testAchievementId]);
+
+        const loginResponse = await request(app)
+            .post('/api/auth/login')
+            .send({ username: TEST_USERNAME, password: TEST_PASSWORD });
+        token = loginResponse.body.token;
+    });
+
+    afterAll(async () => {
+        // Clean up the dummy achievement
+        await db.run('DELETE FROM achievements WHERE name = ?', [TEST_ACHIEVEMENT_NAME]);
+    });
+
+    test('should unlock achievement successfully', async () => {
+        const response = await request(app)
+            .post(`/api/users/${testUser.id}/achievements`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ achievement_name: TEST_ACHIEVEMENT_NAME });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.message).toBe('Achievement unlocked successfully');
+
+        // Verify achievement is recorded in DB
+        const unlocked = await db.get('SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?', [testUser.id, testAchievementId]);
+        expect(unlocked).toBeDefined();
+    });
+
+    test('should return 200 if achievement is already unlocked', async () => {
+        // Unlock it first
+        await db.run('INSERT INTO user_achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)', [testUser.id, testAchievementId, new Date().toISOString().slice(0, 19).replace('T', ' ')]);
+
+        const response = await request(app)
+            .post(`/api/users/${testUser.id}/achievements`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ achievement_name: TEST_ACHIEVEMENT_NAME });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.message).toBe('Achievement already unlocked');
+    });
+
+    test('should return 404 for a non-existent achievement', async () => {
+        const response = await request(app)
+            .post(`/api/users/${testUser.id}/achievements`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ achievement_name: 'NonExistentAchievement' });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.body.error).toBe('Achievement not found');
+    });
+
+    test('should return 400 for missing achievement_name', async () => {
+        const response = await request(app)
+            .post(`/api/users/${testUser.id}/achievements`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({});
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe('Achievement name is required');
+    });
+
+    test('should return 400 for invalid achievement_name type', async () => {
+        const response = await request(app)
+            .post(`/api/users/${testUser.id}/achievements`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ achievement_name: 123 });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe('Achievement name is required'); // The current controller returns this error
+    });
+
+    test('should return 403 if a user tries to unlock an achievement for another user', async () => {
+        // 1. Create another user for this test
+        const otherUserPassword = 'password123';
+        const hashedOtherUserPassword = await bcrypt.hash(otherUserPassword, 10);
+        const result = await db.run('INSERT INTO users (username, password) VALUES (?, ?)', ['otherUser2', hashedOtherUserPassword]);
+        const otherUserId = result.lastID;
+
+        // 2. Log in as the primary testUser to get a valid token
+        const loginResponse = await request(app)
+            .post('/api/auth/login')
+            .send({ username: TEST_USERNAME, password: TEST_PASSWORD });
+        const primaryUserToken = loginResponse.body.token;
+
+        // 3. Use testUser's token to try to unlock achievement for otherUser
+        const response = await request(app)
+            .post(`/api/users/${otherUserId}/achievements`)
+            .set('Authorization', `Bearer ${primaryUserToken}`)
+            .send({ achievement_name: TEST_ACHIEVEMENT_NAME });
+
+        // 4. Assert that the request is forbidden
+        expect(response.statusCode).toBe(403);
+        expect(response.body.error).toBe('Forbidden: You can only update your own achievements.');
+
+        // 5. Clean up the created user
+        await db.run('DELETE FROM users WHERE id = ?', [otherUserId]);
+    });
+
+    test('should return 404 for a non-existent user when unlocking achievement', async () => {
+        const response = await request(app)
+            .post('/api/users/9999/achievements')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ achievement_name: TEST_ACHIEVEMENT_NAME });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.body.error).toBe('User not found');
+    });
+
+    test('should return 400 for an invalid user ID when unlocking achievement', async () => {
+        const response = await request(app)
+            .post('/api/users/abc/achievements')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ achievement_name: TEST_ACHIEVEMENT_NAME });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe('Invalid user ID');
+    });
+});
+
 
 
