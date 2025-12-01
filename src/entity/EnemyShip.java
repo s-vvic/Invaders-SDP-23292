@@ -14,7 +14,7 @@ import engine.GameState;
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  * 
  */
-public class EnemyShip extends Entity {
+public class EnemyShip extends Entity implements Collidable {
 	
 	/** Point value of a type A enemy. */
 	private static final int A_TYPE_POINTS = 10;
@@ -29,8 +29,6 @@ public class EnemyShip extends Entity {
 	private Cooldown animationCooldown;
     /** Cooldown between explosions. */
     private Cooldown explosionCooldown;
-	/** Checks if the ship has been hit by a bullet. */
-	private boolean isDestroyed;
 	/** Values of the ship, in points, when destroyed. */
 	private int pointValue;
 
@@ -67,7 +65,6 @@ public class EnemyShip extends Entity {
 		this.spriteType = spriteType;
 		this.animationCooldown = Core.getCooldown(500);
         this.explosionCooldown = Core.getCooldown(500);
-		this.isDestroyed = false;
 
 		switch (this.spriteType) {
 		case EnemyShipA1:
@@ -98,7 +95,6 @@ public class EnemyShip extends Entity {
 		this.direction = direction;
 		this.X_SPEED = x_speed;
 		this.spriteType = SpriteType.EnemyShipSpecial;
-		this.isDestroyed = false;
 		this.pointValue = BONUS_TYPE_POINTS;
         this.explosionCooldown = Core.getCooldown(500);
 	}
@@ -160,10 +156,10 @@ public class EnemyShip extends Entity {
 	/**
 	 * Destroys the ship, causing an explosion.
 	 */
-	
-	public final void destroy() {
+	@Override
+	public void destroy() {
         if (!this.isDestroyed) {
-            this.isDestroyed = true;
+			super.destroy();
             this.spriteType = SpriteType.Explosion;
 			if(GameState.isDecreaseEnemyPower()){
 				SoundManager.stop("sfx/meow.wav");
@@ -175,15 +171,6 @@ public class EnemyShip extends Entity {
 			}			
             this.explosionCooldown.reset();
         }
-	}
-
-	/**
-	 * Checks if the ship has been destroyed.
-	 * 
-	 * @return True if the ship has been destroyed.
-	 */
-	public final boolean isDestroyed() {
-		return this.isDestroyed;
 	}
 
 	public final Direction getDirection() {
@@ -224,6 +211,18 @@ public class EnemyShip extends Entity {
 				return "enemyC";
 			default:
 				return null;
+		}
+	}
+
+	@Override
+	public void handleCollisionWithShip(screen.GameScreen screen) {
+		if (this.spriteType == SpriteType.EnemyShipSpecial) {
+			screen.destroySpecialEnemy(this);
+			screen.handlePlayerShipCollision("Special Enemy");
+		} else {
+			screen.destroyEnemyInFormation(this);
+			String enemyType = this.getEnemyType() != null ? this.getEnemyType() : "Formation Enemy";
+			screen.handlePlayerShipCollision(enemyType);
 		}
 	}
 }

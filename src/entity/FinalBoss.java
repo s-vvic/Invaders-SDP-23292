@@ -9,7 +9,9 @@ import engine.Core;
 import engine.DrawManager;
 import engine.GameState;
 
-public class FinalBoss extends Entity implements BossEntity {
+import screen.GameScreen;
+
+public class FinalBoss extends Entity implements BossEntity, Collidable {
 
     /** Current health points of the final boss */
     private int healPoint;
@@ -17,8 +19,6 @@ public class FinalBoss extends Entity implements BossEntity {
     private int maxHp;
     /** Score value awarded when the final boss is destroyed */
     private final int pointValue;
-    /** Flag indicating whether the final boss has been destroyed */
-    private boolean isDestroyed;
     /** Distance between normal state position and Power-up state position*/
     public final static int OFFSET = 30;
     /** Normal width */
@@ -78,7 +78,6 @@ public class FinalBoss extends Entity implements BossEntity {
         this.maxHp = healPoint;
         this.pointValue = 1000;
         this.spriteType = DrawManager.SpriteType.FinalBoss1;
-        this.isDestroyed = false;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
 
@@ -244,19 +243,18 @@ public class FinalBoss extends Entity implements BossEntity {
     @Override
     public void destroy(){
         if(!this.isDestroyed){
+            super.destroy();
             this.spriteType = DrawManager.SpriteType.FinalBossDeath;
-            this.isDestroyed = true;
         }
-    }
-
-    /** check final boss' destroy */
-    @Override
-    public boolean isDestroyed(){
-        return this.isDestroyed;
     }
 
     @Override
     public void draw(DrawManager drawManager) {
         drawManager.drawEntity(this, this.positionX, this.positionY);
     }
+
+	@Override
+	public void handleCollisionWithShip(GameScreen screen) {
+		screen.handlePlayerShipCollision("Final Boss");
+	}
 }
