@@ -75,7 +75,6 @@ jobs:
           - name: Compile Java Code to Binaries
             run: |
               mkdir -p bin # 컴파일 결과 저장 폴더 생성
-              cp -r src .  # 루트의 src 폴더를 현재 작업 디렉토리로 복사
               # 컴파일: CI와 동일하게 실행
               javac -d bin $(find src -name "*.java")
             
