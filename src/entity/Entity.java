@@ -24,6 +24,8 @@ public class Entity {
 	protected Color color;
 	/** Sprite type assigned to the entity. */
 	protected SpriteType spriteType;
+	/** Checks if the entity has been destroyed. */
+	protected boolean isDestroyed;
 
 	/**
 	 * Constructor, establishes the entity's generic properties.
@@ -46,6 +48,7 @@ public class Entity {
 		this.width = width;
 		this.height = height;
 		this.color = color;
+		this.isDestroyed = false;
 	}
 
 	/**
@@ -150,5 +153,40 @@ public class Entity {
 	 */
 	public final void setHeight(final int height) {
 		this.height = height;
+	}
+
+	/**
+	 * Checks if the entity has been destroyed.
+	 * 
+	 * @return True if the ship has been destroyed.
+	 */
+	public final boolean isDestroyed() {
+		return this.isDestroyed;
+	}
+
+	/**
+	 * Destroys the entity, setting the isDestroyed flag.
+	 */
+	public void destroy() {
+		this.isDestroyed = true;
+	}
+
+	/**
+	 * Checks if the current entity is colliding with another entity.
+	 *
+	 * @param other The other entity to check for collision against.
+	 * @return true if the entities are colliding, false otherwise.
+	 */
+	public final boolean collidesWith(final Entity other) {
+		int centerAX = this.positionX + this.width / 2;
+		int centerAY = this.positionY + this.height / 2;
+		int centerBX = other.positionX + other.width / 2;
+		int centerBY = other.positionY + other.height / 2;
+		int maxDistanceX = this.width / 2 + other.width / 2;
+		int maxDistanceY = this.height / 2 + other.height / 2;
+		int distanceX = Math.abs(centerAX - centerBX);
+		int distanceY = Math.abs(centerAY - centerBY);
+
+		return distanceX < maxDistanceX && distanceY < maxDistanceY;
 	}
 }

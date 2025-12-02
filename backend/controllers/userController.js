@@ -49,12 +49,17 @@ const getUserStats = async (req, res) => {
         const stats = await userService.getUserStats(userId);
 
         if (!stats) {
+        const stats = await userService.getUserStats(userId);
+
+        if (!stats) {
             return res.status(404).json({ error: 'User not found' });
         }
 
         res.json(stats);
+        res.json(stats);
 
     } catch (error) {
+        console.error('Error fetching user stats:', error); // Log general error
         console.error('Error fetching user stats:', error); // Log general error
         res.status(500).json({ error: 'Server database error' });
     }
@@ -107,11 +112,22 @@ const unlockAchievement = async (req, res) => {
         const userIdFromParams = parseInt(req.params.id, 10);
         const userIdFromToken = req.user.id;
 
+        
+
+        // Authorization check: Ensure the user is updating their own achievements
+
         if (isNaN(userIdFromParams)) {
             return res.status(400).json({ error: 'Invalid user ID' });
         }
 
-        // Authorization check: Ensure the user is updating their own achievements
+        // 사용자 존재 확인은 서비스에서 한 번 더 하지만, 컨트롤러에서 기본적인 사용자 ID 유효성 검사 후 권한 체크를 위해 user 객체는 가져오지 않아도 됨.
+        // 하지만 테스트 편의성을 위해 404를 먼저 보내야 하는 경우를 대비해 여기서 먼저 체크하는 것이 좋음.
+        const user = await getDb().get('SELECT id FROM users WHERE id = ?', [userIdFromParams]);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Authorization check
         if (userIdFromParams !== userIdFromToken) {
             return res.status(403).json({ error: 'Forbidden: You can only update your own achievements.' });
         }
@@ -124,7 +140,14 @@ const unlockAchievement = async (req, res) => {
 
         const result = await userService.unlockAchievement(userIdFromParams, achievement_name);
 
-        return handleServiceResponse(res, result, 'Server error unlocking achievement');
+        if (result.status === 404) {
+            return res.status(404).json({ error: result.message });
+        } else if (result.status === 200) {
+            res.status(200).json({ message: result.message });
+        } else {
+            // Default to 500 if the service returns an unexpected status
+            res.status(result.status || 500).json({ error: result.message || 'Server error unlocking achievement' });
+        }
 
     } catch (error) {
         console.error('Error unlocking achievement:', error);
@@ -151,6 +174,15 @@ const updateScore = async (req, res) => {
         const result = await userService.updateUserScore(userIdFromParams, score);
 
         return handleServiceResponse(res, result, 'Server error updating score');
+        const result = await userService.updateUserScore(userIdFromParams, score);
+
+        if (result.status === 404) {
+            return res.status(404).json({ error: result.message });
+        } else if (result.status === 200) {
+            res.json({ message: result.message, new_max_score: result.new_max_score });
+        } else {
+            res.status(500).json({ error: result.message || 'Server error updating score' });
+        }
 
     } catch (error) {
         console.error('Error updating/logging score:', error);

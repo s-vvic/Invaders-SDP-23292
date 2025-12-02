@@ -9,7 +9,12 @@ import engine.GameState;
 /**
  * Omega - Middle Boss
  */
-public class OmegaBoss extends MidBoss {
+import screen.GameScreen;
+
+/**
+ * Omega - Middle Boss
+ */
+public class OmegaBoss extends MidBoss implements Collidable {
 
 	/** Initial position in the x-axis. */
 	private static final int INIT_POS_X = 224;
@@ -128,7 +133,7 @@ public class OmegaBoss extends MidBoss {
 	/** Marks the entity as destroyed and changes its sprite to an explosion. */
 	@Override
 	public void destroy() {
-		this.isDestroyed = true;
+		super.destroy();
 		this.spriteType = DrawManager.SpriteType.OmegaBossDeath;
 		this.logger.info("OMEGA : Boss OMEGA destroyed!");
 	}
@@ -165,5 +170,10 @@ public class OmegaBoss extends MidBoss {
 	@Override
 	public void draw(DrawManager drawManager) {
 		drawManager.drawEntity(this, this.positionX, this.positionY);
+	}
+
+	@Override
+	public void handleCollisionWithShip(GameScreen screen) {
+		screen.handlePlayerShipCollision("Omega Boss");
 	}
 }

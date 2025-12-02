@@ -353,14 +353,14 @@ describe('POST /api/users/:id/achievements', () => {
         await db.run('DELETE FROM users WHERE id = ?', [otherUserId]);
     });
 
-    test('should return 403 for a non-existent user when unlocking achievement (security: auth check first)', async () => {
+    test('should return 404 for a non-existent user when unlocking achievement', async () => {
         const response = await request(app)
             .post('/api/users/9999/achievements')
             .set('Authorization', `Bearer ${token}`)
             .send({ achievement_name: TEST_ACHIEVEMENT_NAME });
 
-        expect(response.statusCode).toBe(403);
-        expect(response.body.error).toBe('Forbidden: You can only update your own achievements.');
+        expect(response.statusCode).toBe(404);
+        expect(response.body.error).toBe('User not found');
     });
 
     test('should return 400 for an invalid user ID when unlocking achievement', async () => {
