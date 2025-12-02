@@ -1,5 +1,6 @@
 package screen;
 
+import java.awt.Color;
 import java.awt.event.KeyEvent;
 
 /**
@@ -55,6 +56,9 @@ public class WebpageScreen extends Screen {
     private void draw() {
         // Init drawing with a black background.
         drawManager.initDrawing(this);
+
+        // Set text color to green.
+        drawManager.getBackBufferGraphics().setColor(Color.GREEN);
 
         // Draw the prompt message in the center of the screen.
         drawManager.drawCenteredRegularString(this, "Web page opened in browser", this.getHeight() / 2 - 20);
