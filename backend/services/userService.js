@@ -60,7 +60,7 @@ async function unlockAchievement(userId, achievementName) {
         return { status: 404, message: 'User not found' };
     }
 
-    // Achievement 존재 확인
+    // Check if achievement exists
     const achievement = await db.get(
         'SELECT id FROM achievements WHERE name = ?',
         [achievementName]
@@ -70,7 +70,7 @@ async function unlockAchievement(userId, achievementName) {
         return { status: 404, message: 'Achievement not found' };
     }
 
-    // 이미 해제되었는지 확인
+    // Check if already unlocked
     const existing = await db.get(
         'SELECT id FROM user_achievements WHERE user_id = ? AND achievement_id = ?',
         [userId, achievement.id]
@@ -80,10 +80,10 @@ async function unlockAchievement(userId, achievementName) {
         return { status: 200, message: 'Achievement already unlocked' };
     }
 
-    // 한국 시간대(UTC+9)로 현재 시간 저장
+    // Save current time in Korean timezone (UTC+9)
     const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-    // Achievement 해제
+    // Unlock achievement
     await db.run(
         'INSERT INTO user_achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)',
         [userId, achievement.id, dateString]
@@ -114,7 +114,7 @@ async function updateUserScore(userId, newScore) {
         responseMessage = 'Score is not higher than the current high score';
     }
 
-    // scores 테이블에 현재 점수 기록
+    // Record current score in scores table
     const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
     
     await db.run(

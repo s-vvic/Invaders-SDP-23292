@@ -3,8 +3,7 @@ const { getDb } = require('../db');
 const getAllScores = async (req, res) => {
     const db = getDb();
     try {
-        // scores 테이블과 users 테이블을 JOIN 하여
-        // 유저이름, 점수, 생성일자를 점수 내림차순으로 100개 가져옵니다.
+        // Join scores and users tables to get username, score, and created_at, ordered by score descending, limit 100.
         const scores = await db.all(`
             SELECT u.username, s.score, s.created_at 
             FROM scores s 
@@ -22,7 +21,7 @@ const getAllScores = async (req, res) => {
 const getWeeklyScores = async (req, res) => {
     const db = getDb();
     try {
-        // 지난 7일간의 점수를 가져옵니다
+        // Get scores from the last 7 days
         const scores = await db.all(`
             SELECT u.username, s.score, s.created_at 
             FROM scores s
@@ -41,7 +40,7 @@ const getWeeklyScores = async (req, res) => {
 const getYearlyScores = async (req, res) => {
     const db = getDb();
     try {
-        // 지난 1년간의 점수를 가져옵니다
+        // Get scores from the last 1 year
         const scores = await db.all(`
             SELECT u.username, s.score, s.created_at 
             FROM scores s
