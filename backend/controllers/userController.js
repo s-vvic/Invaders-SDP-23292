@@ -49,13 +49,9 @@ const getUserStats = async (req, res) => {
         const stats = await userService.getUserStats(userId);
 
         if (!stats) {
-        const stats = await userService.getUserStats(userId);
-
-        if (!stats) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        res.json(stats);
         res.json(stats);
 
     } catch (error) {
@@ -171,9 +167,9 @@ const updateScore = async (req, res) => {
             return res.status(400).json({ error: 'Invalid user ID or score' });
         }
 
-        const result = await userService.updateUserScore(userIdFromParams, score);
+        
 
-        return handleServiceResponse(res, result, 'Server error updating score');
+        
         const result = await userService.updateUserScore(userIdFromParams, score);
 
         if (result.status === 404) {
@@ -188,6 +184,7 @@ const updateScore = async (req, res) => {
         console.error('Error updating/logging score:', error);
         res.status(500).json({ error: 'Server database error' });
     }
+    return handleServiceResponse(res, result, 'Server error updating score');
 };
 
 
