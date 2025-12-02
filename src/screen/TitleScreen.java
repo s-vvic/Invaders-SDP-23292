@@ -324,7 +324,7 @@ if (this.returnCode == 7) { // Web Dashboard
 	/**
 	 * Updates the elements on screen and checks for events.
 	 */
-	protected final void update() {
+	public final void update() {
 		super.update();
 
 		// Smoothly animate the rotation angle
@@ -339,35 +339,10 @@ if (this.returnCode == 7) { // Web Dashboard
 		float globalSpeedMultiplier = speedManager.updateAndGetGlobalSpeedMultiplier();
 
 		// Animate stars
-		for (Star star : this.stars) {
-			celestialManager.update(star.getCelestialBody(), speedManager, originManager, this.getWidth(), this.getHeight(), globalSpeedMultiplier);
-			
-			// Update brightness for twinkling effect (this is star-specific)
-			star.brightness = 0.5f + (float) (Math.sin(star.brightnessOffset + System.currentTimeMillis() / 500.0) + 1.0) / 4.0f;
-		}
+		updateStarAnimation(globalSpeedMultiplier);
 
 		// Animate background enemies
-		for (Entity entity : this.backgroundEnemies) {
-			BackgroundEnemy enemy = (BackgroundEnemy) entity;
-			celestialManager.update(enemy.getCelestialBody(), speedManager, originManager, this.getWidth(), this.getHeight(), globalSpeedMultiplier);
-			
-			// Update enemy entity position for the renderer
-			CelestialBody body = enemy.getCelestialBody();
-			enemy.setPositionX((int)body.current_screen_x);
-			enemy.setPositionY((int)body.current_screen_y);
-		}
-
-		/* // Animate nebulas
-		for (Nebula nebula : this.nebulas) {
-			nebula.z -= nebula.speed;
-			// Reset nebula if it gets too close
-			if (nebula.z < -200) { // A bit arbitrary, lets them pass the screen
-				nebula.z = MAX_STAR_Z + random.nextFloat() * MAX_STAR_Z;
-				nebula.x = random.nextFloat() * this.getWidth();
-				nebula.y = random.nextFloat() * this.getHeight();
-			}
-		}
-		*/
+		updateBackgroundEnemies(globalSpeedMultiplier);
 
 		// Spawn and move background enemies
 		if (this.enemySpawnCooldown.checkFinished()) {
@@ -390,6 +365,55 @@ if (this.returnCode == 7) { // Web Dashboard
 
 
 
+		updateShootingStars();
+
+		handleSoundButtonColor();
+
+		draw();
+		handleInput();
+	}
+
+	private void updateStarAnimation(float globalSpeedMultiplier) {
+		for (Star star : this.stars) {
+			celestialManager.update(star.getCelestialBody(), speedManager, originManager, this.getWidth(), this.getHeight(), globalSpeedMultiplier);
+			
+			// Update brightness for twinkling effect (this is star-specific)
+			star.brightness = 0.5f + (float) (Math.sin(star.brightnessOffset + System.currentTimeMillis() / 500.0) + 1.0) / 4.0f;
+		}
+	}
+
+	private void updateBackgroundEnemies(float globalSpeedMultiplier) {
+		for (Entity entity : this.backgroundEnemies) {
+			BackgroundEnemy enemy = (BackgroundEnemy) entity;
+			celestialManager.update(enemy.getCelestialBody(), speedManager, originManager, this.getWidth(), this.getHeight(), globalSpeedMultiplier);
+			
+			// Update enemy entity position for the renderer
+			CelestialBody body = enemy.getCelestialBody();
+			enemy.setPositionX((int)body.current_screen_x);
+			enemy.setPositionY((int)body.current_screen_y);
+		}
+
+		// Spawn and move background enemies
+		if (this.enemySpawnCooldown.checkFinished()) {
+			this.enemySpawnCooldown.reset();
+			if (Math.random() < ENEMY_SPAWN_CHANCE) {
+				SpriteType[] enemyTypes = { SpriteType.EnemyShipA1, SpriteType.EnemyShipB1, SpriteType.EnemyShipC1 };
+				SpriteType randomEnemyType = enemyTypes[random.nextInt(enemyTypes.length)];
+				
+				// Spawn enemies like stars
+				float speed = (float) (Math.random() * 2.5 + 2.0);
+				float z = MAX_STAR_Z;
+				float spread_multiplier = 1.5f;
+				float initial_screen_x_offset = (random.nextFloat() - 0.5f) * (this.getWidth() * spread_multiplier);
+				float initial_screen_y_offset = (random.nextFloat() - 0.5f) * (this.getHeight() * spread_multiplier);
+
+				CelestialBody celestialBody = new CelestialBody(z, initial_screen_x_offset, initial_screen_y_offset, speed);
+				this.backgroundEnemies.add(new BackgroundEnemy(celestialBody, randomEnemyType));
+			}
+		}
+	}
+
+	private void updateShootingStars() {
 		// Spawn and move shooting stars
         if (this.shootingStarCooldown.checkFinished()) {
             this.shootingStarCooldown.reset();
@@ -410,8 +434,9 @@ if (this.returnCode == 7) { // Web Dashboard
                 shootingStarIterator.remove();
             }
         }
+	}
 
-		// Handle sound button color
+	private void handleSoundButtonColor() {
 		if (this.returnCode == 5) {
             float pulse = (float) ((Math.sin(System.currentTimeMillis() / 200.0) + 1.0) / 2.0);
             Color pulseColor = new Color(0, 0.5f + pulse * 0.5f, 0);
@@ -419,8 +444,9 @@ if (this.returnCode == 7) { // Web Dashboard
         } else {
             this.soundButton.setColor(Color.WHITE);
         }
+	}
 
-		draw();
+	private void handleInput() {
 		if (this.selectionCooldown.checkFinished() && this.inputDelay.checkFinished()) {
 			for (Map.Entry<Integer, Runnable> entry : this.keyHandlers.entrySet()) {
 				if (inputManager.isKeyDown(entry.getKey())) {
@@ -430,6 +456,18 @@ if (this.returnCode == 7) { // Web Dashboard
 				}
 			}
 		}
+	}
+
+	public void setReturnCode(int returnCode) {
+		this.returnCode = returnCode;
+	}
+
+	public int getReturnCode() {
+		return this.returnCode;
+	}
+
+	public boolean getIsRunning() {
+		return this.isRunning;
 	}
 
 	/**
