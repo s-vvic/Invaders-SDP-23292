@@ -3,11 +3,9 @@ package screen;
 import engine.Cooldown;
 import engine.GameState;
 import engine.level.Level;
-import entity.Collidable;
-import entity.EnemyShip;
-import entity.EnemyShipFormation;
-import entity.Ship;
+import entity.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -17,87 +15,144 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set; // Import Set for bullets if needed
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import engine.DrawManager.SpriteType;
 
 class GameScreenCollisionTest {
 
-    private GameScreen gameScreen;
     private GameState gameState;
     @Mock private Level mockLevel;
 
-    private final int WIDTH = 448;
-    private final int HEIGHT = 520;
-    private final int FPS = 60;
-    private final int INITIAL_LIVES = 3;
-    
+    private static final int WIDTH = 448;
+    private static final int HEIGHT = 520;
+    private static final int FPS = 60;
+    private static final int INITIAL_LIVES = 3;
+
     @BeforeEach
-    void setUp() throws NoSuchFieldException, IllegalAccessException {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        // Setup mock Level for constructors
         when(mockLevel.getFormationWidth()).thenReturn(1);
         when(mockLevel.getFormationHeight()).thenReturn(1);
         when(mockLevel.getBaseSpeed()).thenReturn(1);
         when(mockLevel.getShootingFrecuency()).thenReturn(1);
-        when(mockLevel.getEnemyFormation()).thenReturn(null); // Keep default formation logic
+        when(mockLevel.getEnemyFormation()).thenReturn(null);
         when(mockLevel.getItemDrops()).thenReturn(new ArrayList<>());
         when(mockLevel.getLevelName()).thenReturn("Test Level");
 
         gameState = new GameState(1, 0, INITIAL_LIVES, 0, 0, 0);
-        gameScreen = new GameScreen(gameState, mockLevel, false, INITIAL_LIVES, WIDTH, HEIGHT, FPS);
+    }
+
+    @Test
+    @DisplayName("Collision with Regular Enemy A")
+    void testCollisionWithEnemyA() throws Exception {
+        EnemyShip enemy = new EnemyShip(0, 0, SpriteType.EnemyShipA1);
+        performCollisionTest(enemy);
+    }
+
+    @Test
+    @DisplayName("Collision with Regular Enemy B")
+    void testCollisionWithEnemyB() throws Exception {
+        EnemyShip enemy = new EnemyShip(0, 0, SpriteType.EnemyShipB1);
+        performCollisionTest(enemy);
+    }
+
+    @Test
+    @DisplayName("Collision with Regular Enemy C")
+    void testCollisionWithEnemyC() throws Exception {
+        EnemyShip enemy = new EnemyShip(0, 0, SpriteType.EnemyShipC1);
+        performCollisionTest(enemy);
+    }
+
+    @Test
+    @DisplayName("Collision with Special Enemy")
+    void testCollisionWithSpecialEnemy() throws Exception {
+        EnemyShip enemy = new EnemyShip(Color.PINK, EnemyShip.Direction.RIGHT, 1);
+        performCollisionTest(enemy);
+    }
+
+    @Test
+    @DisplayName("Collision with Chaser")
+    void testCollisionWithChaser() throws Exception {
+        Chaser enemy = new Chaser(0, 0, null, 1);
+        performCollisionTest(enemy);
+    }
+
+    @Test
+    @DisplayName("Collision with OmegaBoss")
+    void testCollisionWithOmegaBoss() throws Exception {
+        OmegaBoss enemy = new OmegaBoss(Color.ORANGE, 500);
+        performCollisionTest(enemy);
+    }
+
+    @Test
+    @DisplayName("Collision with FinalBoss")
+    void testCollisionWithFinalBoss() throws Exception {
+        FinalBoss enemy = new FinalBoss(0, 0, WIDTH, HEIGHT, null, 1);
+        performCollisionTest(enemy);
+    }
+
+    /**
+     * Helper method to perform the actual collision test logic for a given enemy.
+     * @param enemyToCollide The enemy to test collision with.
+     */
+    private void performCollisionTest(Collidable enemyToCollide) throws Exception {
+        // Given: A fresh GameScreen for each enemy type to ensure test isolation
+        GameScreen gameScreen = new GameScreen(gameState, mockLevel, false, INITIAL_LIVES, WIDTH, HEIGHT, FPS);
         gameScreen.initialize();
 
-        // Get the ship for positioning the enemy
         Ship ship = gameScreen.getShip();
-        EnemyShip enemyToCollide = new EnemyShip(ship.getPositionX(), ship.getPositionY(), SpriteType.EnemyShipA1);
+        int initialLives = gameState.getLivesRemaining();
 
-        // Use reflection to access the private collidableEntities list from GameScreen
+        // Use reflection to get and clear the list of collidable entities
         Field collidableEntitiesField = GameScreen.class.getDeclaredField("collidableEntities");
         collidableEntitiesField.setAccessible(true);
         List<Collidable> collidableEntities = (List<Collidable>) collidableEntitiesField.get(gameScreen);
 
-        // Directly add the colliding enemy to the collidableEntities list
-        collidableEntities.add(enemyToCollide);
-    }
+        collidableEntities.clear();
 
-    @Test
-    void testShipCollidesWithEnemy() {
-        // Given
-        int initialLives = gameState.getLivesRemaining();
-        Ship ship = gameScreen.getShip();
-        
-        // Ensure ship is not destroyed or invincible at the start
-        assertEquals(false, ship.isDestroyed(), "Ship should not be destroyed initially");
-        assertEquals(false, ship.isInvincible(), "Ship should not be invincible initially");
-
-        // When
-        // manageCollisions is private, so we call update() which calls manageCollisions()
-        // Or we use reflection to call manageCollisions()
-        try {
-            Field inputDelayField = Screen.class.getDeclaredField("inputDelay");
-            inputDelayField.setAccessible(true);
-            Cooldown inputDelay = (Cooldown) inputDelayField.get(gameScreen);
-            // Fast-forward the input delay to enable game logic
-            while (!inputDelay.checkFinished()) {
-                Thread.sleep(100);
-            }
-
-            Method collisionsMethod = GameScreen.class.getDeclaredMethod("manageCollisions");
-            collisionsMethod.setAccessible(true);
-            collisionsMethod.invoke(gameScreen);
-        } catch (Exception e) {
-            e.printStackTrace();
+        // Position the enemy at the same location as the ship for a guaranteed collision
+        if (enemyToCollide instanceof Entity) {
+            Entity enemyEntity = (Entity) enemyToCollide;
+            enemyEntity.setPositionX(ship.getPositionX());
+            enemyEntity.setPositionY(ship.getPositionY());
         }
 
-        // Then
-        // 1. Check if ship lives decreased
-        assertEquals(initialLives - 1, gameScreen.getGameState().getLivesRemaining(), "Ship lives should decrease by 1 after collision");
-        // 2. Check if the ship is now destroyed (temporarily in original logic)
-        assertEquals(true, ship.isDestroyed(), "Ship should be destroyed after collision");
+        // Handle specific enemy setup if needed
+        if (enemyToCollide instanceof Chaser) {
+            // Target isn't needed for collision, but good practice to be aware of it.
+        } else if (enemyToCollide instanceof OmegaBoss) {
+            ((OmegaBoss) enemyToCollide).attach(gameScreen);
+        }
+
+        collidableEntities.add(enemyToCollide);
+
+        // Ensure ship is in a vulnerable state before the test
+        assertEquals(false, ship.isDestroyed(), "Ship should not be destroyed initially");
+        assertEquals(false, ship.isInvincible(), "Ship should not be invincible initially");
+        assertEquals(false, ship.isShipTemporarilyDestroyed(), "Ship should not be temporarily destroyed initially");
+
+        // When: Fast-forward the input delay and invoke the collision logic
+        Field inputDelayField = Screen.class.getDeclaredField("inputDelay");
+        inputDelayField.setAccessible(true);
+        Cooldown inputDelay = (Cooldown) inputDelayField.get(gameScreen);
+        Field nextMillisField = Cooldown.class.getDeclaredField("time");
+        nextMillisField.setAccessible(true);
+        nextMillisField.set(inputDelay, 0L);
+
+        Method collisionsMethod = GameScreen.class.getDeclaredMethod("manageCollisions");
+        collisionsMethod.setAccessible(true);
+        collisionsMethod.invoke(gameScreen);
+
+        // Then: Verify the consequences of the collision
+        assertEquals(initialLives - 1, gameScreen.getGameState().getLivesRemaining(),
+                "Ship lives should decrease by 1 after collision with " + enemyToCollide.getClass().getSimpleName());
+
+        assertTrue(ship.isShipTemporarilyDestroyed(),
+                "Ship should be temporarily destroyed after collision with " + enemyToCollide.getClass().getSimpleName());
     }
 }
