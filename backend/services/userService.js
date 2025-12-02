@@ -80,8 +80,8 @@ async function unlockAchievement(userId, achievementName) {
         return { status: 200, message: 'Achievement already unlocked' };
     }
 
-// Save the current time in UTC
-const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    // Save the current time in UTC
+    const dateString = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     // Achievement 해제
     await db.run(

@@ -1,5 +1,6 @@
 const { getDb } = require('../db');
 const userService = require('../services/userService');
+const { handleServiceResponse } = require('../utils/responseHelper');
 
 const getAllUsers = async (req, res) => {
     const db = getDb();
@@ -55,6 +56,7 @@ const getUserStats = async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching user stats:', error); // Log general error
+        console.error('Error fetching user stats:', error); // Log general error
         res.status(500).json({ error: 'Server database error' });
     }
 };
@@ -68,13 +70,13 @@ const getUserAchievements = async (req, res) => {
             return res.status(400).json({ error: 'Invalid user ID' });
         }
 
-        // 사용자 존재 확인
+        // Check if user exists
         const user = await db.get('SELECT id FROM users WHERE id = ?', [userId]);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // 모든 achievements와 사용자의 해제 상태 조회
+        // Retrieve all achievements and the user's unlock status
         const achievements = await db.all(`
             SELECT 
                 a.id,
@@ -105,6 +107,10 @@ const unlockAchievement = async (req, res) => {
     try {
         const userIdFromParams = parseInt(req.params.id, 10);
         const userIdFromToken = req.user.id;
+
+        
+
+        // Authorization check: Ensure the user is updating their own achievements
 
         if (isNaN(userIdFromParams)) {
             return res.status(400).json({ error: 'Invalid user ID' });
@@ -161,6 +167,9 @@ const updateScore = async (req, res) => {
             return res.status(400).json({ error: 'Invalid user ID or score' });
         }
 
+        
+
+        
         const result = await userService.updateUserScore(userIdFromParams, score);
 
         if (result.status === 404) {
@@ -175,6 +184,7 @@ const updateScore = async (req, res) => {
         console.error('Error updating/logging score:', error);
         res.status(500).json({ error: 'Server database error' });
     }
+    return handleServiceResponse(res, result, 'Server error updating score');
 };
 
 

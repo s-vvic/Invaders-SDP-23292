@@ -88,7 +88,7 @@ const register = async (req, res) => {
     }
 };
 
-// 1. 디바이스 코드 생성 컨트롤러
+// 1. Controller to initiate device code generation
 const initiateDeviceAuth = (req, res) => {
     try {
         const codeData = deviceStore.generateDeviceCode();
@@ -103,7 +103,7 @@ const initiateDeviceAuth = (req, res) => {
     }
 };
 
-// 2. 토큰 폴링 컨트롤러
+// 2. Controller for polling token status
 const getDeviceToken = (req, res) => {
     const { deviceCode } = req.body;
     const info = deviceStore.getCodeInfo(deviceCode);
@@ -129,7 +129,7 @@ const getDeviceToken = (req, res) => {
     }
 };
 
-// 3. 웹에서 코드로 로그인하는 컨트롤러 (비로그인 사용자)
+// 3. Controller for logging in via web using code (non-logged-in user)
 const loginWithDevice = async (req, res) => {
     try {
         const { userCode, username, password } = req.body;
@@ -169,7 +169,7 @@ const loginWithDevice = async (req, res) => {
     }
 };
 
-// 4. 웹에서 코드로 연결하는 컨트롤러 (로그인 사용자)
+// 4. Controller for connecting device via web using code (logged-in user)
 const connectDevice = (req, res) => {
     try {
         const { userCode } = req.body;
@@ -194,7 +194,7 @@ const connectDevice = (req, res) => {
 
 // --- New Session Confirmation Flow Controllers ---
 
-// 1. 세션 확인 시작 API
+// 1. API to initiate session confirmation
 const initiateSessionConfirmation = (req, res) => {
     try {
         const userToken = req.headers.authorization.split(' ')[1];
@@ -213,7 +213,7 @@ const initiateSessionConfirmation = (req, res) => {
     }
 };
 
-// 2. 세션 확인 완료 API
+// 2. API to complete session confirmation
 const confirmSession = (req, res) => {
     try {
         const { confirmationCode } = req.body;
@@ -239,7 +239,7 @@ const confirmSession = (req, res) => {
     }
 };
 
-// 3. 세션 상태 폴링 API
+// 3. API to poll session status
 const getSessionStatus = (req, res) => {
     const { confirmationCode } = req.body;
     const info = deviceStore.getConfirmationCodeInfo(confirmationCode);
@@ -257,7 +257,7 @@ const getSessionStatus = (req, res) => {
     res.json({ status: info.status, username: info.user.username });
 };
 
-// 4. 세션 취소 API
+// 4. API to cancel session
 const cancelSession = (req, res) => {
     try {
         const { confirmationCode } = req.body;
